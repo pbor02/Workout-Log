@@ -53,7 +53,7 @@ const T = {
   bg:"#0c0c0e", surface:"#16161a", surface2:"#1e1e24", surface3:"#28282f",
   border:"#2a2a32", border2:"#35353f",
   text:"#e8e6e3", sub:"#8a8a94", dim:"#55555f",
-  accent:"#e8922f", accentDim:"#e8922f20", accentLight:"#e8922f0a",
+  accent:"#dc2626", accentDim:"#dc262620", accentLight:"#dc26260a",
   green:"#3dd68c", greenBg:"#3dd68c15", yellow:"#e8c840", yellowBg:"#e8c84018",
   red:"#ef4444", redBg:"#ef444418",
   font:"'Geist','SF Pro Display',-apple-system,sans-serif",
@@ -410,7 +410,7 @@ export default function WorkoutLog() {
     <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
     <div className="app-wrap" style={{minHeight:"100vh",maxWidth:540,margin:"0 auto",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column"}}>
       <style>{css}</style>
-      {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.accent,color:"#000",padding:"10px 28px",borderRadius:100,fontSize:13,fontWeight:700,zIndex:200,animation:"slideIn .25s",boxShadow:"0 4px 20px #e8922f40",fontFamily:T.font}}>{toast}</div>}
+      {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.accent,color:"#fff",padding:"10px 28px",borderRadius:100,fontSize:13,fontWeight:700,zIndex:200,animation:"slideIn .25s",boxShadow:"0 4px 20px #dc262640",fontFamily:T.font}}>{toast}</div>}
 
       {showFinishModal && <FinishModal energy={finishEnergy} setEnergy={setFinishEnergy} sleep={finishSleep} setSleep={setFinishSleep} bodyweight={finishWeight} setBodyweight={setFinishWeight} notes={finishNotes} setNotes={setFinishNotes} onConfirm={()=>finishWorkout({energy:finishEnergy,sleep:finishSleep,bodyweight:finishWeight,notes:finishNotes})} onSkip={()=>finishWorkout({})} onCancel={()=>setShowFinishModal(false)} />}
 
@@ -456,7 +456,7 @@ export default function WorkoutLog() {
         </div>
         <div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 20px 12px",overflowX:"auto"}}>
           {DAYS.map(d=>{const sel=d===day,tod=d===today,rest=(getWorkout(d).exercises||[]).length===0; return (
-            <button key={d} onClick={()=>switchDay(d)} style={{position:"relative",background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:T.border}`,color:sel?"#000":rest?T.dim:T.sub,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:sel?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>
+            <button key={d} onClick={()=>switchDay(d)} style={{position:"relative",background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:T.border}`,color:sel?"#fff":rest?T.dim:T.sub,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:sel?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>
               {d.slice(0,3)}{tod&&<span style={{position:"absolute",top:-3,right:-3,width:6,height:6,background:T.green,borderRadius:"50%",border:`2px solid ${sel?T.accent:T.surface}`}} />}
             </button>);
           })}
@@ -491,7 +491,7 @@ export default function WorkoutLog() {
             {/* Progress */}
             <div style={{padding:"12px 20px",borderBottom:`1px solid ${T.border}`,background:T.surface}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.dim,marginBottom:6,fontWeight:500}}><span>Progress</span><span>{doneCount}/{allExercises.length}</span></div>
-              <div style={{height:4,background:T.surface3,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${allExercises.length>0?(doneCount/allExercises.length*100):0}%`,background:`linear-gradient(90deg, ${T.accent}, #e8844a)`,transition:"width .4s ease",borderRadius:3,boxShadow:"0 0 8px #e8922f40"}} /></div>
+              <div style={{height:4,background:T.surface3,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${allExercises.length>0?(doneCount/allExercises.length*100):0}%`,background:`linear-gradient(90deg, ${T.accent}, #ef4444)`,transition:"width .4s ease",borderRadius:3,boxShadow:"0 0 8px #dc262640"}} /></div>
             </div>
 
             {/* Exercises */}
@@ -514,7 +514,7 @@ export default function WorkoutLog() {
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
                         {!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();toggleDone(ex.name);}} style={{width:20,height:20,borderRadius:6,border:`1.5px solid ${isDone?T.green:T.border2}`,background:isDone?T.green:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>{isDone&&<span style={{fontSize:12,color:"#fff",lineHeight:1}}>✓</span>}</button>}
                         {reordering&&<div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}><button onClick={()=>moveExercise(exIdx,-1)} disabled={exIdx===0} style={{background:"none",border:"none",color:exIdx===0?T.border:T.sub,fontSize:13,cursor:exIdx===0?"default":"pointer",padding:0,lineHeight:1}}>▲</button><button onClick={()=>moveExercise(exIdx,1)} disabled={exIdx===allExercises.length-1} style={{background:"none",border:"none",color:exIdx===allExercises.length-1?T.border:T.sub,fontSize:13,cursor:exIdx===allExercises.length-1?"default":"pointer",padding:0,lineHeight:1}}>▼</button></div>}
-                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accent,color:"#000",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:14,fontWeight:500,color:isCustom?T.yellow:T.text,lineHeight:1.3}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
+                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accent,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:14,fontWeight:500,color:isCustom?T.yellow:T.text,lineHeight:1.3}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
                       </div>
                       {!reordering&&<>
                         <div style={{paddingLeft:30,display:"flex",alignItems:"center",gap:8,marginBottom:exSets.length>0?10:0}}>
@@ -593,7 +593,7 @@ export default function WorkoutLog() {
 
             {totalSets>0&&!reordering&&(
               <div style={{padding:20,borderTop:`1px solid ${T.border}`,background:T.surface}}>
-                <button onClick={()=>{setShowFinishModal(true);setFinishEnergy(0);setFinishSleep(0);setFinishWeight("");setFinishNotes("");}} style={{width:"100%",padding:16,background:`linear-gradient(135deg, ${T.accent}, #b83a10)`,color:"#000",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #e8922f40"}}>Finish & Analyze</button>
+                <button onClick={()=>{setShowFinishModal(true);setFinishEnergy(0);setFinishSleep(0);setFinishWeight("");setFinishNotes("");}} style={{width:"100%",padding:16,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish & Analyze</button>
                 <div style={{display:"flex",justifyContent:"center",marginTop:10}}><button onClick={clearToday} style={{background:"none",border:"none",color:T.dim,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Clear all</button></div>
               </div>
             )}
@@ -626,7 +626,7 @@ export default function WorkoutLog() {
                 <div style={{marginBottom:6}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Label</div><input type="text" value={editLabel} onChange={function(e){setEditLabel(e.target.value);}} placeholder="e.g. PUSH A" style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"9px 12px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none"}} /></div>
                 <div style={{marginBottom:10}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Description</div><input type="text" value={editSub} onChange={function(e){setEditSub(e.target.value);}} placeholder="e.g. Chest, Shoulders, Triceps" style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"9px 12px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none"}} /></div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={function(){saveDayMeta(day,editLabel,editSub);}} style={{flex:1,padding:"9px",background:T.accent,color:"#000",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                  <button onClick={function(){saveDayMeta(day,editLabel,editSub);}} style={{flex:1,padding:"9px",background:T.accent,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                   <button onClick={function(){setEditingMeta(false);}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                 </div>
               </div>
@@ -647,7 +647,7 @@ export default function WorkoutLog() {
                     <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={editExReps} onChange={function(e){setEditExReps(e.target.value);}} style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    <button onClick={function(){updateTemplateExercise(day,i,editExName,editExSets,editExReps);}} style={{flex:1,padding:"9px",background:T.accent,color:"#000",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                    <button onClick={function(){updateTemplateExercise(day,i,editExName,editExSets,editExReps);}} style={{flex:1,padding:"9px",background:T.accent,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                     <button onClick={function(){setEditExIdx(null);}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
@@ -688,7 +688,7 @@ function HistoryView({history, onDelete, onClearAll}) {
       <div style={{display:"flex",margin:"0 20px 14px",border:`1.5px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
         {[["sessions","Sessions"],["weekly","Weekly Vol"]].map(([v,l])=>(<button key={v} onClick={()=>setHv(v)} style={{flex:1,padding:"9px 0",background:hv===v?T.accent:T.surface,color:hv===v?"#fff":T.sub,border:"none",fontSize:12,fontWeight:hv===v?600:400,cursor:"pointer",fontFamily:T.font}}>{l}</button>))}
       </div>
-      {hv==="weekly"&&<div style={{padding:"0 20px"}}>{weekly.map((wk,i)=>(<div key={wk.key} style={{marginBottom:16}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.sub,marginBottom:6}}><span>{wk.label}</span><span>{wk.sessions} sessions · {wk.sets} sets</span></div><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,height:22,background:T.surface2,borderRadius:6,overflow:"hidden"}}><div style={{height:"100%",width:`${(wk.volume/maxVol)*100}%`,background:`linear-gradient(90deg, ${T.accent}, #e8844a)`,borderRadius:6}} /></div><span style={{fontSize:13,fontWeight:600,color:T.text,minWidth:60,textAlign:"right"}}>{(wk.volume/1000).toFixed(1)}k</span></div></div>))}</div>}
+      {hv==="weekly"&&<div style={{padding:"0 20px"}}>{weekly.map((wk,i)=>(<div key={wk.key} style={{marginBottom:16}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.sub,marginBottom:6}}><span>{wk.label}</span><span>{wk.sessions} sessions · {wk.sets} sets</span></div><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,height:22,background:T.surface2,borderRadius:6,overflow:"hidden"}}><div style={{height:"100%",width:`${(wk.volume/maxVol)*100}%`,background:`linear-gradient(90deg, ${T.accent}, #ef4444)`,borderRadius:6}} /></div><span style={{fontSize:13,fontWeight:600,color:T.text,minWidth:60,textAlign:"right"}}>{(wk.volume/1000).toFixed(1)}k</span></div></div>))}</div>}
       {hv==="sessions"&&(<>
         {histEntries.map((entry,idx)=>{const isOpen=expanded===idx;const ts=Object.values(entry.sets||{}).reduce((a,b)=>a+b.length,0);const tv=Object.values(entry.sets||{}).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);return(<div key={entry.key} style={{borderBottom:`1px solid ${T.border}`}}>
           <div onClick={()=>setExpanded(isOpen?null:idx)} style={{padding:"16px 20px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",background:isOpen?T.accentLight:T.surface}}>
@@ -730,7 +730,7 @@ function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,n
         <div style={{marginBottom:22}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><span style={{fontSize:12,color:T.sub,fontWeight:500}}>Sleep Quality</span>{sleep>0&&<span style={{fontSize:12,color:T.green,fontWeight:600}}>{labels[sleep]}</span>}</div><div style={{display:"flex",gap:8}}>{[1,2,3,4,5].map(v=>rb(v,sleep,setSleep,T.green))}</div></div>
         <div style={{marginBottom:16}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Bodyweight (lb) — optional</div><input type="number" inputMode="decimal" step="0.1" value={bodyweight} onChange={e=>setBodyweight(e.target.value)} placeholder="e.g. 210" style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:16,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
         <div style={{marginBottom:24}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Notes — optional</div><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Felt strong, shoulder tight, etc." rows={2} style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:14,fontFamily:T.font,outline:"none",resize:"vertical"}} /></div>
-        <button onClick={onConfirm} style={{width:"100%",padding:14,background:`linear-gradient(135deg, ${T.accent}, #b83a10)`,color:"#000",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:8}}>Save & Send to Claude</button>
+        <button onClick={onConfirm} style={{width:"100%",padding:14,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:8}}>Save & Send to Claude</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={onSkip} style={{flex:1,padding:12,background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:10,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Skip check-in</button>
           <button onClick={onCancel} style={{flex:1,padding:12,background:"transparent",border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
