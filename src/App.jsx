@@ -330,6 +330,9 @@ export default function WorkoutLog() {
 
   async function sendToSheets(entry){if(!sheetsUrl)return;setSheetsSyncStatus("sending");try{const r=await fetch(sheetsUrl,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(entry)});const d=await r.json();setSheetsSyncStatus(d.status==="ok"?"ok":"error");}catch(e){setSheetsSyncStatus("error");}}
 
+  async function deleteFromSheets(date,day){if(!sheetsUrl)return;try{await fetch(sheetsUrl+"?action=delete&date="+encodeURIComponent(date)+"&day="+encodeURIComponent(day));}catch(e){}}
+  async function clearAllFromSheets(){if(!sheetsUrl)return;try{await fetch(sheetsUrl+"?action=clearall");}catch(e){}}
+
   async function syncFromSheets(){
     if(!sheetsUrl)return;
     try{
@@ -344,10 +347,14 @@ export default function WorkoutLog() {
           var key=s.key||s.date+"-"+s.day;
           if(!merged[key]){merged[key]=s;added++;}
         }
-        if(added>0){setHistory(merged);await store.set("iron-history",merged);showToast(added+" session"+(added>1?"s":"")+" synced from Sheets");}
-      }
-    }catch(e){}
+        if(added>0){setHistory(merged);await store.set("iron-history",merged);showToast(added+" session"+(added>1?"s":"")+" synced");}
+        else{showToast("Already in sync");}
+      }else{showToast("Nothing to sync");}
+    }catch(e){showToast("Sync failed");}
   }
+
+  const[syncing,setSyncing]=useState(false);
+  async function manualSync(){setSyncing(true);await syncFromSheets();setSyncing(false);}
 
   useEffect(function(){if(!loading&&sheetsUrl){setTimeout(syncFromSheets,2000);}},[loading]);
 
@@ -361,10 +368,13 @@ export default function WorkoutLog() {
   async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{})]); showToast("Cleared");}
 
   async function deleteHistoryEntry(key) {
+    const entry = history[key];
     const u = {...history}; delete u[key]; setHistory(u); await store.set("iron-history", u); showToast("Deleted");
+    if(entry) deleteFromSheets(entry.date, entry.day);
   }
   async function clearAllHistory() {
     setHistory({}); await store.set("iron-history", {}); showToast("History cleared");
+    clearAllFromSheets();
   }
 
   const w=getWorkout(),isRest=w.exercises.length===0&&customExercises.length===0,allExercises=getAllExercises();
@@ -414,8 +424,9 @@ export default function WorkoutLog() {
             <div style={{fontSize:22,fontWeight:800,color:T.text,lineHeight:1,letterSpacing:-0.5}}>Workout Log</div>
             <div style={{fontSize:12,color:T.dim,marginTop:4,fontWeight:400}}>{day} · {dateLabel()}</div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
             {totalSets>0&&view==="log"&&<div style={{textAlign:"right"}}><div style={{fontSize:28,fontWeight:700,color:T.accent,lineHeight:1}}>{totalSets}</div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginTop:2}}>sets</div></div>}
+            <button onClick={manualSync} disabled={syncing} style={{background:syncing?T.accentDim:"transparent",border:"1.5px solid "+(syncing?T.accent:T.border),color:syncing?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:syncing?"default":"pointer",fontSize:14,flexShrink:0,animation:syncing?"pulse 1s infinite":"none"}}>↻</button>
             <button onClick={()=>{setView(view==="edit"?"log":"edit");setClaudeOpened(false);setLogText("");setReordering(false);setEditExIdx(null);setEditingMeta(false);}} style={{background:view==="edit"?T.accentDim:"transparent",border:"1.5px solid "+(view==="edit"?T.accent:T.border),color:view==="edit"?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,flexShrink:0}}>⚙</button>
           </div>
         </div>
