@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Iron Log">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+<title>Iron Log</title>
+<style>
+  html, body { margin:0; padding:0; background:#f5f5f0; overflow-x:hidden; -webkit-text-size-adjust:100%; }
+</style>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const DAYS = [“Monday”,“Tuesday”,“Wednesday”,“Thursday”,“Friday”,“Saturday”,“Sunday”];
+
+const DEFAULT_WORKOUTS = {
+Monday: { label:“PUSH”, sub:“Chest · Front & Side Delts · Triceps”, exercises:[
+{name:“Cable Single-Arm Front Raise”,        sets:3, reps:“12-15”},
+{name:“Cable Single-Arm Lateral Raise”,      sets:4, reps:“13-15”},
+{name:“Machine Chest Press”,                 sets:3, reps:“10-14”},
+{name:“Machine Shoulder Press”,              sets:3, reps:“10-14”},
+{name:“Cable Crossover low-to-high”,         sets:3, reps:“12-15”},
+{name:“Cable Tricep Pushdown — rope”,        sets:3, reps:“12-15”},
+{name:“EZ Bar Pushdown”,                     sets:3, reps:“10-14”},
+{name:“Pec Deck — Rear Delt”,               sets:3, reps:“13-15”},
+{name:“Lateral Raise Machine (HOME)”,        sets:3, reps:“15-20”},
+]},
+Tuesday: { label:“PULL”, sub:“Back · Rear Delts · Biceps”, exercises:[
+{name:“Cable Single-Arm Rear Delt Pull”,     sets:3, reps:“13-15”},
+{name:“Lat Pulldown”,                        sets:4, reps:“8-12”},
+{name:“Seated Cable Row”,                    sets:3, reps:“10-12”},
+{name:“Single-Arm Cable Row”,                sets:3, reps:“10-12”},
+{name:“Pec Deck — Rear Delt”,               sets:4, reps:“12-15”},
+{name:“Preacher Curl Machine”,               sets:3, reps:“10-13”},
+{name:“Cable Curl — single arm”,             sets:3, reps:“11-14”},
+{name:“Cable Hammer Curl (rope)”,            sets:3, reps:“12-15”},
+]},
+Wednesday: { label:“REST”, sub:“Active recovery · walk · stretch”, exercises:[] },
+Thursday: { label:“ARMS & SHOULDERS”, sub:“Biceps · Triceps · All 3 Delt Heads”, exercises:[
+{name:“Cable Lateral Raise — single arm”,    sets:4, reps:“13-15”},
+{name:“Preacher Curl Machine”,               sets:4, reps:“9-12”},
+{name:“Cable Curl — single arm (supinated)”, sets:3, reps:“12-14”},
+{name:“Incline Neutral-Grip DB Curl”,        sets:3, reps:“10-13”},
+{name:“Overhead Cable Tricep Extension”,     sets:4, reps:“10-13”},
+{name:“Cable Tricep Pushdown — rope”,        sets:3, reps:“12-15”},
+{name:“Overhead Cable Extension — single arm”,sets:3,reps:“10-13”},
+{name:“Pec Deck — Rear Delt”,               sets:3, reps:“12-15”},
+{name:“Cable Front Raise — single arm”,      sets:3, reps:“12-15”},
+{name:“Lateral Raise Machine (HOME)”,        sets:3, reps:“15-20”},
+]},
+Friday: { label:“LEGS”, sub:“Quads · Hamstrings · Glutes · Calves”, exercises:[
+{name:“Leg Press”,                           sets:4, reps:“10-15”},
+{name:“Leg Press — close feet high reps”,    sets:2, reps:“20-25”},
+{name:“Leg Extension”,                       sets:4, reps:“12-15”},
+{name:“Seated Leg Curl”,                     sets:4, reps:“10-14”},
+{name:“Seated Leg Curl — drop set”,          sets:1, reps:“10+10”},
+{name:“Seated Calf Raise”,                   sets:4, reps:“15-20”},
+{name:“Standing Calf Raise”,                 sets:3, reps:“15-18”},
+]},
+Saturday: { label:“REST”, sub:“Full recovery”, exercises:[] },
+Sunday: { label:“FULL UPPER”, sub:“Chest · Back · Shoulders · Arms”, exercises:[
+{name:“Cable Single-Arm Lateral Raise”,      sets:3, reps:“14-16”},
+{name:“Machine Chest Press”,                 sets:3, reps:“12-15”},
+{name:“Lat Pulldown”,                        sets:3, reps:“10-13”},
+{name:“Pec Deck — Chest Fly”,               sets:3, reps:“12-15”},
+{name:“Seated Cable Row”,                    sets:3, reps:“11-14”},
+{name:“Cable Curl — single arm”,             sets:3, reps:“12-15”},
+{name:“Cable Tricep Pushdown — rope”,        sets:3, reps:“13-15”},
+{name:“Pec Deck — Rear Delt”,               sets:3, reps:“13-15”},
+{name:“Lateral Raise Machine (HOME)”,        sets:2, reps:“18-20”},
+]},
+};
+
+const autoDay = () => DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const dateLabel = () => new Date().toLocaleDateString(“en-US”, { month:“short”, day:“numeric” });
+
+const store = {
+async get(k) { try { const v = localStorage.getItem(“iron-” + k); return v ? JSON.parse(v) : null; } catch { return null; } },
+async set(k, v) { try { localStorage.setItem(“iron-” + k, JSON.stringify(v)); } catch(e) { console.error(e); } },
+};
+
+// ─── LIGHT THEME ─────────────────────────────────────────────────────────────
+const T = {
+bg:”#f5f5f0”,
+surface:”#ffffff”,
+surface2:”#eeeee8”,
+surface3:”#e4e4dc”,
+border:”#d8d8d0”,
+border2:”#c8c8c0”,
+text:”#1a1a1a”,
+sub:”#666660”,
+dim:”#999990”,
+accent:”#d04a1a”,
+accentDim:”#d04a1a18”,
+accentLight:”#d04a1a0d”,
+green:”#1a8c4e”,
+greenBg:”#e8f5ee”,
+yellow:”#9a7000”,
+yellowBg:”#fdf5e0”,
+red:”#c03030”,
+redBg:”#fde8e8”,
+font:”‘JetBrains Mono’,‘SF Mono’,‘Fira Code’,monospace”,
+display:”‘Oswald’,‘Bebas Neue’,‘Anton’,sans-serif”,
+timerBg:“rgba(245,245,240,0.96)”,
+};
+
+const css = `@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Oswald:wght@300;400;500;600;700&display=swap'); *{box-sizing:border-box;margin:0;padding:0} ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:${T.border2};border-radius:2px} input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0} input[type=number]{-moz-appearance:textfield} @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}} @keyframes fadeIn{from{opacity:0}to{opacity:1}} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}} @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}`;
+
+function IronLog() {
+const [loading, setLoading] = useState(true);
+const [day, setDay] = useState(autoDay());
+const [view, setView] = useState(“log”);
+const [sets, setSets] = useState({});
+const [done, setDone] = useState({});
+const [exerciseOrder, setExerciseOrder] = useState(null); // null = default order
+const [activeEx, setActiveEx] = useState(null);
+const [weight, setWeight] = useState(””);
+const [reps, setReps] = useState(””);
+const [editIdx, setEditIdx] = useState(null);
+const [history, setHistory] = useState({});
+const [customExercises, setCustomExercises] = useState([]);
+const [showAddEx, setShowAddEx] = useState(false);
+const [newExName, setNewExName] = useState(””);
+const [newExSets, setNewExSets] = useState(“3”);
+const [newExReps, setNewExReps] = useState(“10-12”);
+const [reordering, setReordering] = useState(false);
+const [toast, setToast] = useState(null);
+const [restTimer, setRestTimer] = useState(null);
+const [timerSeconds, setTimerSeconds] = useState(0);
+const [claudeOpened, setClaudeOpened] = useState(false);
+const [logText, setLogText] = useState(””);
+const [showFinishModal, setShowFinishModal] = useState(false);
+const [finishEnergy, setFinishEnergy] = useState(0);
+const [finishSleep, setFinishSleep] = useState(0);
+const [finishWeight, setFinishWeight] = useState(””);
+const [finishNotes, setFinishNotes] = useState(””);
+const SHEETS_URL = “https://script.google.com/macros/s/AKfycbzzThcZQ3ejHp4Btjf5Q1nN0tTzBLT2giISvfRAaCITt8Jr_9h06x5Wsz7OTu5ZIw-W4Q/exec”;
+const [sheetsUrl, setSheetsUrl] = useState(SHEETS_URL);
+const [sheetsSyncStatus, setSheetsSyncStatus] = useState(null); // null | “sending” | “ok” | “error”
+const [showSettings, setShowSettings] = useState(false);
+const [settingsUrl, setSettingsUrl] = useState(””);
+const repsRef = useRef(null);
+const weightRef = useRef(null);
+const timerRef = useRef(null);
+const newExRef = useRef(null);
+
+useEffect(() => {
+(async () => {
+const [hist, s, d, cex, order, sUrl] = await Promise.all([
+store.get(“iron-history”),
+store.get(`sets-${day}-${todayKey()}`),
+store.get(`done-${day}-${todayKey()}`),
+store.get(`custom-ex-${day}-${todayKey()}`),
+store.get(`order-${day}`),
+store.get(“sheets-url”),
+]);
+if (hist) setHistory(hist);
+if (s) setSets(s);
+if (d) setDone(d);
+if (cex) setCustomExercises(cex);
+if (order) setExerciseOrder(order);
+if (sUrl) { setSheetsUrl(sUrl); setSettingsUrl(sUrl); } else { setSettingsUrl(SHEETS_URL); }
+setLoading(false);
+})();
+}, []);
+
+useEffect(() => {
+if (activeEx && editIdx === null) {
+setTimeout(() => { if (repsRef.current) { repsRef.current.focus(); repsRef.current.select(); } }, 100);
+}
+}, [activeEx]);
+
+useEffect(() => {
+if (restTimer !== null && restTimer > 0) {
+setTimerSeconds(0);
+timerRef.current = setInterval(() => {
+setTimerSeconds(prev => {
+if (prev + 1 >= restTimer) {
+clearInterval(timerRef.current);
+setRestTimer(null);
+showToast(“REST DONE — GO”);
+setTimeout(() => { if (repsRef.current) { repsRef.current.focus(); repsRef.current.select(); } }, 200);
+return 0;
+}
+return prev + 1;
+});
+}, 1000);
+return () => clearInterval(timerRef.current);
+}
+}, [restTimer]);
+
+function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 2400); }
+
+function getBaseExercises() { return DEFAULT_WORKOUTS[day]?.exercises || []; }
+
+function getAllExercises() {
+const base = getBaseExercises();
+const all = […base, …customExercises];
+if (exerciseOrder && exerciseOrder.length > 0) {
+const ordered = [];
+const map = {};
+all.forEach(ex => { map[ex.name] = ex; });
+exerciseOrder.forEach(name => { if (map[name]) { ordered.push(map[name]); delete map[name]; } });
+Object.values(map).forEach(ex => ordered.push(ex));
+return ordered;
+}
+return all;
+}
+
+async function saveOrder(list) {
+const names = list.map(e => e.name);
+setExerciseOrder(names);
+await store.set(`order-${day}`, names);
+}
+
+async function moveExercise(idx, dir) {
+const all = getAllExercises();
+const newIdx = idx + dir;
+if (newIdx < 0 || newIdx >= all.length) return;
+const arr = […all];
+[arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+await saveOrder(arr);
+}
+
+async function switchDay(d) {
+setDay(d); setActiveEx(null); setWeight(””); setReps(””); setEditIdx(null);
+setClaudeOpened(false); setLogText(””); setView(“log”); setReordering(false);
+const [s, dn, cex, order] = await Promise.all([
+store.get(`sets-${d}-${todayKey()}`),
+store.get(`done-${d}-${todayKey()}`),
+store.get(`custom-ex-${d}-${todayKey()}`),
+store.get(`order-${d}`),
+]);
+setSets(s || {}); setDone(dn || {}); setCustomExercises(cex || []); setExerciseOrder(order);
+}
+
+function findLastExercise(exName) {
+const entries = Object.values(history).sort((a, b) => new Date(b.date) - new Date(a.date));
+for (const e of entries) { const s = e.sets?.[exName]; if (s?.length) return s[s.length - 1]; }
+return null;
+}
+
+function openExercise(ex) {
+if (activeEx === ex) { setActiveEx(null); setWeight(””); setReps(””); setEditIdx(null); return; }
+setActiveEx(ex); setEditIdx(null);
+const exSets = sets[ex] || [];
+if (exSets.length > 0) { const l = exSets[exSets.length - 1]; setWeight(l.weight); setReps(l.reps); }
+else { const l = findLastExercise(ex); if (l) { setWeight(l.weight); setReps(l.reps); } else { setWeight(””); setReps(””); } }
+setTimeout(() => { if (repsRef.current) { repsRef.current.focus(); repsRef.current.select(); } }, 120);
+}
+
+async function addOrUpdateSet() {
+if (!activeEx || !weight || !reps) return;
+const entry = { weight: String(weight), reps: String(reps) };
+let updated;
+if (editIdx !== null) {
+const arr = […(sets[activeEx] || [])]; arr[editIdx] = entry;
+updated = { …sets, [activeEx]: arr }; setEditIdx(null); showToast(“Updated”);
+} else {
+updated = { …sets, [activeEx]: […(sets[activeEx] || []), entry] }; showToast(“Logged”);
+}
+setSets(updated);
+await store.set(`sets-${day}-${todayKey()}`, updated);
+if (editIdx === null) {
+const allEx = getAllExercises();
+const exData = allEx.find(e => e.name === activeEx);
+if (exData) {
+const n = updated[activeEx]?.length || 0;
+if (n < exData.sets) {
+const comp = [“Leg Press”,“Lat Pulldown”,“Machine Chest Press”,“Seated Cable Row”,“Machine Shoulder Press”].some(c => activeEx.includes(c));
+setRestTimer(comp ? 120 : 75);
+}
+}
+}
+setTimeout(() => { if (repsRef.current) { repsRef.current.focus(); repsRef.current.select(); } }, 60);
+}
+
+function startEditSet(ex, i) {
+setActiveEx(ex); setEditIdx(i);
+const s = sets[ex][i]; setWeight(s.weight); setReps(s.reps);
+setTimeout(() => { if (repsRef.current) { repsRef.current.focus(); repsRef.current.select(); } }, 80);
+}
+
+async function removeSet(ex, i) {
+const arr = (sets[ex] || []).filter((_, idx) => idx !== i);
+const updated = { …sets }; if (arr.length) updated[ex] = arr; else delete updated[ex];
+setSets(updated); if (editIdx === i) setEditIdx(null);
+await store.set(`sets-${day}-${todayKey()}`, updated);
+}
+
+async function toggleDone(ex) {
+const updated = { …done, [ex]: !done[ex] }; setDone(updated);
+await store.set(`done-${day}-${todayKey()}`, updated);
+}
+
+async function addCustomExercise() {
+if (!newExName.trim()) return;
+const ex = { name: newExName.trim(), sets: parseInt(newExSets) || 3, reps: newExReps || “10-12”, custom: true };
+const updated = […customExercises, ex]; setCustomExercises(updated);
+await store.set(`custom-ex-${day}-${todayKey()}`, updated);
+// Also update order
+const all = […getAllExercises(), ex];
+await saveOrder(all);
+setNewExName(””); setNewExSets(“3”); setNewExReps(“10-12”); setShowAddEx(false);
+showToast(“Exercise added”);
+}
+
+async function removeCustomExercise(idx) {
+const ex = customExercises[idx];
+const updated = customExercises.filter((_, i) => i !== idx); setCustomExercises(updated);
+await store.set(`custom-ex-${day}-${todayKey()}`, updated);
+if (sets[ex.name]) { const u = { …sets }; delete u[ex.name]; setSets(u); await store.set(`sets-${day}-${todayKey()}`, u); }
+// Update order
+const newAll = getAllExercises().filter(e => e.name !== ex.name);
+await saveOrder(newAll);
+}
+
+function buildLogText(checkIn) {
+const w = DEFAULT_WORKOUTS[day];
+const allEx = getAllExercises();
+const vol = Object.values(sets).flat().reduce((a, s) => a + (parseFloat(s.weight)||0) * (parseInt(s.reps)||0), 0);
+const setsText = allEx.map(ex => {
+const xs = sets[ex.name] || []; if (!xs.length) return null;
+return `${ex.name} (target ${ex.sets}x${ex.reps}): ${xs.map((s,i) => `Set ${i+1}: ${s.weight}lb x ${s.reps}`).join(", ")}`;
+}).filter(Boolean).join(”\n”);
+const skipped = allEx.filter(ex => !(sets[ex.name]?.length)).map(e => e.name);
+
+```
+// Same-day history only (e.g. all previous Thursday sessions)
+const sameDayHist = Object.values(history)
+  .filter(e => e.day === day)
+  .sort((a, b) => new Date(b.date) - new Date(a.date))
+  .slice(0, 5);
+const histText = sameDayHist.map(e => {
+  const s = Object.entries(e.sets || {}).map(([ex, sts]) =>
+    `  ${ex}: ${sts.map(x => `${x.weight}x${x.reps}`).join(", ")}`
+  ).join("\n");
+  const ci = e.checkIn;
+  const ciStr = ci ? ` | Energy: ${ci.energy}/5, Sleep: ${ci.sleep}/5${ci.bodyweight ? `, BW: ${ci.bodyweight}lb` : ""}` : "";
+  return `${e.dateLabel || e.date} — ${e.label}${ciStr}\n${s}`;
+}).join("\n\n");
+
+// Check-in section
+const ciLines = [];
+if (checkIn.energy) ciLines.push(`Energy level: ${checkIn.energy}/5`);
+if (checkIn.sleep) ciLines.push(`Sleep quality: ${checkIn.sleep}/5`);
+if (checkIn.bodyweight) ciLines.push(`Bodyweight: ${checkIn.bodyweight} lb`);
+if (checkIn.notes) ciLines.push(`Notes: ${checkIn.notes}`);
+
+return `WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${dateLabel()}
+```
+
+PROGRAM: 5-day hypertrophy split (Push/Pull/Legs/Arms&Shoulders/Full Upper), Wed+Sat rest
+GOAL: Body recomp — cutting to visible abs by June. On TRT (test cyp ~150mg/wk) and tirzepatide. Priority is progressive overload while preserving muscle in a deficit.
+
+${ciLines.length ? “PRE-WORKOUT CHECK-IN:\n” + ciLines.join(”\n”) + “\n” : “”}SESSION STATS:
+Total volume: ${vol.toLocaleString()} lb
+Exercises completed: ${Object.keys(sets).length}/${allEx.length}
+${skipped.length ? `Skipped: ${skipped.join(", ")}` : “All exercises completed”}
+
+SETS LOGGED:
+${setsText || “No sets logged”}
+${customExercises.length ? `\nADDED (not on plan): ${customExercises.map(e => e.name).join(", ")}` : “”}
+
+PREVIOUS ${day.toUpperCase()} SESSIONS (${sameDayHist.length} found):
+${histText || “None yet — this is the first logged session for this day”}
+
+Analyze this session. I need:
+
+1. Comparison to my last ${day} session — did volume go up or down? Which exercises progressed, which stalled or regressed?
+1. Exact targets for next ${day} — specific weight and rep numbers for every exercise I logged today
+1. Flag anything concerning — skipped exercises, form-related red flags from the numbers, imbalances between push/pull or left/right
+1. How does today’s effort align with my cut + hypertrophy goal? Am I doing enough volume to maintain/grow while in a deficit?
+1. One-sentence verdict
+
+Be direct and concise. No filler. Plain text only.`;
+}
+
+async function sendToSheets(entry) {
+if (!sheetsUrl) return;
+setSheetsSyncStatus(“sending”);
+try {
+const resp = await fetch(sheetsUrl, {
+method: “POST”,
+headers: { “Content-Type”: “text/plain” }, // Apps Script needs this for CORS
+body: JSON.stringify(entry),
+});
+const data = await resp.json();
+if (data.status === “ok”) {
+setSheetsSyncStatus(“ok”);
+} else {
+console.error(“Sheets error:”, data);
+setSheetsSyncStatus(“error”);
+}
+} catch (err) {
+console.error(“Sheets sync failed:”, err);
+setSheetsSyncStatus(“error”);
+}
+}
+
+async function finishWorkout(checkIn) {
+const w = DEFAULT_WORKOUTS[day];
+const entry = {
+day, label: w.label, date: todayKey(), dateLabel: dateLabel(),
+sets: { …sets }, customExercises: […customExercises],
+checkIn: checkIn || {},
+};
+const updatedHist = { …history, [`${todayKey()}-${day}`]: entry };
+setHistory(updatedHist);
+await store.set(“iron-history”, updatedHist);
+const text = buildLogText(checkIn || {});
+setLogText(text);
+setShowFinishModal(false);
+setView(“summary”);
+
+```
+// Send to Google Sheets
+sendToSheets(entry);
+
+// Try to open Claude
+try {
+  const url = `https://claude.ai/new?q=${encodeURIComponent(text)}`;
+  window.open(url, "_blank");
+  setClaudeOpened(true);
+  showToast("Saved — opening Claude...");
+} catch (e) {
+  setClaudeOpened(false);
+  showToast("Saved — copy log below to send to Claude");
+}
+```
+
+}
+
+async function clearToday() {
+setSets({}); setDone({}); setActiveEx(null); setCustomExercises([]);
+await Promise.all([
+store.set(`sets-${day}-${todayKey()}`, {}),
+store.set(`done-${day}-${todayKey()}`, {}),
+store.set(`custom-ex-${day}-${todayKey()}`, []),
+]);
+showToast(“Cleared”);
+}
+
+const w = DEFAULT_WORKOUTS[day];
+const isRest = w.exercises.length === 0 && customExercises.length === 0;
+const allExercises = getAllExercises();
+const totalSets = Object.values(sets).reduce((a, b) => a + b.length, 0);
+const doneCount = Object.values(done).filter(Boolean).length;
+const today = autoDay();
+const totalVolume = Object.values(sets).flat().reduce((a, s) => a + (parseFloat(s.weight)||0) * (parseInt(s.reps)||0), 0);
+const timerRemaining = restTimer !== null ? Math.max(0, restTimer - timerSeconds) : 0;
+const timerPct = restTimer ? (timerSeconds / restTimer) * 100 : 0;
+
+if (loading) return (
+<div style={{ minHeight:“100vh”, background:T.bg, display:“flex”, alignItems:“center”, justifyContent:“center”, fontFamily:T.font }}>
+<div style={{ color:T.dim, fontSize:11, letterSpacing:4, animation:“pulse 1.5s infinite” }}>LOADING…</div>
+</div>
+);
+
+return (
+<div style={{ minHeight:“100vh”, maxWidth:540, margin:“0 auto”, background:T.bg, fontFamily:T.font, color:T.text, display:“flex”, flexDirection:“column” }}>
+<style>{css}</style>
+
+```
+  {toast && (
+    <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", background:T.accent, color:"#fff", padding:"10px 24px", borderRadius:6, fontSize:11, letterSpacing:2, zIndex:200, animation:"fadeIn .2s", fontFamily:T.font, fontWeight:500 }}>{toast}</div>
+  )}
+
+  {/* ══ FINISH MODAL — POST-WORKOUT CHECK-IN ══ */}
+  {showFinishModal && (
+    <FinishModal
+      energy={finishEnergy} setEnergy={setFinishEnergy}
+      sleep={finishSleep} setSleep={setFinishSleep}
+      bodyweight={finishWeight} setBodyweight={setFinishWeight}
+      notes={finishNotes} setNotes={setFinishNotes}
+      onConfirm={() => finishWorkout({ energy: finishEnergy, sleep: finishSleep, bodyweight: finishWeight, notes: finishNotes })}
+      onSkip={() => finishWorkout({})}
+      onCancel={() => setShowFinishModal(false)}
+    />
+  )}
+
+  {/* ══ REST TIMER — FULL SCREEN ══ */}
+  {restTimer !== null && (
+    <div style={{ position:"fixed", inset:0, zIndex:150, background:T.timerBg, display:"flex", alignItems:"center", justifyContent:"center", animation:"fadeIn .3s" }}>
+      <div style={{ textAlign:"center", width:"100%", maxWidth:400, padding:"0 20px" }}>
+        <div style={{ marginBottom:16 }}>
+          <div style={{ height:6, background:T.border, borderRadius:3, overflow:"hidden", maxWidth:300, margin:"0 auto" }}>
+            <div style={{ height:"100%", width:`${100 - timerPct}%`, background:`linear-gradient(90deg, ${T.accent}, ${T.yellow})`, transition:"width 1s linear", borderRadius:3 }} />
+          </div>
+        </div>
+        <div style={{ fontSize:11, color:T.sub, letterSpacing:6, marginBottom:14 }}>REST</div>
+        <div style={{
+          fontFamily:T.display, fontSize:100, fontWeight:700, letterSpacing:6,
+          color:timerRemaining <= 10 ? T.accent : T.text, lineHeight:1,
+          animation:timerRemaining <= 10 ? "timerPulse 1s infinite" : "none",
+        }}>
+          {Math.floor(timerRemaining / 60)}:{String(timerRemaining % 60).padStart(2, "0")}
+        </div>
+        <div style={{ fontSize:10, color:T.dim, letterSpacing:2, margin:"14px auto 32px", maxWidth:280, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+          {activeEx || ""}
+        </div>
+        <div style={{ display:"flex", gap:12, justifyContent:"center" }}>
+          <button onClick={() => { clearInterval(timerRef.current); setRestTimer(null); setTimerSeconds(0); setTimeout(() => { repsRef.current?.focus(); repsRef.current?.select(); }, 150); }} style={{
+            background:T.accent, border:"none", color:"#fff", padding:"14px 40px",
+            borderRadius:8, fontSize:13, letterSpacing:3, cursor:"pointer", fontFamily:T.display, fontWeight:600,
+          }}>SKIP — GO</button>
+          <button onClick={() => setRestTimer(p => p + 30)} style={{
+            background:T.surface, border:`1px solid ${T.border2}`, color:T.sub,
+            padding:"14px 22px", borderRadius:8, fontSize:10, letterSpacing:2, cursor:"pointer", fontFamily:T.font,
+          }}>+30s</button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* ══ HEADER ══ */}
+  <div style={{ background:T.surface, borderBottom:`1px solid ${T.border}`, flexShrink:0 }}>
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 18px 10px" }}>
+      <div>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ fontFamily:T.display, fontSize:28, fontWeight:700, letterSpacing:6, color:T.accent, lineHeight:1 }}>IRON LOG</div>
+          {sheetsUrl && <div style={{ width:7, height:7, borderRadius:"50%", background:sheetsSyncStatus === "ok" ? T.green : sheetsSyncStatus === "error" ? T.red : T.dim, border:`1px solid ${T.surface}` }} title="Sheets connected" />}
+        </div>
+        <div style={{ fontSize:9, color:T.dim, letterSpacing:3, marginTop:4 }}>{day.toUpperCase()} · {dateLabel()}</div>
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        {totalSets > 0 && view === "log" && (
+          <div style={{ textAlign:"right" }}>
+            <div style={{ fontFamily:T.display, fontSize:26, fontWeight:600, color:T.accent, lineHeight:1 }}>{totalSets}</div>
+            <div style={{ fontSize:8, color:T.dim, letterSpacing:2 }}>SETS</div>
+          </div>
+        )}
+        <button onClick={() => { setShowSettings(!showSettings); setSettingsUrl(sheetsUrl); }} style={{
+          background:showSettings ? T.accentDim : "transparent", border:`1px solid ${showSettings ? T.accent : T.border}`,
+          color:showSettings ? T.accent : T.dim, width:30, height:30, borderRadius:6,
+          display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:14,
+        }}>⚙</button>
+      </div>
+    </div>
+
+    {/* Settings panel */}
+    {showSettings && (
+      <div style={{ padding:"12px 18px 14px", borderTop:`1px solid ${T.border}`, background:T.bg, animation:"slideIn .2s ease" }}>
+        <div style={{ fontSize:9, color:T.accent, letterSpacing:3, marginBottom:8 }}>GOOGLE SHEETS SYNC</div>
+        <div style={{ fontSize:10, color:T.sub, marginBottom:8 }}>Paste your Apps Script web app URL below. Workouts will auto-sync to your sheet.</div>
+        <input type="text" value={settingsUrl} onChange={e => setSettingsUrl(e.target.value)}
+          placeholder="https://script.google.com/macros/s/..."
+          style={{ width:"100%", background:T.surface, border:`1px solid ${T.border}`, color:T.text, padding:"10px 12px", borderRadius:5, fontSize:11, fontFamily:T.font, outline:"none", marginBottom:8 }}
+        />
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={async () => { setSheetsUrl(settingsUrl); await store.set("sheets-url", settingsUrl); setShowSettings(false); showToast(settingsUrl ? "Sheets URL saved" : "Sheets sync disabled"); }} style={{
+            flex:1, padding:"9px 0", background:T.accent, color:"#fff", border:"none", borderRadius:5,
+            fontSize:10, letterSpacing:2, cursor:"pointer", fontFamily:T.font, fontWeight:500,
+          }}>SAVE</button>
+          <button onClick={() => setShowSettings(false)} style={{
+            flex:1, padding:"9px 0", background:T.surface, border:`1px solid ${T.border}`,
+            color:T.dim, borderRadius:5, fontSize:10, letterSpacing:2, cursor:"pointer", fontFamily:T.font,
+          }}>CANCEL</button>
+        </div>
+        {sheetsUrl && (
+          <div style={{ marginTop:8, fontSize:9, color:T.green }}>✓ Connected — workouts sync automatically on finish</div>
+        )}
+      </div>
+    )}
+    <div style={{ display:"flex", alignItems:"center", gap:5, padding:"8px 18px 10px", overflowX:"auto" }}>
+      {DAYS.map(d => {
+        const isSel = d === day; const isTod = d === today;
+        const isR = DEFAULT_WORKOUTS[d].exercises.length === 0;
+        return (
+          <button key={d} onClick={() => switchDay(d)} style={{
+            position:"relative", background:isSel ? T.accentDim : T.surface,
+            border:`1px solid ${isSel ? T.accent : T.border}`,
+            color:isSel ? T.accent : isR ? T.dim : T.sub,
+            padding:"5px 10px", borderRadius:4, fontSize:9, letterSpacing:1, cursor:"pointer",
+            fontFamily:T.font, fontWeight:isSel ? 600 : 400, whiteSpace:"nowrap",
+          }}>
+            {d.slice(0,3).toUpperCase()}
+            {isTod && <span style={{ position:"absolute", top:-2, right:-2, width:5, height:5, background:T.green, borderRadius:"50%", border:`2px solid ${T.surface}` }} />}
+          </button>
+        );
+      })}
+      {day !== today && <button onClick={() => switchDay(today)} style={{ background:"none", border:"none", color:T.green, fontSize:9, letterSpacing:1, cursor:"pointer", fontFamily:T.font, whiteSpace:"nowrap", padding:"5px 6px" }}>↩ TODAY</button>}
+    </div>
+    <div style={{ display:"flex", borderTop:`1px solid ${T.border}` }}>
+      {[["log","LOG"],["history","HISTORY"]].map(([v, l]) => (
+        <button key={v} onClick={() => { setView(v); setClaudeOpened(false); setLogText(""); setReordering(false); }} style={{
+          flex:1, padding:"8px 0", background:"transparent", border:"none",
+          borderBottom:`2px solid ${view===v ? T.accent : "transparent"}`,
+          color:view===v ? T.text : T.dim, fontSize:9, letterSpacing:3,
+          cursor:"pointer", fontFamily:T.font, fontWeight:view===v ? 500 : 400,
+        }}>{l}</button>
+      ))}
+    </div>
+  </div>
+
+  {/* ══ CONTENT ══ */}
+  <div style={{ flex:1, overflowY:"auto" }}>
+    {view === "log" && (<>
+      {isRest ? (
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"80px 20px", textAlign:"center", gap:14 }}>
+          <div style={{ fontSize:56, opacity:0.7 }}>🔋</div>
+          <div style={{ fontFamily:T.display, fontSize:32, fontWeight:600, letterSpacing:6, color:T.dim }}>REST DAY</div>
+          <div style={{ fontSize:11, color:T.sub, maxWidth:260 }}>{w.sub}</div>
+          <button onClick={() => { setShowAddEx(true); setTimeout(() => newExRef.current?.focus(), 100); }} style={{
+            marginTop:20, background:T.surface, border:`1px dashed ${T.border2}`, color:T.sub,
+            padding:"10px 20px", borderRadius:6, fontSize:10, letterSpacing:2, cursor:"pointer", fontFamily:T.font,
+          }}>+ ADD EXERCISE ANYWAY</button>
+        </div>
+      ) : (<>
+        {/* Banner */}
+        <div style={{ padding:"18px 18px 14px", borderBottom:`1px solid ${T.border}`, display:"flex", justifyContent:"space-between", alignItems:"flex-end", background:T.surface }}>
+          <div>
+            <div style={{ fontFamily:T.display, fontSize:34, fontWeight:700, letterSpacing:5, lineHeight:1 }}>{w.label}</div>
+            <div style={{ fontSize:9, color:T.sub, letterSpacing:1, marginTop:5 }}>{w.sub}</div>
+          </div>
+          <div style={{ display:"flex", alignItems:"flex-end", gap:12 }}>
+            {totalVolume > 0 && (
+              <div style={{ textAlign:"right" }}>
+                <div style={{ fontSize:11, color:T.sub, fontWeight:500 }}>{totalVolume.toLocaleString()}</div>
+                <div style={{ fontSize:8, color:T.dim, letterSpacing:2 }}>LB VOL</div>
+              </div>
+            )}
+            <button onClick={() => setReordering(!reordering)} style={{
+              background:reordering ? T.accentDim : T.surface2, border:`1px solid ${reordering ? T.accent : T.border}`,
+              color:reordering ? T.accent : T.dim, padding:"4px 8px", borderRadius:4, fontSize:9, letterSpacing:1,
+              cursor:"pointer", fontFamily:T.font,
+            }}>{reordering ? "DONE" : "⇅"}</button>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div style={{ padding:"10px 18px", borderBottom:`1px solid ${T.border}`, background:T.surface }}>
+          <div style={{ display:"flex", justifyContent:"space-between", fontSize:9, color:T.dim, letterSpacing:1, marginBottom:6 }}>
+            <span>PROGRESS</span><span>{doneCount}/{allExercises.length}</span>
+          </div>
+          <div style={{ height:3, background:T.surface3, borderRadius:2, overflow:"hidden" }}>
+            <div style={{ height:"100%", width:`${allExercises.length > 0 ? (doneCount / allExercises.length * 100) : 0}%`, background:`linear-gradient(90deg, ${T.accent}, #e8844a)`, transition:"width .4s ease" }} />
+          </div>
+        </div>
+
+        {/* Exercises */}
+        {allExercises.map((ex, exIdx) => {
+          const exSets = sets[ex.name] || [];
+          const isActive = activeEx === ex.name;
+          const isDone = done[ex.name];
+          const targetMet = exSets.length >= ex.sets;
+          const lastSession = findLastExercise(ex.name);
+          const isCustom = ex.custom;
+
+          return (
+            <div key={ex.name + exIdx} onClick={(e) => {
+              // Click anywhere on the row to open exercise — but not when reordering
+              // Let checkbox, set pills, remove buttons handle their own clicks
+              if (reordering) return;
+              if (e.target.closest('[data-no-row-click]')) return;
+              openExercise(ex.name);
+            }} style={{
+              borderBottom:`1px solid ${T.border}`, padding:"14px 18px",
+              background:isActive ? T.accentLight : T.surface,
+              borderLeft:`3px solid ${isActive ? T.accent : isCustom ? T.yellow : "transparent"}`,
+              opacity:isDone && !reordering ? 0.4 : 1,
+              cursor: reordering ? "default" : "pointer",
+            }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:5 }}>
+                    {!reordering && (
+                      <button data-no-row-click onClick={(e) => { e.stopPropagation(); toggleDone(ex.name); }} style={{
+                        width:16, height:16, borderRadius:3, border:`1.5px solid ${isDone ? T.green : T.border2}`,
+                        background:isDone ? T.green : "transparent", flexShrink:0,
+                        display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer",
+                      }}>
+                        {isDone && <span style={{ fontSize:10, color:"#fff", lineHeight:1 }}>✓</span>}
+                      </button>
+                    )}
+                    {reordering && (
+                      <div style={{ display:"flex", flexDirection:"column", gap:1, flexShrink:0 }}>
+                        <button onClick={() => moveExercise(exIdx, -1)} disabled={exIdx === 0} style={{
+                          background:"none", border:"none", color:exIdx === 0 ? T.border : T.sub, fontSize:11, cursor:exIdx === 0 ? "default" : "pointer", padding:0, lineHeight:1, fontFamily:T.font,
+                        }}>▲</button>
+                        <button onClick={() => moveExercise(exIdx, 1)} disabled={exIdx === allExercises.length - 1} style={{
+                          background:"none", border:"none", color:exIdx === allExercises.length - 1 ? T.border : T.sub, fontSize:11, cursor:exIdx === allExercises.length - 1 ? "default" : "pointer", padding:0, lineHeight:1, fontFamily:T.font,
+                        }}>▼</button>
+                      </div>
+                    )}
+                    <span style={{ fontSize:12, color:isCustom ? T.yellow : T.text, letterSpacing:0.3, lineHeight:1.3 }}>
+                      {ex.name}
+                      {isCustom && <span style={{ fontSize:8, color:T.dim, marginLeft:6 }}>ADDED</span>}
+                    </span>
+                  </div>
+                  {!reordering && (
+                    <>
+                      <div style={{ paddingLeft:25, display:"flex", alignItems:"center", gap:8, marginBottom:exSets.length > 0 ? 8 : 0 }}>
+                        <span style={{ fontSize:9, color:T.dim, letterSpacing:1 }}>{ex.sets}×{ex.reps}</span>
+                        {exSets.length > 0 && (
+                          <span style={{ fontSize:9, color:targetMet ? T.green : T.accent, letterSpacing:1, fontWeight:500 }}>
+                            {exSets.length}/{ex.sets} {targetMet ? "✓" : ""}
+                          </span>
+                        )}
+                        {!exSets.length && lastSession && (
+                          <span style={{ fontSize:9, color:T.dim, fontStyle:"italic" }}>last: {lastSession.weight}lb × {lastSession.reps}</span>
+                        )}
+                      </div>
+                      {exSets.length > 0 && (
+                        <div style={{ paddingLeft:25, display:"flex", flexWrap:"wrap", gap:4 }}>
+                          {exSets.map((s, i) => (
+                            <span key={i} data-no-row-click onClick={(e) => { e.stopPropagation(); startEditSet(ex.name, i); }} style={{
+                              display:"inline-flex", alignItems:"center", gap:5,
+                              background:editIdx === i && activeEx === ex.name ? T.accentDim : T.surface2,
+                              border:`1px solid ${editIdx === i && activeEx === ex.name ? T.accent : T.border}`,
+                              borderRadius:4, padding:"4px 8px", fontSize:10, color:T.sub, cursor:"pointer",
+                            }}>
+                              <span style={{ fontWeight:500, color:T.text }}>{s.weight}</span>
+                              <span style={{ color:T.dim }}>×</span>
+                              <span style={{ color:T.text }}>{s.reps}</span>
+                              <button onClick={(e) => { e.stopPropagation(); removeSet(ex.name, i); }} style={{
+                                background:"none", border:"none", color:T.dim, fontSize:9, padding:"0 0 0 4px", cursor:"pointer", fontFamily:T.font,
+                              }}>✕</button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+                {!reordering && (
+                  <div style={{ display:"flex", gap:4, flexShrink:0 }}>
+                    {isCustom && (
+                      <button data-no-row-click onClick={(e) => { e.stopPropagation(); removeCustomExercise(customExercises.findIndex(c => c.name === ex.name)); }} style={{
+                        background:"none", border:`1px solid ${T.redBg}`, color:T.red, padding:"5px 8px",
+                        borderRadius:4, fontSize:9, cursor:"pointer", fontFamily:T.font, opacity:0.7,
+                      }}>✕</button>
+                    )}
+                    <button data-no-row-click onClick={(e) => { e.stopPropagation(); openExercise(ex.name); }} style={{
+                      background:isActive ? T.accentDim : T.surface,
+                      border:`1px solid ${isActive ? T.accent : T.border}`,
+                      color:isActive ? T.accent : T.sub, padding:"5px 12px", borderRadius:4,
+                      fontSize:10, letterSpacing:1, cursor:"pointer", fontFamily:T.font,
+                    }}>
+                      {isActive ? "CLOSE" : "+ SET"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {isActive && !reordering && (
+                <div data-no-row-click onClick={e => e.stopPropagation()} style={{ paddingLeft:25, marginTop:12, display:"flex", gap:8, alignItems:"flex-end", flexWrap:"wrap", animation:"slideIn .2s ease" }}>
+                  <div>
+                    <div style={{ fontSize:8, color:T.dim, letterSpacing:2, marginBottom:4 }}>WEIGHT</div>
+                    <input ref={weightRef} type="number" inputMode="decimal" step="any"
+                      value={weight} onChange={e => setWeight(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") repsRef.current?.focus(); }}
+                      placeholder="0"
+                      style={{ background:T.surface2, border:`1px solid ${T.border}`, color:T.text, padding:"10px 8px", width:76, borderRadius:5, textAlign:"center", fontSize:16, fontFamily:T.font, outline:"none" }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize:8, color:T.dim, letterSpacing:2, marginBottom:4 }}>REPS</div>
+                    <input ref={repsRef} type="number" inputMode="numeric"
+                      value={reps} onChange={e => setReps(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") addOrUpdateSet(); }}
+                      placeholder="0"
+                      style={{ background:T.surface2, border:`1px solid ${T.border}`, color:T.text, padding:"10px 8px", width:68, borderRadius:5, textAlign:"center", fontSize:16, fontFamily:T.font, outline:"none" }}
+                    />
+                  </div>
+                  <button onClick={addOrUpdateSet} disabled={!weight || !reps} style={{
+                    background:(!weight || !reps) ? T.surface3 : T.accent,
+                    color:(!weight || !reps) ? T.dim : "#fff",
+                    border:"none", padding:"10px 18px", borderRadius:5, fontSize:10, letterSpacing:2,
+                    cursor:(!weight || !reps) ? "default" : "pointer", fontFamily:T.font, fontWeight:500,
+                  }}>
+                    {editIdx !== null ? "UPDATE" : "LOG"}
+                  </button>
+                  {editIdx !== null && (
+                    <button onClick={() => setEditIdx(null)} style={{
+                      background:T.surface, border:`1px solid ${T.border}`, color:T.dim,
+                      padding:"10px 12px", borderRadius:5, fontSize:9, letterSpacing:1, cursor:"pointer", fontFamily:T.font,
+                    }}>CANCEL</button>
+                  )}
+                  {editIdx === null && exSets.length > 0 && (
+                    <span style={{ fontSize:10, color:T.dim, alignSelf:"center" }}>Set {exSets.length + 1}/{ex.sets}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* ADD EXERCISE */}
+        {!reordering && (<>
+          {!showAddEx ? (
+            <div style={{ padding:"14px 18px", borderBottom:`1px solid ${T.border}`, background:T.surface }}>
+              <button onClick={() => { setShowAddEx(true); setTimeout(() => newExRef.current?.focus(), 100); }} style={{
+                width:"100%", padding:"14px 0", background:T.bg,
+                border:`1px dashed ${T.border2}`, borderRadius:6, color:T.sub,
+                fontSize:11, letterSpacing:2, cursor:"pointer", fontFamily:T.font,
+                display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+              }}>
+                <span style={{ fontSize:20, color:T.accent, lineHeight:1, fontWeight:300 }}>+</span>
+                ADD EXERCISE
+              </button>
+            </div>
+          ) : (
+            <div style={{ padding:"14px 18px", borderBottom:`1px solid ${T.border}`, background:T.accentLight, animation:"slideIn .2s ease" }}>
+              <div style={{ fontSize:9, color:T.accent, letterSpacing:3, marginBottom:10 }}>ADD EXERCISE</div>
+              <input ref={newExRef} type="text" value={newExName} onChange={e => setNewExName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") addCustomExercise(); }}
+                placeholder="Exercise name"
+                style={{ width:"100%", background:T.surface, border:`1px solid ${T.border}`, color:T.text, padding:"10px 12px", borderRadius:5, fontSize:13, fontFamily:T.font, outline:"none", marginBottom:8 }}
+              />
+              <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:8, color:T.dim, letterSpacing:2, marginBottom:3 }}>SETS</div>
+                  <input type="number" inputMode="numeric" value={newExSets} onChange={e => setNewExSets(e.target.value)}
+                    style={{ width:"100%", background:T.surface, border:`1px solid ${T.border}`, color:T.text, padding:"8px", borderRadius:5, fontSize:13, fontFamily:T.font, outline:"none", textAlign:"center" }}
+                  />
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:8, color:T.dim, letterSpacing:2, marginBottom:3 }}>REP RANGE</div>
+                  <input type="text" value={newExReps} onChange={e => setNewExReps(e.target.value)} placeholder="10-12"
+                    style={{ width:"100%", background:T.surface, border:`1px solid ${T.border}`, color:T.text, padding:"8px", borderRadius:5, fontSize:13, fontFamily:T.font, outline:"none", textAlign:"center" }}
+                  />
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{
+                  flex:1, padding:"10px 0", background:!newExName.trim() ? T.surface3 : T.accent,
+                  color:!newExName.trim() ? T.dim : "#fff", border:"none", borderRadius:5,
+                  fontSize:10, letterSpacing:2, cursor:!newExName.trim() ? "default" : "pointer", fontFamily:T.font, fontWeight:500,
+                }}>ADD</button>
+                <button onClick={() => { setShowAddEx(false); setNewExName(""); }} style={{
+                  flex:1, padding:"10px 0", background:T.surface, border:`1px solid ${T.border}`,
+                  color:T.dim, borderRadius:5, fontSize:10, letterSpacing:2, cursor:"pointer", fontFamily:T.font,
+                }}>CANCEL</button>
+              </div>
+            </div>
+          )}
+        </>)}
+
+        {totalSets > 0 && !reordering && (
+          <div style={{ padding:18, borderTop:`1px solid ${T.border}`, background:T.surface }}>
+            <button onClick={() => { setShowFinishModal(true); setFinishEnergy(0); setFinishSleep(0); setFinishWeight(""); setFinishNotes(""); }} style={{
+              width:"100%", padding:16, background:`linear-gradient(135deg, ${T.accent}, #c04420)`,
+              color:"#fff", border:"none", borderRadius:6, fontSize:12, letterSpacing:4,
+              cursor:"pointer", fontFamily:T.display, fontWeight:600,
+            }}>FINISH & ANALYZE</button>
+            <div style={{ display:"flex", justifyContent:"center", marginTop:10 }}>
+              <button onClick={clearToday} style={{ background:"none", border:"none", color:T.dim, fontSize:9, letterSpacing:1, cursor:"pointer", fontFamily:T.font }}>CLEAR ALL</button>
+            </div>
+          </div>
+        )}
+      </>)}
+    </>)}
+
+    {view === "history" && <HistoryView history={history} />}
+    {view === "summary" && (
+      <SummaryView day={day} sets={sets} history={history} customExercises={customExercises}
+        logText={logText} claudeOpened={claudeOpened} sheetsSyncStatus={sheetsSyncStatus} sheetsUrl={sheetsUrl} onBack={() => setView("log")} />
+    )}
+  </div>
+</div>
+```
+
+);
+}
+
+// ─── HISTORY VIEW with Weekly Volume Summary ─────────────────────────────────
+function HistoryView({ history }) {
+const entries = Object.values(history).sort((a, b) => new Date(b.date) - new Date(a.date));
+const [expanded, setExpanded] = useState(null);
+const [histView, setHistView] = useState(“sessions”); // “sessions” | “weekly”
+
+// Compute weekly volumes
+function getWeeklyData() {
+const weeks = {};
+entries.forEach(e => {
+const d = new Date(e.date);
+const sun = new Date(d); sun.setDate(d.getDate() - d.getDay());
+const wk = sun.toISOString().slice(0, 10);
+if (!weeks[wk]) weeks[wk] = { sessions: 0, volume: 0, sets: 0, start: sun };
+weeks[wk].sessions += 1;
+weeks[wk].sets += Object.values(e.sets || {}).reduce((a, b) => a + b.length, 0);
+weeks[wk].volume += Object.values(e.sets || {}).flat().reduce((a, s) => a + (parseFloat(s.weight)||0) * (parseInt(s.reps)||0), 0);
+});
+return Object.entries(weeks).sort(([a],[b]) => b.localeCompare(a)).map(([k, v]) => {
+const start = new Date(k);
+const end = new Date(start); end.setDate(start.getDate() + 6);
+const fmt = d => d.toLocaleDateString(“en-US”, { month:“short”, day:“numeric” });
+return { key: k, label: `${fmt(start)} – ${fmt(end)}`, …v };
+});
+}
+
+const weeklyData = getWeeklyData();
+const maxVol = Math.max(…weeklyData.map(w => w.volume), 1);
+
+if (entries.length === 0) return (
+<div style={{ display:“flex”, flexDirection:“column”, alignItems:“center”, justifyContent:“center”, padding:“80px 20px”, textAlign:“center” }}>
+<div style={{ fontSize:40, opacity:0.6, marginBottom:12 }}>📋</div>
+<div style={{ fontFamily:T.display, fontSize:20, fontWeight:500, letterSpacing:4, color:T.dim }}>NO HISTORY YET</div>
+<div style={{ fontSize:10, color:T.dim, marginTop:8 }}>Finish a workout to see it here</div>
+</div>
+);
+
+return (
+<div style={{ padding:“12px 0” }}>
+{/* Toggle */}
+<div style={{ display:“flex”, gap:0, margin:“0 18px 14px”, border:`1px solid ${T.border}`, borderRadius:5, overflow:“hidden” }}>
+{[[“sessions”,“SESSIONS”],[“weekly”,“WEEKLY VOL”]].map(([v, l]) => (
+<button key={v} onClick={() => setHistView(v)} style={{
+flex:1, padding:“7px 0”, background:histView === v ? T.accent : T.surface,
+color:histView === v ? “#fff” : T.sub, border:“none”, fontSize:9, letterSpacing:2,
+cursor:“pointer”, fontFamily:T.font, fontWeight:histView === v ? 500 : 400,
+}}>{l}</button>
+))}
+</div>
+
+```
+  {histView === "weekly" && (
+    <div style={{ padding:"0 18px" }}>
+      {weeklyData.map((wk, i) => (
+        <div key={wk.key} style={{ marginBottom:14, animation:`slideIn .3s ease ${i * 0.05}s both` }}>
+          <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:T.sub, marginBottom:5 }}>
+            <span>{wk.label}</span>
+            <span>{wk.sessions} sessions · {wk.sets} sets</span>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ flex:1, height:20, background:T.surface2, borderRadius:4, overflow:"hidden" }}>
+              <div style={{
+                height:"100%", width:`${(wk.volume / maxVol) * 100}%`,
+                background:`linear-gradient(90deg, ${T.accent}, #e8844a)`,
+                borderRadius:4, transition:"width .4s ease",
+              }} />
+            </div>
+            <span style={{ fontSize:11, fontWeight:500, color:T.text, minWidth:60, textAlign:"right" }}>
+              {(wk.volume / 1000).toFixed(1)}k
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {histView === "sessions" && (<>
+    <div style={{ padding:"0 18px 10px", fontSize:9, color:T.dim, letterSpacing:3 }}>{entries.length} SESSION{entries.length !== 1 ? "S" : ""}</div>
+    {entries.map((entry, idx) => {
+      const isOpen = expanded === idx;
+      const ts = Object.values(entry.sets || {}).reduce((a, b) => a + b.length, 0);
+      const tv = Object.values(entry.sets || {}).flat().reduce((a, s) => a + (parseFloat(s.weight)||0) * (parseInt(s.reps)||0), 0);
+      return (
+        <div key={idx} style={{ borderBottom:`1px solid ${T.border}` }}>
+          <div onClick={() => setExpanded(isOpen ? null : idx)} style={{
+            padding:"14px 18px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center",
+            background:isOpen ? T.accentLight : T.surface,
+          }}>
+            <div>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                <span style={{ fontFamily:T.display, fontSize:18, fontWeight:600, letterSpacing:2 }}>{entry.label}</span>
+                <span style={{ fontSize:9, color:T.dim }}>{entry.day}</span>
+              </div>
+              <div style={{ fontSize:10, color:T.sub }}>{entry.dateLabel || entry.date}</div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:11, color:T.sub }}>{ts} sets</div>
+              {tv > 0 && <div style={{ fontSize:10, color:T.dim, marginTop:2 }}>{tv.toLocaleString()} lb</div>}
+            </div>
+          </div>
+          {isOpen && (
+            <div style={{ padding:"0 18px 14px", background:T.accentLight }}>
+              {Object.entries(entry.sets || {}).map(([exName, exSets]) => (
+                <div key={exName} style={{ padding:"8px 0", borderTop:`1px solid ${T.border}` }}>
+                  <div style={{ fontSize:11, color:T.text, marginBottom:4 }}>{exName}</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                    {exSets.map((s, i) => (
+                      <span key={i} style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:4, padding:"3px 7px", fontSize:10, color:T.sub }}>{s.weight} × {s.reps}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </>)}
+</div>
+```
+
+);
+}
+
+// ─── SUMMARY VIEW ────────────────────────────────────────────────────────────
+function SummaryView({ day, sets, history, customExercises, logText, claudeOpened, sheetsSyncStatus, sheetsUrl, onBack }) {
+const [copied, setCopied] = useState(false);
+const [showLog, setShowLog] = useState(false);
+const w = DEFAULT_WORKOUTS[day];
+const totalSets = Object.values(sets).reduce((a, b) => a + b.length, 0);
+const totalVol = Object.values(sets).flat().reduce((a, s) => a + (parseFloat(s.weight)||0) * (parseInt(s.reps)||0), 0);
+const exercisesDone = Object.keys(sets).length;
+const prev = Object.values(history).filter(e => e.day === day && e.date !== `${todayKey()}-${day}`).sort((a,b) => new Date(b.date)-new Date(a.date))[0];
+const prevVol = prev ? Object.values(prev.sets||{}).flat().reduce((a,s) => a + (parseFloat(s.weight)||0)*(parseInt(s.reps)||0), 0) : 0;
+const volDiff = prevVol > 0 ? ((totalVol - prevVol) / prevVol * 100).toFixed(1) : null;
+
+async function copyLog() {
+try {
+await navigator.clipboard.writeText(logText);
+setCopied(true);
+setTimeout(() => setCopied(false), 2000);
+} catch {
+// Fallback: select a hidden textarea
+const ta = document.createElement(“textarea”);
+ta.value = logText;
+document.body.appendChild(ta);
+ta.select();
+document.execCommand(“copy”);
+document.body.removeChild(ta);
+setCopied(true);
+setTimeout(() => setCopied(false), 2000);
+}
+}
+
+function openInClaude() {
+const url = `https://claude.ai/new?q=${encodeURIComponent(logText)}`;
+window.open(url, “_blank”);
+}
+
+function downloadLog() {
+const blob = new Blob([logText], { type: “text/plain” });
+const url = URL.createObjectURL(blob);
+const a = document.createElement(“a”);
+a.href = url;
+a.download = `workout-${day.toLowerCase()}-${todayKey()}.txt`;
+a.click();
+URL.revokeObjectURL(url);
+}
+
+return (
+<div style={{ padding:“30px 18px”, animation:“fadeIn .4s ease” }}>
+<div style={{ textAlign:“center”, marginBottom:30 }}>
+<div style={{ fontSize:48, marginBottom:8 }}>💪</div>
+<div style={{ fontFamily:T.display, fontSize:34, fontWeight:700, letterSpacing:6, color:T.accent }}>DONE</div>
+<div style={{ fontSize:10, color:T.sub, letterSpacing:2, marginTop:4 }}>{day.toUpperCase()} · {w.label} · {dateLabel()}</div>
+</div>
+
+```
+  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:24 }}>
+    {[
+      { label:"SETS", value:totalSets, color:T.accent },
+      { label:"EXERCISES", value:exercisesDone, color:T.text },
+      { label:"VOLUME", value:`${(totalVol/1000).toFixed(1)}k`, sub:"lb", color:T.text },
+      { label:"VS LAST", value:volDiff ? `${volDiff>0?"+":""}${volDiff}%` : "—", color:volDiff>0?T.green:volDiff<0?T.red:T.dim },
+    ].map((stat, i) => (
+      <div key={i} style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:"16px 14px", textAlign:"center" }}>
+        <div style={{ fontSize:8, color:T.dim, letterSpacing:3, marginBottom:6 }}>{stat.label}</div>
+        <div style={{ fontFamily:T.display, fontSize:28, fontWeight:600, color:stat.color, lineHeight:1 }}>
+          {stat.value}{stat.sub && <span style={{ fontSize:12, color:T.dim }}> {stat.sub}</span>}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Sheets sync status */}
+  {sheetsUrl && (
+    <div style={{
+      marginBottom:16, padding:"10px 14px", borderRadius:8,
+      background: sheetsSyncStatus === "ok" ? T.greenBg : sheetsSyncStatus === "error" ? T.redBg : T.surface2,
+      border:`1px solid ${sheetsSyncStatus === "ok" ? T.green : sheetsSyncStatus === "error" ? T.red : T.border}33`,
+      fontSize:11, display:"flex", alignItems:"center", gap:8,
+      color: sheetsSyncStatus === "ok" ? T.green : sheetsSyncStatus === "error" ? T.red : T.sub,
+    }}>
+      {sheetsSyncStatus === "sending" && <><div style={{ width:6, height:6, borderRadius:"50%", background:T.accent, animation:"pulse 1s infinite" }} /> Syncing to Google Sheets...</>}
+      {sheetsSyncStatus === "ok" && <><span>✓</span> Synced to Google Sheets</>}
+      {sheetsSyncStatus === "error" && <><span>✕</span> Sheets sync failed — data saved locally</>}
+    </div>
+  )}
+
+  {/* Send to Claude / Export section */}
+  <div style={{ marginBottom:24 }}>
+    <div style={{ fontSize:9, color:T.accent, letterSpacing:3, marginBottom:10 }}>ANALYZE & EXPORT</div>
+    <div style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, padding:"16px" }}>
+      {claudeOpened ? (
+        <div style={{ fontSize:11, color:T.green, marginBottom:12 }}>
+          ✓ Opened in Claude — check your new tab
+        </div>
+      ) : (
+        <div style={{ fontSize:11, color:T.sub, marginBottom:12 }}>
+          Send your workout log to Claude for analysis
+        </div>
+      )}
+      <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+        <button onClick={openInClaude} style={{
+          flex:1, minWidth:120, padding:"11px 0",
+          background:`linear-gradient(135deg, ${T.accent}, #c04420)`,
+          color:"#fff", border:"none", borderRadius:6, fontSize:10, letterSpacing:2,
+          cursor:"pointer", fontFamily:T.font, fontWeight:500,
+        }}>SEND TO CLAUDE</button>
+        <button onClick={copyLog} style={{
+          flex:1, minWidth:100, padding:"11px 0",
+          background:copied ? T.greenBg : T.surface2,
+          border:`1px solid ${copied ? T.green : T.border}`,
+          color:copied ? T.green : T.sub,
+          borderRadius:6, fontSize:10, letterSpacing:2,
+          cursor:"pointer", fontFamily:T.font, fontWeight:500,
+        }}>{copied ? "COPIED ✓" : "COPY LOG"}</button>
+        <button onClick={downloadLog} style={{
+          flex:1, minWidth:100, padding:"11px 0",
+          background:T.surface2, border:`1px solid ${T.border}`,
+          color:T.sub, borderRadius:6, fontSize:10, letterSpacing:2,
+          cursor:"pointer", fontFamily:T.font, fontWeight:500,
+        }}>DOWNLOAD</button>
+      </div>
+      {/* Toggle to show raw log */}
+      <button onClick={() => setShowLog(!showLog)} style={{
+        background:"none", border:"none", color:T.dim, fontSize:9, letterSpacing:1,
+        cursor:"pointer", fontFamily:T.font, marginTop:10, padding:0,
+      }}>{showLog ? "▼ HIDE LOG" : "▶ VIEW RAW LOG"}</button>
+      {showLog && (
+        <div style={{
+          marginTop:8, padding:12, background:T.bg, borderRadius:6,
+          fontSize:10, color:T.sub, lineHeight:1.6, whiteSpace:"pre-wrap",
+          fontFamily:T.font, maxHeight:300, overflowY:"auto",
+          border:`1px solid ${T.border}`,
+        }}>{logText}</div>
+      )}
+    </div>
+  </div>
+
+  {/* Exercise breakdown */}
+  <div style={{ marginBottom:24 }}>
+    <div style={{ fontSize:9, color:T.dim, letterSpacing:3, marginBottom:10 }}>EXERCISES</div>
+    {Object.entries(sets).map(([exName, exSets]) => {
+      const exVol = exSets.reduce((a, s) => a + (parseFloat(s.weight)||0) * (parseInt(s.reps)||0), 0);
+      const isCustom = customExercises.some(c => c.name === exName);
+      return (
+        <div key={exName} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${T.border}` }}>
+          <div>
+            <div style={{ fontSize:11, color:isCustom ? T.yellow : T.text }}>{exName}{isCustom && <span style={{ fontSize:8, color:T.dim, marginLeft:6 }}>ADDED</span>}</div>
+            <div style={{ display:"flex", gap:4, marginTop:4 }}>
+              {exSets.map((s, i) => (
+                <span key={i} style={{ fontSize:9, color:T.dim, background:T.surface2, padding:"2px 6px", borderRadius:3 }}>{s.weight}×{s.reps}</span>
+              ))}
+            </div>
+          </div>
+          <div style={{ fontSize:10, color:T.sub }}>{exVol.toLocaleString()} lb</div>
+        </div>
+      );
+    })}
+  </div>
+
+  <button onClick={onBack} style={{
+    width:"100%", padding:14, background:T.surface, border:`1px solid ${T.border}`,
+    color:T.sub, borderRadius:6, fontSize:10, letterSpacing:3, cursor:"pointer", fontFamily:T.font,
+  }}>← BACK TO LOG</button>
+</div>
+```
+
+);
+}
+
+// ─── FINISH MODAL — POST-WORKOUT CHECK-IN ────────────────────────────────────
+function FinishModal({ energy, setEnergy, sleep, setSleep, bodyweight, setBodyweight, notes, setNotes, onConfirm, onSkip, onCancel }) {
+const ratingBtn = (val, current, setter, color) => (
+<button key={val} onClick={() => setter(val)} style={{
+width:40, height:40, borderRadius:8,
+background: current === val ? (color || T.accent) : T.surface,
+border: `1.5px solid ${current === val ? (color || T.accent) : T.border}`,
+color: current === val ? “#fff” : T.sub,
+fontSize:14, fontWeight:600, cursor:“pointer”, fontFamily:T.font,
+display:“flex”, alignItems:“center”, justifyContent:“center”,
+}}>{val}</button>
+);
+
+const labels = { 1:“Dead”, 2:“Low”, 3:“OK”, 4:“Good”, 5:“Great” };
+
+return (
+<div style={{ position:“fixed”, inset:0, background:“rgba(0,0,0,0.5)”, zIndex:200, display:“flex”, alignItems:“center”, justifyContent:“center”, padding:16, animation:“fadeIn .2s” }}>
+<div style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:14, padding:“28px 22px”, width:“100%”, maxWidth:360 }}>
+<div style={{ fontFamily:T.display, fontSize:24, fontWeight:600, letterSpacing:5, color:T.accent, marginBottom:4 }}>POST-WORKOUT</div>
+<div style={{ fontSize:10, color:T.dim, letterSpacing:2, marginBottom:24 }}>Quick check-in before saving</div>
+
+```
+    {/* Energy */}
+    <div style={{ marginBottom:20 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+        <span style={{ fontSize:10, color:T.sub, letterSpacing:2 }}>ENERGY LEVEL</span>
+        {energy > 0 && <span style={{ fontSize:10, color:T.accent }}>{labels[energy]}</span>}
+      </div>
+      <div style={{ display:"flex", gap:8 }}>
+        {[1,2,3,4,5].map(v => ratingBtn(v, energy, setEnergy, T.accent))}
+      </div>
+    </div>
+
+    {/* Sleep */}
+    <div style={{ marginBottom:20 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+        <span style={{ fontSize:10, color:T.sub, letterSpacing:2 }}>SLEEP QUALITY</span>
+        {sleep > 0 && <span style={{ fontSize:10, color:T.green }}>{labels[sleep]}</span>}
+      </div>
+      <div style={{ display:"flex", gap:8 }}>
+        {[1,2,3,4,5].map(v => ratingBtn(v, sleep, setSleep, T.green))}
+      </div>
+    </div>
+
+    {/* Bodyweight */}
+    <div style={{ marginBottom:16 }}>
+      <div style={{ fontSize:10, color:T.sub, letterSpacing:2, marginBottom:6 }}>BODYWEIGHT (lb) — optional</div>
+      <input type="number" inputMode="decimal" step="0.1" value={bodyweight}
+        onChange={e => setBodyweight(e.target.value)}
+        placeholder="e.g. 210"
+        style={{ width:"100%", background:T.bg, border:`1px solid ${T.border}`, color:T.text, padding:"10px 14px", borderRadius:6, fontSize:14, fontFamily:T.font, outline:"none", textAlign:"center" }}
+      />
+    </div>
+
+    {/* Notes */}
+    <div style={{ marginBottom:22 }}>
+      <div style={{ fontSize:10, color:T.sub, letterSpacing:2, marginBottom:6 }}>NOTES — optional</div>
+      <textarea value={notes} onChange={e => setNotes(e.target.value)}
+        placeholder="Felt strong, shoulder tight, etc."
+        rows={2}
+        style={{ width:"100%", background:T.bg, border:`1px solid ${T.border}`, color:T.text, padding:"10px 14px", borderRadius:6, fontSize:12, fontFamily:T.font, outline:"none", resize:"vertical" }}
+      />
+    </div>
+
+    {/* Buttons */}
+    <button onClick={onConfirm} style={{
+      width:"100%", padding:14, background:`linear-gradient(135deg, ${T.accent}, #c04420)`,
+      color:"#fff", border:"none", borderRadius:6, fontSize:12, letterSpacing:3,
+      cursor:"pointer", fontFamily:T.display, fontWeight:600, marginBottom:8,
+    }}>SAVE & SEND TO CLAUDE</button>
+    <div style={{ display:"flex", gap:8 }}>
+      <button onClick={onSkip} style={{
+        flex:1, padding:10, background:T.surface2, border:`1px solid ${T.border}`,
+        color:T.sub, borderRadius:6, fontSize:9, letterSpacing:2, cursor:"pointer", fontFamily:T.font,
+      }}>SKIP CHECK-IN</button>
+      <button onClick={onCancel} style={{
+        flex:1, padding:10, background:"transparent", border:`1px solid ${T.border}`,
+        color:T.dim, borderRadius:6, fontSize:9, letterSpacing:2, cursor:"pointer", fontFamily:T.font,
+      }}>CANCEL</button>
+    </div>
+  </div>
+</div>
+```
+
+);
+}
+
+ReactDOM.createRoot(document.getElementById(“root”)).render(React.createElement(IronLog));
+</script>
+
+</body>
+</html>
