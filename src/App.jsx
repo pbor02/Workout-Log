@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DEFAULT_WORKOUTS = {
   Monday: { label:"PUSH", sub:"Chest · Front & Side Delts · Triceps", exercises:[
     {name:"Cable Single-Arm Front Raise",sets:3,reps:"12-15"},{name:"Cable Single-Arm Lateral Raise",sets:4,reps:"13-15"},
@@ -39,7 +39,7 @@ const DEFAULT_WORKOUTS = {
   ]},
 };
 
-const autoDay = () => DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+const autoDay = () => DAYS[new Date().getDay()];
 const todayKey = () => new Date().toISOString().slice(0, 10);
 const dateLabel = () => new Date().toLocaleDateString("en-US", { month:"short", day:"numeric" });
 const SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5Zm1-YRLwAG2kYxQqiVVcjfWCHGRBQLwBrTUCMP311w__ZZWLotNYotFWEr7oldw3Qg/exec";
@@ -66,7 +66,7 @@ const DIFF = { easy:{label:"Easy",color:"#3dd68c",bg:"#3dd68c15",icon:"\u2191"},
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
-  *{box-sizing:border-box;margin:0;padding:0}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:${T.border2};border-radius:2px}
   input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
   input[type=number]{-moz-appearance:textfield}
@@ -75,6 +75,7 @@ const css = `
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+  @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
 `;
 
 export default function WorkoutLog() {
@@ -101,8 +102,6 @@ export default function WorkoutLog() {
   const [timerDuration, setTimerDuration] = useState(0);
   const [timerMinimized, setTimerMinimized] = useState(false);
   const [now, setNow] = useState(Date.now());
-  const [claudeOpened, setClaudeOpened] = useState(false);
-  const [logText, setLogText] = useState("");
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [finishEnergy, setFinishEnergy] = useState(0);
   const [finishSleep, setFinishSleep] = useState(0);
@@ -133,6 +132,21 @@ export default function WorkoutLog() {
     const [hist,s,d,cex,order,rn,cw] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts')]);
     if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw); setLoading(false);
   })(); }, []);
+
+  useEffect(() => {
+    let wakeLock = null;
+    async function requestWakeLock() {
+      try {
+        if('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch(e) {}
+    }
+    requestWakeLock();
+    const onVis = () => { if(document.visibilityState === 'visible') requestWakeLock(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { document.removeEventListener('visibilitychange', onVis); if(wakeLock) wakeLock.release().catch(()=>{}); };
+  }, []);
 
   useEffect(() => {
     if(activeEx && exRefs.current[activeEx]) exRefs.current[activeEx].scrollIntoView({behavior:"smooth",block:"center"});
@@ -221,7 +235,7 @@ export default function WorkoutLog() {
     if(d===day) return;
     dayCache.current[day] = {sets:sets,done:done,customExercises:customExercises,exerciseOrder:exerciseOrder,renames:renames};
     store.set(`sets-${day}-${todayKey()}`,sets);store.set(`done-${day}-${todayKey()}`,done);store.set(`custom-ex-${day}-${todayKey()}`,customExercises);store.set(`renames-${day}-${todayKey()}`,renames);
-    setDay(d);setActiveEx(null);setWeight("");setReps("");setEditIdx(null);setClaudeOpened(false);setLogText("");setView("log");setReordering(false);setRenamingEx(null);setSuggestion(null);
+    setDay(d);setActiveEx(null);setWeight("");setReps("");setEditIdx(null);setView("log");setReordering(false);setRenamingEx(null);setSuggestion(null);
     var cached = dayCache.current[d];
     if(cached){setSets(cached.sets||{});setDone(cached.done||{});setCustomExercises(cached.customExercises||[]);setExerciseOrder(cached.exerciseOrder);setRenames(cached.renames||{});}
     else{const[s,dn,cex,order,rn]=await Promise.all([store.get(`sets-${d}-${todayKey()}`),store.get(`done-${d}-${todayKey()}`),store.get(`custom-ex-${d}-${todayKey()}`),store.get(`order-${d}`),store.get(`renames-${d}-${todayKey()}`)]);setSets(s||{});setDone(dn||{});setCustomExercises(cex||[]);setExerciseOrder(order);setRenames(rn||{});}
@@ -242,7 +256,7 @@ export default function WorkoutLog() {
     var exData=getAllExercises().find(e=>e.name===activeEx);
     var loggedNow=(updated[activeEx]||[]).length;
     if(exData&&loggedNow>=exData.sets&&editIdx===null){var ud={...done,[activeEx]:true};setDone(ud);await store.set(`done-${day}-${todayKey()}`,ud);}
-    if(editIdx===null&&exData&&loggedNow<exData.sets){const comp=["Leg Press","Lat Pulldown","Machine Chest Press","Seated Cable Row","Machine Shoulder Press"].some(c=>activeEx.includes(c));var tn=Date.now();setNow(tn);setTimerStart(tn);setTimerDuration(comp?120:75);setTimerMinimized(false);}
+    if(editIdx===null&&exData){const comp=["Leg Press","Lat Pulldown","Machine Chest Press","Seated Cable Row","Machine Shoulder Press"].some(c=>activeEx.includes(c));var tn=Date.now();setNow(tn);setTimerStart(tn);setTimerDuration(comp?120:75);setTimerMinimized(false);}
     setSelectedDiff("just_right");
     var sg=suggestWeight(activeEx,weight,selectedDiff);if(sg&&editIdx===null){setSuggestion(sg);setWeight(String(sg.weight));}else{setSuggestion(null);}
     setTimeout(() => {repsRef.current?.focus();repsRef.current?.select();},60);
@@ -361,8 +375,15 @@ export default function WorkoutLog() {
   async function finishWorkout(ci) {
     const w=getWorkout();const entry={day,label:w.label,date:todayKey(),dateLabel:dateLabel(),sets:{...sets},customExercises:[...customExercises],checkIn:ci||{}};
     const uh={...history,[`${todayKey()}-${day}`]:entry};setHistory(uh);await store.set("iron-history",uh);
-    const text=buildLogText(ci||{});setLogText(text);setShowFinishModal(false);setView("summary");sendToSheets(entry);
-    try{window.open(`https://claude.ai/new?q=${encodeURIComponent(text)}`,"_blank");setClaudeOpened(true);showToast("Saved — opening Claude...");}catch(e){setClaudeOpened(false);showToast("Saved");}
+    const text=buildLogText(ci||{});
+    setShowFinishModal(false);
+    sendToSheets(entry);
+    try{window.open(`claude://new?q=${encodeURIComponent(text)}`);}catch(e){}
+    setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});
+    await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{})]);
+    dayCache.current={};
+    setView("log");
+    showToast("Workout saved");
   }
 
   async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{})]); showToast("Cleared");}
@@ -380,11 +401,14 @@ export default function WorkoutLog() {
   const w=getWorkout(),isRest=w.exercises.length===0&&customExercises.length===0,allExercises=getAllExercises();
   const totalSets=Object.values(sets).reduce((a,b)=>a+b.length,0),doneCount=Object.values(done).filter(Boolean).length,today=autoDay();
   const totalVolume=Object.values(sets).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);
+  if(view!=="log"&&view!=="history"&&view!=="edit") setView("log");
 
   if(loading) return <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.font}}><div style={{color:T.dim,fontSize:13,letterSpacing:2,animation:"pulse 1.5s infinite"}}>Loading...</div></div>;
 
   return (
-    <div style={{minHeight:"100vh",maxWidth:540,margin:"0 auto",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column"}}>
+    <>
+    <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
+    <div className="app-wrap" style={{minHeight:"100vh",maxWidth:540,margin:"0 auto",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column"}}>
       <style>{css}</style>
       {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.accent,color:"#000",padding:"10px 28px",borderRadius:100,fontSize:13,fontWeight:700,zIndex:200,animation:"slideIn .25s",boxShadow:"0 4px 20px #e8922f40",fontFamily:T.font}}>{toast}</div>}
 
@@ -427,7 +451,7 @@ export default function WorkoutLog() {
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {totalSets>0&&view==="log"&&<div style={{textAlign:"right"}}><div style={{fontSize:28,fontWeight:700,color:T.accent,lineHeight:1}}>{totalSets}</div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginTop:2}}>sets</div></div>}
             <button onClick={manualSync} disabled={syncing} style={{background:syncing?T.accentDim:"transparent",border:"1.5px solid "+(syncing?T.accent:T.border),color:syncing?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:syncing?"default":"pointer",fontSize:14,flexShrink:0,animation:syncing?"pulse 1s infinite":"none"}}>↻</button>
-            <button onClick={()=>{setView(view==="edit"?"log":"edit");setClaudeOpened(false);setLogText("");setReordering(false);setEditExIdx(null);setEditingMeta(false);}} style={{background:view==="edit"?T.accentDim:"transparent",border:"1.5px solid "+(view==="edit"?T.accent:T.border),color:view==="edit"?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,flexShrink:0}}>⚙</button>
+            <button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);}} style={{background:view==="edit"?T.accentDim:"transparent",border:"1.5px solid "+(view==="edit"?T.accent:T.border),color:view==="edit"?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,flexShrink:0}}>⚙</button>
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 20px 12px",overflowX:"auto"}}>
@@ -440,7 +464,7 @@ export default function WorkoutLog() {
         </div>
         <div style={{display:"flex",borderTop:`1px solid ${T.border}`}}>
           {[["log","Log"],["history","History"]].map(([v,l])=>(
-            <button key={v} onClick={()=>{setView(v);setClaudeOpened(false);setLogText("");setReordering(false);}} style={{flex:1,padding:"10px 0",background:"transparent",border:"none",borderBottom:`2.5px solid ${view===v?T.accent:"transparent"}`,color:view===v?T.text:T.dim,fontSize:13,fontWeight:view===v?600:400,cursor:"pointer",fontFamily:T.font}}>{l}</button>
+            <button key={v} onClick={()=>{setView(v);setReordering(false);}} style={{flex:1,padding:"10px 0",background:"transparent",border:"none",borderBottom:`2.5px solid ${view===v?T.accent:"transparent"}`,color:view===v?T.text:T.dim,fontSize:13,fontWeight:view===v?600:400,cursor:"pointer",fontFamily:T.font}}>{l}</button>
           ))}
         </div>
       </div>
@@ -644,9 +668,9 @@ export default function WorkoutLog() {
           </div>
         )}
         {view==="history"&&<HistoryView history={history} onDelete={deleteHistoryEntry} onClearAll={clearAllHistory} />}
-        {view==="summary"&&<SummaryView day={day} sets={sets} history={history} customExercises={customExercises} logText={logText} claudeOpened={claudeOpened} sheetsSyncStatus={sheetsSyncStatus} sheetsUrl={sheetsUrl} onBack={()=>setView("log")} />}
       </div>
     </div>
+    </>
   );
 }
 
@@ -692,43 +716,6 @@ function HistoryView({history, onDelete, onClearAll}) {
   );
 }
 
-// ─── SUMMARY ─────────────────────────────────────────────────────────────────
-function SummaryView({day,sets,history,customExercises,logText,claudeOpened,sheetsSyncStatus,sheetsUrl,onBack}) {
-  const [copied,setCopied]=useState(false);const [showLog,setShowLog]=useState(false);
-  const w=(customWorkouts&&customWorkouts[day])||DEFAULT_WORKOUTS[day];const totalSets=Object.values(sets).reduce((a,b)=>a+b.length,0);const totalVol=Object.values(sets).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);const exercisesDone=Object.keys(sets).length;
-  const prev=Object.values(history).filter(e=>e.day===day&&e.date!==`${todayKey()}-${day}`).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
-  const prevVol=prev?Object.values(prev.sets||{}).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0):0;const volDiff=prevVol>0?((totalVol-prevVol)/prevVol*100).toFixed(1):null;
-  async function copyLog(){try{await navigator.clipboard.writeText(logText);}catch(e){const t=document.createElement("textarea");t.value=logText;document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);}setCopied(true);setTimeout(()=>setCopied(false),2000);}
-  function openClaude(){window.open(`https://claude.ai/new?q=${encodeURIComponent(logText)}`,"_blank");}
-  function download(){const b=new Blob([logText],{type:"text/plain"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=`workout-${day.toLowerCase()}-${todayKey()}.txt`;a.click();URL.revokeObjectURL(u);}
-  return (
-    <div style={{padding:"30px 20px",animation:"fadeIn .4s ease"}}>
-      <div style={{textAlign:"center",marginBottom:30}}><div style={{fontSize:48,marginBottom:8}}>💪</div><div style={{fontSize:32,fontWeight:800,color:T.accent}}>Done</div><div style={{fontSize:13,color:T.sub,marginTop:4}}>{day} · {w.label} · {dateLabel()}</div></div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
-        {[{l:"Sets",v:totalSets,c:T.accent},{l:"Exercises",v:exercisesDone,c:T.text},{l:"Volume",v:`${(totalVol/1000).toFixed(1)}k`,s:"lb",c:T.text},{l:"vs Last",v:volDiff?`${volDiff>0?"+":""}${volDiff}%`:"—",c:volDiff>0?T.green:volDiff<0?T.red:T.dim}].map((st,i)=>(
-          <div key={i} style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:12,padding:"18px 14px",textAlign:"center"}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:6}}>{st.l}</div><div style={{fontSize:28,fontWeight:800,color:st.c,lineHeight:1,fontFamily:T.mono}}>{st.v}{st.s&&<span style={{fontSize:12,color:T.dim,fontWeight:400}}> {st.s}</span>}</div></div>
-        ))}
-      </div>
-      {sheetsUrl&&<div style={{marginBottom:16,padding:"12px 16px",borderRadius:10,background:sheetsSyncStatus==="ok"?T.greenBg:sheetsSyncStatus==="error"?T.redBg:T.surface2,border:`1.5px solid ${sheetsSyncStatus==="ok"?T.green:sheetsSyncStatus==="error"?T.red:T.border}33`,fontSize:13,display:"flex",alignItems:"center",gap:8,color:sheetsSyncStatus==="ok"?T.green:sheetsSyncStatus==="error"?T.red:T.sub,fontWeight:500}}>
-        {sheetsSyncStatus==="sending"&&<><div style={{width:6,height:6,borderRadius:"50%",background:T.accent,animation:"pulse 1s infinite"}} />Syncing...</>}{sheetsSyncStatus==="ok"&&<>✓ Synced to Sheets</>}{sheetsSyncStatus==="error"&&<>✕ Sync failed — saved locally</>}
-      </div>}
-      <div style={{marginBottom:24}}>
-        <div style={{fontSize:12,color:T.accent,fontWeight:600,marginBottom:10}}>Analyze & Export</div>
-        <div style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:12,padding:"18px"}}>
-          {claudeOpened?<div style={{fontSize:13,color:T.green,fontWeight:500,marginBottom:12}}>✓ Opened in Claude</div>:<div style={{fontSize:13,color:T.sub,marginBottom:12}}>Send to Claude for analysis</div>}
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            <button onClick={openClaude} style={{flex:1,minWidth:120,padding:"12px 0",background:`linear-gradient(135deg, ${T.accent}, #b83a10)`,color:"#000",border:"none",borderRadius:10,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Send to Claude</button>
-            <button onClick={copyLog} style={{flex:1,minWidth:100,padding:"12px 0",background:copied?T.greenBg:T.surface2,border:`1.5px solid ${copied?T.green:T.border}`,color:copied?T.green:T.sub,borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{copied?"Copied ✓":"Copy Log"}</button>
-            <button onClick={download} style={{flex:1,minWidth:100,padding:"12px 0",background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Download</button>
-          </div>
-          <button onClick={()=>setShowLog(!showLog)} style={{background:"none",border:"none",color:T.dim,fontSize:12,cursor:"pointer",fontFamily:T.font,marginTop:10,padding:0}}>{showLog?"▼ Hide log":"▶ View log"}</button>
-          {showLog&&<div style={{marginTop:8,padding:14,background:T.bg,borderRadius:8,fontSize:12,color:T.sub,lineHeight:1.6,whiteSpace:"pre-wrap",fontFamily:T.mono,maxHeight:300,overflowY:"auto",border:`1px solid ${T.border}`}}>{logText}</div>}
-        </div>
-      </div>
-      <button onClick={onBack} style={{width:"100%",padding:14,background:T.surface,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>← Back to Log</button>
-    </div>
-  );
-}
 
 // ─── FINISH MODAL ────────────────────────────────────────────────────────────
 function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,notes,setNotes,onConfirm,onSkip,onCancel}) {
