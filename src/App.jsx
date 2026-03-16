@@ -42,7 +42,7 @@ const DEFAULT_WORKOUTS = {
 const autoDay = () => DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
 const todayKey = () => new Date().toISOString().slice(0, 10);
 const dateLabel = () => new Date().toLocaleDateString("en-US", { month:"short", day:"numeric" });
-const SHEETS_URL = "PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE";
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5Zm1-YRLwAG2kYxQqiVVcjfWCHGRBQLwBrTUCMP311w__ZZWLotNYotFWEr7oldw3Qg/exec";
 
 const store = {
   async get(k) { try { var v = localStorage.getItem("wl_" + k); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
