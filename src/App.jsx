@@ -154,6 +154,10 @@ export default function WorkoutLog() {
   }, [wakeLockOn]);
 
   useEffect(() => {
+    try { screen.orientation.lock('portrait').catch(()=>{}); } catch(e) {}
+  }, []);
+
+  useEffect(() => {
     if(activeEx && exRefs.current[activeEx]) exRefs.current[activeEx].scrollIntoView({behavior:"smooth",block:"center"});
     if(activeEx && editIdx===null) setTimeout(() => { repsRef.current?.focus(); repsRef.current?.select(); }, 100);
   }, [activeEx]);
@@ -378,18 +382,15 @@ export default function WorkoutLog() {
   useEffect(function(){if(!loading&&sheetsUrl){setTimeout(syncFromSheets,2000);}},[loading]);
 
   async function finishWorkout(ci) {
-    const w=getWorkout();const entry={day,label:w.label,date:todayKey(),dateLabel:dateLabel(),sets:{...sets},customExercises:[...customExercises],checkIn:ci||{}};
+    const w=getWorkout();const text=buildLogText(ci||{});const entry={day,label:w.label,date:todayKey(),dateLabel:dateLabel(),sets:{...sets},customExercises:[...customExercises],checkIn:ci||{},logText:text};
     const uh={...history,[`${todayKey()}-${day}`]:entry};setHistory(uh);await store.set("iron-history",uh);
-    const text=buildLogText(ci||{});
     setShowFinishModal(false);
     sendToSheets(entry);
-    try{await navigator.clipboard.writeText(text);}catch(e){}
-    window.open('https://claude.ai/new','_blank');
     setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});
     await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{})]);
     dayCache.current={};
     setView("log");
-    showToast("Log copied — paste in Claude");
+    showToast("Workout saved");
   }
 
   async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{})]); showToast("Cleared");}
@@ -436,7 +437,7 @@ export default function WorkoutLog() {
         </div>
       )}
       {timerActive && timerMinimized && (
-        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",bottom:0,left:0,right:0,zIndex:200,background:timerRemaining<=10?T.accent:T.surface2,padding:"10px 20px",paddingBottom:"calc(10px + env(safe-area-inset-bottom, 0px))",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",animation:"fadeIn .15s",borderTop:"1px solid "+T.border}}>
+        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:timerRemaining<=10?T.accent:T.surface2,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",animation:"fadeIn .15s",borderBottom:"1px solid "+T.border}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:6,height:6,borderRadius:"50%",background:timerRemaining<=10?"#000":T.accent,animation:"pulse 1s infinite"}} />
             <span style={{color:timerRemaining<=10?"#000":T.text,fontSize:13,fontWeight:600,fontFamily:T.font}}>REST</span>
@@ -447,7 +448,7 @@ export default function WorkoutLog() {
       )}
 
       {/* ═══ HEADER ═══ */}
-      <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
+      <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0,marginTop:timerActive&&timerMinimized?42:0}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 20px 12px"}}>
           <div>
             <div style={{fontSize:22,fontWeight:800,color:T.text,lineHeight:1,letterSpacing:-0.5}}>Workout Log</div>
@@ -686,7 +687,8 @@ function HistoryView({history, onDelete, onClearAll}) {
   const [expanded,setExpanded]=useState(null);
   const [hv,setHv]=useState("sessions");
   const [confirmClear,setConfirmClear]=useState(false);
-  function getWeekly(){const w={};histEntries.forEach(e=>{const d=new Date(e.date);const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());const k=sun.toISOString().slice(0,10);if(!w[k])w[k]={sessions:0,volume:0,sets:0};w[k].sessions++;w[k].sets+=Object.values(e.sets||{}).reduce((a,b)=>a+b.length,0);w[k].volume+=Object.values(e.sets||{}).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);});return Object.entries(w).sort(([a],[b])=>b.localeCompare(a)).map(([k,v])=>{const s=new Date(k);const en=new Date(s);en.setDate(s.getDate()+6);const f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});return{key:k,label:`${f(s)} – ${f(en)}`,...v};});}
+  const [copiedKey,setCopiedKey]=useState(null);
+  function getWeekly(){const w={};histEntries.forEach(e=>{const[yr,mo,dy]=e.date.split('-').map(Number);const d=new Date(yr,mo-1,dy);const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());const k=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;if(!w[k])w[k]={sessions:0,volume:0,sets:0};w[k].sessions++;w[k].sets+=Object.values(e.sets||{}).reduce((a,b)=>a+b.length,0);w[k].volume+=Object.values(e.sets||{}).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);});return Object.entries(w).sort(([a],[b])=>b.localeCompare(a)).map(([k,v])=>{const[sy,sm,sd]=k.split('-').map(Number);const s=new Date(sy,sm-1,sd);const en=new Date(s);en.setDate(s.getDate()+6);const f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});return{key:k,label:`${f(s)} – ${f(en)}`,...v};});}
   const weekly=getWeekly(),maxVol=Math.max(...weekly.map(w=>w.volume),1);
   if(!histEntries.length) return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 24px",textAlign:"center"}}><div style={{fontSize:40,opacity:0.6,marginBottom:12}}>📋</div><div style={{fontSize:20,fontWeight:700,color:T.dim}}>No history yet</div><div style={{fontSize:13,color:T.dim,marginTop:8}}>Finish a workout to see it here</div></div>;
   return (
@@ -703,6 +705,7 @@ function HistoryView({history, onDelete, onClearAll}) {
           </div>
           {isOpen&&<div style={{padding:"0 20px 16px",background:T.accentLight}}>
             {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6}}>{exName}</div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div></div>))}
+            {entry.logText&&<div style={{marginTop:10,borderTop:`1px solid ${T.border}`,paddingTop:10}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:12,color:T.dim,fontWeight:500}}>Copy to Claude</span><button onClick={()=>{navigator.clipboard.writeText(entry.logText).then(()=>{setCopiedKey(entry.key);setTimeout(()=>setCopiedKey(null),2000);}).catch(()=>{});}} style={{padding:"4px 12px",background:copiedKey===entry.key?T.greenBg:"transparent",border:`1.5px solid ${copiedKey===entry.key?T.green:T.border}`,color:copiedKey===entry.key?T.green:T.sub,borderRadius:8,fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{copiedKey===entry.key?"Copied!":"Copy"}</button></div><pre style={{margin:0,background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"10px 12px",fontSize:11,color:T.dim,overflowX:"auto",whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:160,overflowY:"auto",fontFamily:T.mono}}>{entry.logText}</pre></div>}
             <button onClick={()=>{onDelete(entry.key);setExpanded(null);}} style={{marginTop:10,padding:"8px 16px",background:"transparent",border:`1.5px solid ${T.red}33`,color:T.red,borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete this session</button>
           </div>}
         </div>);})}
@@ -736,7 +739,7 @@ function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,n
         <div style={{marginBottom:22}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><span style={{fontSize:12,color:T.sub,fontWeight:500}}>Sleep Quality</span>{sleep>0&&<span style={{fontSize:12,color:T.green,fontWeight:600}}>{labels[sleep]}</span>}</div><div style={{display:"flex",gap:8}}>{[1,2,3,4,5].map(v=>rb(v,sleep,setSleep,T.green))}</div></div>
         <div style={{marginBottom:16}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Bodyweight (lb) — optional</div><input type="number" inputMode="decimal" step="0.1" value={bodyweight} onChange={e=>setBodyweight(e.target.value)} placeholder="e.g. 210" style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:16,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
         <div style={{marginBottom:24}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Notes — optional</div><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Felt strong, shoulder tight, etc." rows={2} style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:14,fontFamily:T.font,outline:"none",resize:"vertical"}} /></div>
-        <button onClick={onConfirm} style={{width:"100%",padding:14,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:8}}>Save & Send to Claude</button>
+        <button onClick={onConfirm} style={{width:"100%",padding:14,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:8}}>Save Workout</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={onSkip} style={{flex:1,padding:12,background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:10,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Skip check-in</button>
           <button onClick={onCancel} style={{flex:1,padding:12,background:"transparent",border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
