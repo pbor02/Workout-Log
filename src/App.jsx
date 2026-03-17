@@ -177,7 +177,6 @@ export default function WorkoutLog() {
     if (!w) return null;
     var bump = getWeightBump(exName);
     if (lastDiff === "easy") return {weight: w + bump, reason: "+" + bump + "lb — last was easy"};
-    if (lastDiff === "hard") return {weight: Math.max(w - bump, 0), reason: "-" + bump + "lb — last was hard"};
     var allHistSets = [];
     Object.values(history).forEach(function(e) { var s = e.sets ? e.sets[exName] : null; if (s) s.forEach(function(x) { allHistSets.push(x); }); });
     var justRight = allHistSets.filter(function(s) { return s.diff === "just_right"; });
@@ -208,7 +207,7 @@ export default function WorkoutLog() {
     if (allEasy) return {weight: lastW + bump, reps: lastAvgReps, note: "Bump +" + bump + "lb"};
     if (allJR && lastAvgReps >= repMax) return {weight: lastW + bump, reps: repMin, note: "Top of range — go up"};
     if (allJR) return {weight: lastW, reps: Math.min(lastAvgReps + 1, repMax), note: "+1 rep"};
-    if (anyHard) return {weight: lastW, reps: lastAvgReps, note: "Hold — aim all Just Right"};
+    if (anyHard) return {weight: lastW, reps: lastAvgReps, note: "Match weight — complete all reps"};
     return {weight: lastW, reps: lastAvgReps, note: "Same targets"};
   }
 
