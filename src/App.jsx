@@ -75,7 +75,6 @@ const css = `
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
-  @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
 `;
 
 export default function WorkoutLog() {
@@ -109,6 +108,8 @@ export default function WorkoutLog() {
   const [finishNotes, setFinishNotes] = useState("");
   const [sheetsUrl] = useState(SHEETS_URL);
   const [sheetsSyncStatus, setSheetsSyncStatus] = useState(null);
+  const [wakeLockOn, setWakeLockOn] = useState(false);
+  const wakeLockRef = useRef(null);
   const [customWorkouts, setCustomWorkouts] = useState(null);
   const [editExIdx, setEditExIdx] = useState(null);
   const [editExName, setEditExName] = useState("");
@@ -134,19 +135,23 @@ export default function WorkoutLog() {
   })(); }, []);
 
   useEffect(() => {
-    let wakeLock = null;
-    async function requestWakeLock() {
+    async function acquireWakeLock() {
       try {
-        if('wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
-        }
+        if('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
       } catch(e) {}
     }
-    requestWakeLock();
-    const onVis = () => { if(document.visibilityState === 'visible') requestWakeLock(); };
-    document.addEventListener('visibilitychange', onVis);
-    return () => { document.removeEventListener('visibilitychange', onVis); if(wakeLock) wakeLock.release().catch(()=>{}); };
-  }, []);
+    function releaseWakeLock() {
+      if(wakeLockRef.current) { wakeLockRef.current.release().catch(()=>{}); wakeLockRef.current = null; }
+    }
+    if(wakeLockOn) {
+      acquireWakeLock();
+      const onVis = () => { if(document.visibilityState === 'visible') acquireWakeLock(); };
+      document.addEventListener('visibilitychange', onVis);
+      return () => { document.removeEventListener('visibilitychange', onVis); releaseWakeLock(); };
+    } else {
+      releaseWakeLock();
+    }
+  }, [wakeLockOn]);
 
   useEffect(() => {
     if(activeEx && exRefs.current[activeEx]) exRefs.current[activeEx].scrollIntoView({behavior:"smooth",block:"center"});
@@ -378,12 +383,13 @@ export default function WorkoutLog() {
     const text=buildLogText(ci||{});
     setShowFinishModal(false);
     sendToSheets(entry);
-    try{window.open(`claude://new?q=${encodeURIComponent(text)}`);}catch(e){}
+    try{await navigator.clipboard.writeText(text);}catch(e){}
+    window.open('https://claude.ai/new','_blank');
     setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});
     await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{})]);
     dayCache.current={};
     setView("log");
-    showToast("Workout saved");
+    showToast("Log copied — paste in Claude");
   }
 
   async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{})]); showToast("Cleared");}
@@ -407,8 +413,7 @@ export default function WorkoutLog() {
 
   return (
     <>
-    <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
-    <div className="app-wrap" style={{minHeight:"100vh",maxWidth:540,margin:"0 auto",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:"100vh",maxWidth:540,margin:"0 auto",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column"}}>
       <style>{css}</style>
       {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.accent,color:"#fff",padding:"10px 28px",borderRadius:100,fontSize:13,fontWeight:700,zIndex:200,animation:"slideIn .25s",boxShadow:"0 4px 20px #dc262640",fontFamily:T.font}}>{toast}</div>}
 
@@ -431,7 +436,7 @@ export default function WorkoutLog() {
         </div>
       )}
       {timerActive && timerMinimized && (
-        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",top:0,left:0,right:0,zIndex:150,background:timerRemaining<=10?T.accent:T.surface2,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",animation:"fadeIn .15s",borderBottom:"1px solid "+T.border}}>
+        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",bottom:0,left:0,right:0,zIndex:200,background:timerRemaining<=10?T.accent:T.surface2,padding:"10px 20px",paddingBottom:"calc(10px + env(safe-area-inset-bottom, 0px))",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",animation:"fadeIn .15s",borderTop:"1px solid "+T.border}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:6,height:6,borderRadius:"50%",background:timerRemaining<=10?"#000":T.accent,animation:"pulse 1s infinite"}} />
             <span style={{color:timerRemaining<=10?"#000":T.text,fontSize:13,fontWeight:600,fontFamily:T.font}}>REST</span>
@@ -442,7 +447,7 @@ export default function WorkoutLog() {
       )}
 
       {/* ═══ HEADER ═══ */}
-      <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0,marginTop:timerActive&&timerMinimized?42:0}}>
+      <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 20px 12px"}}>
           <div>
             <div style={{fontSize:22,fontWeight:800,color:T.text,lineHeight:1,letterSpacing:-0.5}}>Workout Log</div>
@@ -450,6 +455,7 @@ export default function WorkoutLog() {
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {totalSets>0&&view==="log"&&<div style={{textAlign:"right"}}><div style={{fontSize:28,fontWeight:700,color:T.accent,lineHeight:1}}>{totalSets}</div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginTop:2}}>sets</div></div>}
+            <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen on (tap to disable)":"Keep screen on"} style={{background:wakeLockOn?T.accentDim:"transparent",border:"1.5px solid "+(wakeLockOn?T.accent:T.border),color:wakeLockOn?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
             <button onClick={manualSync} disabled={syncing} style={{background:syncing?T.accentDim:"transparent",border:"1.5px solid "+(syncing?T.accent:T.border),color:syncing?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:syncing?"default":"pointer",fontSize:14,flexShrink:0,animation:syncing?"pulse 1s infinite":"none"}}>↻</button>
             <button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);}} style={{background:view==="edit"?T.accentDim:"transparent",border:"1.5px solid "+(view==="edit"?T.accent:T.border),color:view==="edit"?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,flexShrink:0}}>⚙</button>
           </div>
@@ -470,7 +476,7 @@ export default function WorkoutLog() {
       </div>
 
       {/* ═══ CONTENT ═══ */}
-      <div style={{flex:1,overflowY:"auto"}}>
+      <div style={{flex:1,overflowY:"auto",paddingBottom:timerActive&&timerMinimized?64:0}}>
         {view==="log"&&(<>
           {isRest?(
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 24px",textAlign:"center",gap:16}}>
