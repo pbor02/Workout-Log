@@ -1201,13 +1201,13 @@ function ExercisePicker({value, onChange, onSelect, catalog, placeholder, dropUp
   const closeTimer = useRef(null);
   const query = (value || "").toLowerCase();
   const filtered = query.length > 0
-    ? catalog.filter(e => e.name.toLowerCase().includes(query) || e.category.toLowerCase().includes(query)).slice(0, 25)
-    : catalog.slice(0, 25);
+    ? catalog.filter(e => e.name.toLowerCase().includes(query) || e.category.toLowerCase().includes(query)).slice(0, 50)
+    : catalog;
   const groups = {};
   filtered.forEach(e => { if(!groups[e.category]) groups[e.category] = []; groups[e.category].push(e); });
   const dropStyle = dropUp
-    ? {position:"absolute",bottom:"calc(100% + 4px)",left:0,right:0,zIndex:100,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,maxHeight:240,overflowY:"auto",boxShadow:"0 -8px 24px rgba(0,0,0,0.4)"}
-    : {position:"absolute",top:"100%",left:0,right:0,zIndex:100,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,marginTop:4,maxHeight:240,overflowY:"auto",boxShadow:"0 8px 24px rgba(0,0,0,0.4)"};
+    ? {position:"absolute",bottom:"calc(100% + 4px)",left:0,right:0,zIndex:100,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,maxHeight:260,overflowY:"auto",boxShadow:"0 -8px 24px rgba(0,0,0,0.4)",overscrollBehavior:"contain"}
+    : {position:"absolute",top:"100%",left:0,right:0,zIndex:100,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,marginTop:4,maxHeight:260,overflowY:"auto",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",overscrollBehavior:"contain"};
   return (
     <div style={{position:"relative"}}>
       <input
