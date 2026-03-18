@@ -665,17 +665,18 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     setSelectedDiff("just_right"); }
 
   async function addOrUpdateSet() {
-    if(!activeEx||!weight||!reps) return;
+    const cardio=isCardio(activeEx);
+    if(!activeEx||!reps||(!cardio&&!weight)) return;
     let updated;
-    if(editIdx!==null){const a=[...(sets[activeEx]||[])];a[editIdx]={...a[editIdx],weight:String(weight),reps:String(reps),diff:selectedDiff};updated={...sets,[activeEx]:a};setEditIdx(null);showToast("Updated");}
-    else{const entry={weight:String(weight),reps:String(reps),diff:selectedDiff};updated={...sets,[activeEx]:[...(sets[activeEx]||[]),entry]};showToast("Logged");}
+    if(editIdx!==null){const a=[...(sets[activeEx]||[])];a[editIdx]={...a[editIdx],weight:cardio?"0":String(weight),reps:String(reps),diff:cardio?"just_right":selectedDiff};updated={...sets,[activeEx]:a};setEditIdx(null);showToast("Updated");}
+    else{const entry={weight:cardio?"0":String(weight),reps:String(reps),diff:cardio?"just_right":selectedDiff};updated={...sets,[activeEx]:[...(sets[activeEx]||[]),entry]};showToast("Logged");}
     setSets(updated); await store.set(`sets-${day}-${todayKey()}`,updated);
     var exData=getAllExercises().find(e=>e.name===activeEx);
     var loggedNow=(updated[activeEx]||[]).length;
     if(exData&&loggedNow>=exData.sets&&editIdx===null){var ud={...done,[activeEx]:true};setDone(ud);await store.set(`done-${day}-${todayKey()}`,ud);}
-    if(editIdx===null&&exData){var tn=Date.now();setNow(tn);setTimerStart(tn);setTimerDuration(profile.restTime||90);setTimerMinimized(false);}
+    if(!cardio&&editIdx===null&&exData){var tn=Date.now();setNow(tn);setTimerStart(tn);setTimerDuration(profile.restTime||90);setTimerMinimized(false);}
     setSelectedDiff("just_right");
-    var sg=suggestWeight(activeEx,weight,selectedDiff);if(sg&&editIdx===null){setSuggestion(sg);setWeight(String(sg.weight));}else{setSuggestion(null);}
+    var sg=suggestWeight(activeEx,weight,selectedDiff);if(sg&&editIdx===null&&!cardio){setSuggestion(sg);setWeight(String(sg.weight));}else{setSuggestion(null);}
     setTimeout(() => {repsRef.current?.focus();repsRef.current?.select();},60);
     if(exData&&loggedNow>=exData.sets&&editIdx===null){var allE=getAllExercises();var nxt=allE.find(e=>!done[e.name]&&(sets[e.name]||[]).length<e.sets&&e.name!==activeEx);if(nxt)setTimeout(()=>openExercise(nxt.name),400);}
   }
@@ -683,6 +684,12 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   function startEditSet(ex,i){setActiveEx(ex);setEditIdx(i);const s=sets[ex][i];setWeight(s.weight);setReps(s.reps);setSelectedDiff(s.diff||"just_right");setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},80);}
   async function removeSet(ex,i){const a=(sets[ex]||[]).filter((_,idx)=>idx!==i);const u={...sets};if(a.length)u[ex]=a;else delete u[ex];setSets(u);if(editIdx===i)setEditIdx(null);await store.set(`sets-${day}-${todayKey()}`,u);}
   async function toggleDone(ex){const u={...done,[ex]:!done[ex]};setDone(u);await store.set(`done-${day}-${todayKey()}`,u);}
+  function isCardio(name) {
+    if(!name) return false;
+    const n = name.toLowerCase();
+    return exerciseCatalog.some(e => e.name.toLowerCase() === n && e.category === "Cardio");
+  }
+
   async function addToCatalog(name, category) {
     if(!name.trim()) return;
     const exists = exerciseCatalog.some(e => e.name.toLowerCase() === name.trim().toLowerCase());
@@ -693,7 +700,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     }
   }
 
-  async function addCustomExercise(){if(!newExName.trim())return;const ex={name:newExName.trim(),sets:parseInt(newExSets)||3,reps:newExReps||"10-12",custom:true};const upd=[...customExercises,ex];setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);await saveOrder([...getAllExercises(),ex]);addToCatalog(newExName.trim(),"Other");setNewExName("");setNewExSets("3");setNewExReps("10-12");setShowAddEx(false);showToast("Added");}
+  async function addCustomExercise(){if(!newExName.trim())return;const _cardio=isCardio(newExName.trim());const ex={name:newExName.trim(),sets:_cardio?1:(parseInt(newExSets)||3),reps:newExReps||(_cardio?"30":"10-12"),custom:true};const upd=[...customExercises,ex];setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);await saveOrder([...getAllExercises(),ex]);addToCatalog(newExName.trim(),"Other");setNewExName("");setNewExSets("3");setNewExReps("10-12");setShowAddEx(false);showToast("Added");}
   async function removeCustomExercise(idx){const ex=customExercises[idx];const upd=customExercises.filter((_,i)=>i!==idx);setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);if(sets[ex.name]){const u={...sets};delete u[ex.name];setSets(u);await store.set(`sets-${day}-${todayKey()}`,u);}await saveOrder(getAllExercises().filter(e=>e.name!==ex.name));}
 
   async function renameExercise(origName,newName){
@@ -972,10 +979,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               <div style={{width:"100%",maxWidth:400,background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10,padding:"12px",textAlign:"left",marginTop:8}}>
                 <div style={{fontSize:12,color:T.accent,fontWeight:600,marginBottom:10}}>Add Exercise</div>
                 <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>setNewExName(name)} catalog={exerciseCatalog} placeholder="Exercise name" dropUp={true} /></div>
-                <div style={{display:"flex",gap:8,marginBottom:8}}>
-                  <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newExSets} onChange={e=>setNewExSets(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
-                  <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Rep range</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
-                </div>
+                {isCardio(newExName.trim())?(
+                  <div style={{marginBottom:8}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Target duration (min)</div><input type="number" inputMode="numeric" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="30" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                ):(
+                  <div style={{display:"flex",gap:8,marginBottom:8}}>
+                    <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newExSets} onChange={e=>setNewExSets(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                    <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Rep range</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                  </div>
+                )}
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                   <button onClick={()=>{setShowAddEx(false);setNewExName("");}} style={{flex:1,padding:"11px 0",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
@@ -1002,7 +1013,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
             {/* Exercises */}
             {allExercises.map((ex,exIdx)=>{
-              const exSets=sets[ex.name]||[],isActive=activeEx===ex.name,isDone=done[ex.name],targetMet=exSets.length>=ex.sets,lastSession=findLastExercise(ex.name),isCustom=ex.custom;
+              const exSets=sets[ex.name]||[],isActive=activeEx===ex.name,isDone=done[ex.name],targetMet=exSets.length>=ex.sets,lastSession=findLastExercise(ex.name),isCustom=ex.custom,exCardio=isCardio(ex.name);
               var exVol=exSets.reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);
               if(isDone&&!isActive&&!reordering) return (
                 <div key={ex.name+exIdx} ref={el=>{exRefs.current[ex.name]=el;}} onClick={()=>toggleDone(ex.name)} style={{borderBottom:"1px solid "+T.border,padding:"10px 20px",background:T.surface,opacity:0.5,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1010,7 +1021,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     <div style={{width:20,height:20,borderRadius:6,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:12,color:"#fff"}}>✓</span></div>
                     <span style={{fontSize:13,color:T.sub}}>{getDisplayName(ex)}</span>
                   </div>
-                  <span style={{fontSize:12,color:T.dim}}>{exSets.length} sets · {exVol.toLocaleString()} lb</span>
+                  <span style={{fontSize:12,color:T.dim}}>{exCardio?`${exSets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min`:`${exSets.length} sets · ${exVol.toLocaleString()} lb`}</span>
                 </div>
               );
               return (
@@ -1024,19 +1035,16 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                       </div>
                       {!reordering&&<>
                         <div style={{paddingLeft:30,display:"flex",alignItems:"center",gap:8,marginBottom:exSets.length>0?10:0}}>
-                          <span style={{fontSize:12,color:T.dim}}>{ex.sets}×{ex.reps}</span>
-                          {exSets.length>0&&<span style={{fontSize:12,color:targetMet?T.green:T.accent,fontWeight:600}}>{exSets.length}/{ex.sets}{targetMet?" ✓":""}</span>}
-                          {!exSets.length&&lastSession&&<span style={{fontSize:12,color:T.dim,fontStyle:"italic"}}>last: {lastSession.weight}×{lastSession.reps}</span>}
+                          <span style={{fontSize:12,color:T.dim}}>{exCardio?`${ex.reps} min`:`${ex.sets}×${ex.reps}`}</span>
+                          {exSets.length>0&&<span style={{fontSize:12,color:targetMet?T.green:T.accent,fontWeight:600}}>{exCardio?`${exSets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min ✓`:`${exSets.length}/${ex.sets}${targetMet?" ✓":""}`}</span>}
+                          {!exSets.length&&lastSession&&<span style={{fontSize:12,color:T.dim,fontStyle:"italic"}}>{exCardio?`last: ${lastSession.reps} min`:`last: ${lastSession.weight}×${lastSession.reps}`}</span>}
                           {!exSets.length&&(function(){var tgt=getSessionTarget(ex.name);return tgt?<div style={{marginTop:4,fontSize:11,color:T.accent,fontWeight:500}}>{"\ud83c\udfaf Target: "+tgt.weight+"lb \u00d7 "+tgt.reps+" \u2014 "+tgt.note}</div>:null;})()}
                         </div>
                         {exSets.length>0&&(
                           <div style={{paddingLeft:30,display:"flex",flexWrap:"wrap",gap:5}}>
-                            {exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null; return (
+                            {exSets.map((s,i)=>{const df=(!exCardio&&s.diff)?DIFF[s.diff]:null; return (
                               <span key={i} data-no-row-click onClick={e=>{e.stopPropagation();startEditSet(ex.name,i);}} style={{display:"inline-flex",alignItems:"center",gap:4,background:editIdx===i&&activeEx===ex.name?T.accentDim:df?df.bg+"88":T.surface2,border:`1.5px solid ${editIdx===i&&activeEx===ex.name?T.accent:df?df.color+"33":T.border}`,borderRadius:8,padding:"5px 10px",fontSize:13,cursor:"pointer"}}>
-                                <span style={{fontWeight:700,color:T.text,fontFamily:T.mono}}>{s.weight}</span>
-                                <span style={{color:T.dim,fontSize:11}}>×</span>
-                                <span style={{fontWeight:600,color:T.text,fontFamily:T.mono}}>{s.reps}</span>
-                                {df&&<span style={{fontSize:10,color:df.color,fontWeight:600,marginLeft:2}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}
+                                {exCardio?(<span style={{fontWeight:700,color:T.text,fontFamily:T.mono}}>{s.reps} <span style={{fontSize:11,fontWeight:400,color:T.dim}}>min</span></span>):(<><span style={{fontWeight:700,color:T.text,fontFamily:T.mono}}>{s.weight}</span><span style={{color:T.dim,fontSize:11}}>×</span><span style={{fontWeight:600,color:T.text,fontFamily:T.mono}}>{s.reps}</span>{df&&<span style={{fontSize:10,color:df.color,fontWeight:600,marginLeft:2}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</>)}
                                 <button onClick={e=>{e.stopPropagation();removeSet(ex.name,i);}} style={{background:"none",border:"none",color:T.dim,fontSize:11,padding:"0 0 0 4px",cursor:"pointer",fontFamily:T.font}}>✕</button>
                               </span>);})}
                           </div>
@@ -1051,21 +1059,21 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
                   {isActive&&!reordering&&(
                     <div data-no-row-click onClick={e=>e.stopPropagation()} style={{paddingLeft:30,marginTop:14}}>
-                      {suggestion&&editIdx===null&&<div style={{marginBottom:8,fontSize:12,color:T.accent,fontWeight:500,animation:"fadeIn .3s"}}>{"💡 "+suggestion.reason}</div>}
+                      {!exCardio&&suggestion&&editIdx===null&&<div style={{marginBottom:8,fontSize:12,color:T.accent,fontWeight:500,animation:"fadeIn .3s"}}>{"💡 "+suggestion.reason}</div>}
                       <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",animation:"slideIn .2s ease"}}>
-                        <div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:4}}>Weight</div><input ref={weightRef} type="number" inputMode="decimal" step="any" value={weight} onChange={e=>setWeight(e.target.value)} onFocus={e=>e.target.select()} onKeyDown={e=>{if(e.key==="Enter")repsRef.current?.focus();}} placeholder="0" style={{background:T.surface2,border:`1.5px solid ${T.border}`,color:T.text,padding:"11px 8px",width:80,borderRadius:8,textAlign:"center",fontSize:20,fontWeight:700,fontFamily:T.mono,outline:"none"}} /></div>
-                        <div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:4}}>Reps</div><input ref={repsRef} type="number" inputMode="numeric" value={reps} onChange={e=>setReps(e.target.value)} onFocus={e=>e.target.select()} onKeyDown={e=>{if(e.key==="Enter")addOrUpdateSet();}} placeholder="0" style={{background:T.surface2,border:`1.5px solid ${T.border}`,color:T.text,padding:"11px 8px",width:72,borderRadius:8,textAlign:"center",fontSize:20,fontWeight:700,fontFamily:T.mono,outline:"none"}} /></div>
+                        {!exCardio&&<div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:4}}>Weight</div><input ref={weightRef} type="number" inputMode="decimal" step="any" value={weight} onChange={e=>setWeight(e.target.value)} onFocus={e=>e.target.select()} onKeyDown={e=>{if(e.key==="Enter")repsRef.current?.focus();}} placeholder="0" style={{background:T.surface2,border:`1.5px solid ${T.border}`,color:T.text,padding:"11px 8px",width:80,borderRadius:8,textAlign:"center",fontSize:20,fontWeight:700,fontFamily:T.mono,outline:"none"}} /></div>}
+                        <div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:4}}>{exCardio?"Minutes":"Reps"}</div><input ref={repsRef} type="number" inputMode="numeric" value={reps} onChange={e=>setReps(e.target.value)} onFocus={e=>e.target.select()} onKeyDown={e=>{if(e.key==="Enter")addOrUpdateSet();}} placeholder="0" style={{background:T.surface2,border:`1.5px solid ${T.border}`,color:T.text,padding:"11px 8px",width:exCardio?96:72,borderRadius:8,textAlign:"center",fontSize:20,fontWeight:700,fontFamily:T.mono,outline:"none"}} /></div>
                         {editIdx!==null&&<button onClick={()=>setEditIdx(null)} style={{background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,padding:"11px 14px",borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>}
-                        {editIdx===null&&exSets.length>0&&<span style={{fontSize:12,color:T.dim,alignSelf:"center",fontWeight:500}}>Set {exSets.length+1}/{ex.sets}</span>}
+                        {!exCardio&&editIdx===null&&exSets.length>0&&<span style={{fontSize:12,color:T.dim,alignSelf:"center",fontWeight:500}}>Set {exSets.length+1}/{ex.sets}</span>}
                       </div>
                       {/* Difficulty + Log in one row */}
                       <div style={{marginTop:10,display:"flex",alignItems:"center",gap:6}}>
-                        <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:`1.5px solid ${T.border}`}}>
+                        {!exCardio&&<div style={{display:"flex",borderRadius:8,overflow:"hidden",border:`1.5px solid ${T.border}`}}>
                           {Object.entries(DIFF).map(([k,v])=>(
                             <button key={k} onClick={()=>setSelectedDiff(k)} style={{padding:"7px 12px",fontSize:12,fontWeight:selectedDiff===k?700:400,cursor:"pointer",fontFamily:T.font,background:selectedDiff===k?v.bg:T.surface,color:selectedDiff===k?v.color:T.dim,border:"none",borderRight:`1px solid ${T.border}`}}>{v.label==="Just Right"?"👌 Right":v.label==="Easy"?"🟢 Easy":"🔴 Hard"}</button>
                           ))}
-                        </div>
-                        <button onClick={addOrUpdateSet} disabled={!weight||!reps} style={{background:(!weight||!reps)?T.surface3:T.accent,color:(!weight||!reps)?T.dim:"#fff",border:"none",padding:"7px 20px",borderRadius:8,fontSize:14,fontWeight:700,cursor:(!weight||!reps)?"default":"pointer",fontFamily:T.font,marginLeft:"auto"}}>{editIdx!==null?"Update":"Log"}</button>
+                        </div>}
+                        <button onClick={addOrUpdateSet} disabled={!reps||((!exCardio)&&!weight)} style={{background:(!reps||((!exCardio)&&!weight))?T.surface3:T.accent,color:(!reps||((!exCardio)&&!weight))?T.dim:"#fff",border:"none",padding:"7px 20px",borderRadius:8,fontSize:14,fontWeight:700,cursor:(!reps||((!exCardio)&&!weight))?"default":"pointer",fontFamily:T.font,marginLeft:"auto"}}>{editIdx!==null?"Update":"Log"}</button>
                       </div>
                     </div>
                   )}
@@ -1085,10 +1093,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 <div ref={addExFormRef} style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.accentLight,animation:"slideIn .2s ease"}}>
                   <div style={{fontSize:12,color:T.accent,fontWeight:600,marginBottom:10}}>Add Exercise</div>
                   <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>setNewExName(name)} catalog={exerciseCatalog} placeholder="Exercise name" dropUp={true} /></div>
-                  <div style={{display:"flex",gap:8,marginBottom:8}}>
-                    <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newExSets} onChange={e=>setNewExSets(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
-                    <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Rep range</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
-                  </div>
+                  {isCardio(newExName.trim())?(
+                    <div style={{marginBottom:8}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Target duration (min)</div><input type="number" inputMode="numeric" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="30" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                  ):(
+                    <div style={{display:"flex",gap:8,marginBottom:8}}>
+                      <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newExSets} onChange={e=>setNewExSets(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                      <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Rep range</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                    </div>
+                  )}
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                     <button onClick={()=>{setShowAddEx(false);setNewExName("");}} style={{flex:1,padding:"11px 0",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
