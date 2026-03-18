@@ -774,8 +774,8 @@ function ExercisePicker({value, onChange, onSelect, catalog, placeholder}) {
   const closeTimer = useRef(null);
   const query = (value || "").toLowerCase();
   const filtered = query.length > 0
-    ? catalog.filter(e => e.name.toLowerCase().includes(query) || e.category.toLowerCase().includes(query)).slice(0, 8)
-    : [];
+    ? catalog.filter(e => e.name.toLowerCase().includes(query) || e.category.toLowerCase().includes(query)).slice(0, 25)
+    : catalog.slice(0, 25);
   const groups = {};
   filtered.forEach(e => { if(!groups[e.category]) groups[e.category] = []; groups[e.category].push(e); });
   return (
