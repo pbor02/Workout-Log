@@ -704,6 +704,36 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const[syncing,setSyncing]=useState(false);
   async function manualSync(){setSyncing(true);await syncFromSheets();setSyncing(false);}
 
+  function backupProfile() {
+    const prefix = "wl_" + activeProfileId + "_";
+    const data = { version: 1, profile, exportedAt: new Date().toISOString(), store: {} };
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        try { data.store[key.slice(prefix.length)] = JSON.parse(localStorage.getItem(key)); } catch(e) { data.store[key.slice(prefix.length)] = localStorage.getItem(key); }
+      }
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "workout-backup-" + profile.name.toLowerCase().replace(/\s+/g,"-") + "-" + new Date().toISOString().slice(0,10) + ".json";
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  async function restoreFromBackup(file) {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.store || !data.profile) { showToast("Invalid backup file"); return; }
+      const prefix = "wl_" + activeProfileId + "_";
+      Object.entries(data.store).forEach(([k, v]) => {
+        localStorage.setItem(prefix + k, typeof v === "string" ? v : JSON.stringify(v));
+      });
+      showToast("Restored! Reloading…");
+      setTimeout(() => window.location.reload(), 1200);
+    } catch(e) { showToast("Restore failed"); }
+  }
+
   useEffect(function(){if(!loading&&sheetsUrl&&activeProfileId==="peter"){setTimeout(syncFromSheets,2000);}},[loading]);
 
   async function finishWorkout(ci) {
@@ -756,6 +786,12 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             <div style={{fontSize:13,color:T.dim,marginBottom:20}}>Rest timer: {profile.restTime||90}s</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               <ProfileRestEdit profile={profile} onSave={(updated)=>{onProfileUpdated(updated);setShowProfileModal(false);}} T={T} />
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={backupProfile} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⬇ Backup</button>
+                <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>
+                  ⬆ Restore<input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])restoreFromBackup(e.target.files[0]);e.target.value="";}} />
+                </label>
+              </div>
               <button onClick={()=>{setShowProfileModal(false);onLogout();}} style={{background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Switch Profile</button>
               {confirmDeleteProfile ? (
                 <div style={{display:"flex",gap:8}}>
