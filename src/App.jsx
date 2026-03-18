@@ -98,10 +98,14 @@ const todayKey = () => new Date().toISOString().slice(0, 10);
 const dateLabel = () => new Date().toLocaleDateString("en-US", { month:"short", day:"numeric" });
 const SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5Zm1-YRLwAG2kYxQqiVVcjfWCHGRBQLwBrTUCMP311w__ZZWLotNYotFWEr7oldw3Qg/exec";
 
+let activeProfileId = null;
+
 const store = {
-  async get(k) { try { var v = localStorage.getItem("wl_" + k); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
-  async set(k, v) { try { localStorage.setItem("wl_" + k, JSON.stringify(v)); } catch(e) { console.error(e); } },
+  async get(k) { try { var v = localStorage.getItem("wl_" + activeProfileId + "_" + k); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
+  async set(k, v) { try { localStorage.setItem("wl_" + activeProfileId + "_" + k, JSON.stringify(v)); } catch(e) { console.error(e); } },
 };
+function getShared(k) { try { var v = localStorage.getItem("wl_" + k); return v ? JSON.parse(v) : null; } catch(e) { return null; } }
+function setShared(k, v) { try { localStorage.setItem("wl_" + k, JSON.stringify(v)); } catch(e) {} }
 
 const T = {
   bg:"#0c0c0e", surface:"#16161a", surface2:"#1e1e24", surface3:"#28282f",
@@ -132,7 +136,254 @@ const css = `
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
 `;
 
-export default function WorkoutLog() {
+function migrateIfNeeded() {
+  const profiles = getShared("profiles");
+  if(profiles && profiles.length > 0) return;
+  const legacyHistory = localStorage.getItem("wl_iron-history");
+  if(legacyHistory) {
+    const profile = { id: "peter", name: "Peter", createdAt: "2026-03-17", restTime: 90 };
+    setShared("profiles", [profile]);
+    setShared("active-profile", "peter");
+    const keysToMigrate = [];
+    for(let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if(key && key.startsWith("wl_") && key !== "wl_profiles" && key !== "wl_active-profile") keysToMigrate.push(key);
+    }
+    keysToMigrate.forEach(key => {
+      const newKey = key.replace("wl_", "wl_peter_");
+      localStorage.setItem(newKey, localStorage.getItem(key));
+      localStorage.removeItem(key);
+    });
+  }
+}
+
+export default function App() {
+  const [profileReady, setProfileReady] = useState(false);
+  const [activeProfile, setActiveProfile] = useState(null);
+  useEffect(() => {
+    migrateIfNeeded();
+    const active = getShared("active-profile");
+    const profiles = getShared("profiles") || [];
+    const profile = profiles.find(p => p.id === active);
+    if(profile) { activeProfileId = profile.id; setActiveProfile(profile); }
+    setProfileReady(true);
+  }, []);
+  function onProfileSelected(profile) { activeProfileId = profile.id; setShared("active-profile", profile.id); setActiveProfile(profile); }
+  function onLogout() { activeProfileId = null; setShared("active-profile", null); setActiveProfile(null); }
+  function onProfileUpdated(updatedProfile) {
+    const profiles = getShared("profiles") || [];
+    const idx = profiles.findIndex(p => p.id === updatedProfile.id);
+    if(idx >= 0) profiles[idx] = updatedProfile;
+    setShared("profiles", profiles);
+    setActiveProfile(updatedProfile);
+  }
+  if(!profileReady) return <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.font}}><style>{css}</style><div style={{color:T.dim,fontSize:13,animation:"pulse 1.5s infinite"}}>Loading...</div></div>;
+  if(!activeProfile) return <ProfileScreen onSelect={onProfileSelected} />;
+  return <WorkoutLog profile={activeProfile} onLogout={onLogout} onProfileUpdated={onProfileUpdated} />;
+}
+
+function ProfileScreen({onSelect}) {
+  const [profiles, setProfiles] = useState(() => getShared("profiles") || []);
+  const [showWizard, setShowWizard] = useState(() => (getShared("profiles") || []).length === 0);
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
+  const [restTime, setRestTime] = useState(90);
+  const [customRest, setCustomRest] = useState("");
+  const [split, setSplit] = useState(() => {
+    const s = {};
+    DAYS.forEach(d => { const def = DEFAULT_WORKOUTS[d]; s[d] = { training: (def?.exercises||[]).length > 0, label: def?.label||"REST", sub: def?.sub||"" }; });
+    return s;
+  });
+  const [wizardExercises, setWizardExercises] = useState(() => { const e={}; DAYS.forEach(d=>{e[d]=[];}); return e; });
+  const [addingExForDay, setAddingExForDay] = useState(null);
+  const [newExName, setNewExName] = useState("");
+  const [newExSets, setNewExSets] = useState("3");
+  const [newExReps, setNewExReps] = useState("10-12");
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const trainingDays = DAYS.filter(d => split[d]?.training);
+
+  function deleteProfile(id) {
+    const keysToRemove = [];
+    for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key&&key.startsWith(`wl_${id}_`))keysToRemove.push(key);}
+    keysToRemove.forEach(k=>localStorage.removeItem(k));
+    const updated = profiles.filter(p=>p.id!==id);
+    setShared("profiles", updated); setProfiles(updated); setConfirmDeleteId(null);
+    if(updated.length===0) setShowWizard(true);
+  }
+  function addWizardExercise(day) {
+    if(!newExName.trim()) return;
+    setWizardExercises(prev => ({...prev, [day]: [...(prev[day]||[]), {name:newExName.trim(), sets:newExSets||"3", reps:newExReps||"10-12"}]}));
+    setNewExName(""); setNewExSets("3"); setNewExReps("10-12"); setAddingExForDay(null);
+  }
+  function removeWizardExercise(day, idx) { setWizardExercises(prev => ({...prev, [day]: prev[day].filter((_,i)=>i!==idx)})); }
+
+  async function finishWizard() {
+    const id = Math.random().toString(36).substring(2, 10);
+    const rt = customRest ? (parseInt(customRest)||90) : restTime;
+    const profile = { id, name: name.trim(), createdAt: todayKey(), restTime: rt };
+    activeProfileId = id;
+    const cw = {};
+    DAYS.forEach(d => {
+      const cfg = split[d];
+      cw[d] = { label: cfg.label||"REST", sub: cfg.sub||"", exercises: cfg.training ? (wizardExercises[d]||[]).map(e=>({name:e.name,sets:parseInt(e.sets)||3,reps:e.reps||"10-12"})) : [] };
+    });
+    await store.set("custom-workouts", cw);
+    await store.set("exercise-catalog", EXERCISE_CATALOG_DEFAULT);
+    const allProfiles = [...profiles, profile];
+    setShared("profiles", allProfiles);
+    setShared("active-profile", id);
+    onSelect(profile);
+  }
+
+  const inp = (extra) => ({width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"14px 16px",borderRadius:10,fontSize:16,fontFamily:T.font,outline:"none",...extra});
+  const btnPrimary = (disabled) => ({width:"100%",padding:"16px",background:disabled?T.surface3:`linear-gradient(135deg,${T.accent},#991b1b)`,color:disabled?T.dim:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:disabled?"default":"pointer",fontFamily:T.font,boxShadow:disabled?"none":"0 4px 24px #dc262640",marginTop:28});
+  const wrap = {minHeight:"100vh",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"48px 24px 48px"};
+  const inner = {width:"100%",maxWidth:420};
+
+  if(!showWizard) return (
+    <div style={wrap}>
+      <style>{css}</style>
+      <div style={inner}>
+        <div style={{fontSize:30,fontWeight:800,letterSpacing:-0.5,marginBottom:4}}>Workout Log</div>
+        <div style={{fontSize:13,color:T.dim,marginBottom:40}}>Choose your profile</div>
+        {profiles.map(p=>(
+          <div key={p.id} style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:14,padding:"20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div onClick={()=>{setShared("active-profile",p.id);onSelect(p);}} style={{flex:1,cursor:"pointer"}}>
+              <div style={{fontSize:20,fontWeight:700,marginBottom:4}}>{p.name}</div>
+              <div style={{fontSize:12,color:T.dim}}>{p.restTime}s rest · {p.createdAt}</div>
+            </div>
+            {confirmDeleteId===p.id ? (
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{fontSize:12,color:T.red,fontWeight:500}}>Delete?</span>
+                <button onClick={()=>deleteProfile(p.id)} style={{padding:"6px 14px",background:T.red,color:"#000",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Yes</button>
+                <button onClick={()=>setConfirmDeleteId(null)} style={{padding:"6px 14px",background:T.surface2,border:`1px solid ${T.border}`,color:T.sub,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>No</button>
+              </div>
+            ) : (
+              <button onClick={()=>setConfirmDeleteId(p.id)} style={{background:"none",border:`1.5px solid ${T.red}33`,color:T.red,padding:"6px 12px",borderRadius:8,fontSize:11,cursor:"pointer",fontFamily:T.font,opacity:0.7}}>Delete</button>
+            )}
+          </div>
+        ))}
+        <button onClick={()=>{setShowWizard(true);setStep(1);setName("");setRestTime(90);setCustomRest("");}} style={{width:"100%",padding:"16px",background:"transparent",border:`1.5px dashed ${T.border2}`,color:T.sub,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:T.font,marginTop:8}}>+ Create New Profile</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={wrap}>
+      <style>{css}</style>
+      <div style={inner}>
+        <div style={{display:"flex",gap:6,marginBottom:40}}>
+          {[1,2,3].map(s=><div key={s} style={{height:3,flex:1,background:s<=step?T.accent:T.surface2,borderRadius:2,transition:"background .3s"}} />)}
+        </div>
+
+        {step===1&&(<>
+          <div style={{fontSize:11,color:T.accent,fontWeight:600,letterSpacing:2,marginBottom:16}}>STEP 1 OF 3</div>
+          <div style={{fontSize:34,fontWeight:800,letterSpacing:-1,lineHeight:1.1,marginBottom:8}}>What's your name?</div>
+          <div style={{fontSize:14,color:T.dim,marginBottom:32}}>Used to switch between profiles</div>
+          <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" autoFocus style={inp()} />
+          <div style={{marginTop:28}}>
+            <div style={{fontSize:11,color:T.sub,fontWeight:600,letterSpacing:1,marginBottom:14}}>REST BETWEEN SETS</div>
+            <div style={{display:"flex",gap:8}}>
+              {[60,90,120].map(t=>(
+                <button key={t} onClick={()=>{setRestTime(t);setCustomRest("");}} style={{flex:1,padding:"14px 0",background:restTime===t&&!customRest?T.accentDim:"transparent",border:`1.5px solid ${restTime===t&&!customRest?T.accent:T.border}`,color:restTime===t&&!customRest?T.accent:T.sub,borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>{t}s</button>
+              ))}
+              <input type="number" inputMode="numeric" value={customRest} onChange={e=>{setCustomRest(e.target.value);if(e.target.value)setRestTime(parseInt(e.target.value)||90);}} placeholder="Own" style={{width:72,background:customRest?T.accentDim:T.surface,border:`1.5px solid ${customRest?T.accent:T.border}`,color:customRest?T.accent:T.sub,padding:"14px 8px",borderRadius:10,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} />
+            </div>
+          </div>
+          <button onClick={()=>setStep(2)} disabled={!name.trim()} style={btnPrimary(!name.trim())}>Next →</button>
+          {profiles.length>0&&<button onClick={()=>setShowWizard(false)} style={{width:"100%",padding:"12px",background:"transparent",border:"none",color:T.dim,fontSize:13,cursor:"pointer",fontFamily:T.font,marginTop:8}}>← Back to profiles</button>}
+        </>)}
+
+        {step===2&&(<>
+          <div style={{fontSize:11,color:T.accent,fontWeight:600,letterSpacing:2,marginBottom:16}}>STEP 2 OF 3</div>
+          <div style={{fontSize:34,fontWeight:800,letterSpacing:-1,lineHeight:1.1,marginBottom:8}}>Your workout split</div>
+          <div style={{fontSize:14,color:T.dim,marginBottom:28}}>Edit or keep the suggestion</div>
+          {DAYS.map(d=>{
+            const cfg=split[d];
+            return (
+              <div key={d} style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:12,padding:"14px 16px",marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:cfg.training?10:0}}>
+                  <div style={{fontSize:13,fontWeight:600,color:T.sub}}>{d}</div>
+                  <button onClick={()=>setSplit(p=>({...p,[d]:{...p[d],training:!p[d].training}}))} style={{padding:"5px 14px",background:cfg.training?T.accentDim:T.surface2,border:`1.5px solid ${cfg.training?T.accent:T.border}`,color:cfg.training?T.accent:T.dim,borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>{cfg.training?"Training":"Rest"}</button>
+                </div>
+                {cfg.training&&(
+                  <div style={{display:"flex",gap:8}}>
+                    <input type="text" value={cfg.label} onChange={e=>setSplit(p=>({...p,[d]:{...p[d],label:e.target.value}}))} placeholder="Label" style={{flex:"0 0 100px",background:T.surface2,border:`1.5px solid ${T.border}`,color:T.text,padding:"8px 10px",borderRadius:8,fontSize:12,fontFamily:T.font,outline:"none",fontWeight:600}} />
+                    <input type="text" value={cfg.sub} onChange={e=>setSplit(p=>({...p,[d]:{...p[d],sub:e.target.value}}))} placeholder="Description" style={{flex:1,background:T.surface2,border:`1.5px solid ${T.border}`,color:T.text,padding:"8px 10px",borderRadius:8,fontSize:12,fontFamily:T.font,outline:"none"}} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <div style={{display:"flex",gap:10,marginTop:24}}>
+            <button onClick={()=>setStep(1)} style={{flex:1,padding:"14px",background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:T.font}}>← Back</button>
+            <button onClick={()=>setStep(3)} style={{flex:2,padding:"14px",background:`linear-gradient(135deg,${T.accent},#991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Next →</button>
+          </div>
+        </>)}
+
+        {step===3&&(<>
+          <div style={{fontSize:11,color:T.accent,fontWeight:600,letterSpacing:2,marginBottom:16}}>STEP 3 OF 3</div>
+          <div style={{fontSize:34,fontWeight:800,letterSpacing:-1,lineHeight:1.1,marginBottom:8}}>Add your exercises</div>
+          <div style={{fontSize:14,color:T.dim,marginBottom:28}}>Optional — add more anytime in edit mode</div>
+          {trainingDays.length===0&&<div style={{color:T.dim,fontSize:13,textAlign:"center",padding:"40px 0"}}>No training days configured</div>}
+          {trainingDays.map(d=>{
+            const cfg=split[d];
+            const exList=wizardExercises[d]||[];
+            return (
+              <div key={d} style={{marginBottom:24}}>
+                <div style={{fontSize:13,fontWeight:700,color:T.accent,marginBottom:10,letterSpacing:0.5}}>{d} — {cfg.label}</div>
+                {exList.map((e,i)=>(
+                  <div key={i} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:13,fontWeight:500}}>{e.name}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:11,color:T.dim}}>{e.sets}×{e.reps}</span>
+                      <button onClick={()=>removeWizardExercise(d,i)} style={{background:"none",border:"none",color:T.dim,cursor:"pointer",fontSize:14,padding:0}}>✕</button>
+                    </div>
+                  </div>
+                ))}
+                {addingExForDay===d ? (
+                  <div style={{background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10,padding:"12px",marginTop:4}}>
+                    <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={n=>setNewExName(n)} catalog={EXERCISE_CATALOG_DEFAULT} placeholder="Search exercises..." /></div>
+                    <div style={{display:"flex",gap:8,marginBottom:8}}>
+                      <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newExSets} onChange={e=>setNewExSets(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                      <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={()=>addWizardExercise(d)} disabled={!newExName.trim()} style={{flex:1,padding:"9px",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                      <button onClick={()=>{setAddingExForDay(null);setNewExName("");setNewExSets("3");setNewExReps("10-12");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={()=>{setAddingExForDay(d);setNewExName("");setNewExSets("3");setNewExReps("10-12");}} style={{width:"100%",padding:"10px",background:"transparent",border:`1.5px dashed ${T.border2}`,color:T.sub,borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:T.font,marginTop:4}}>+ Add exercise</button>
+                )}
+              </div>
+            );
+          })}
+          <div style={{display:"flex",gap:10,marginTop:8}}>
+            <button onClick={()=>setStep(2)} style={{flex:1,padding:"14px",background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:T.font}}>← Back</button>
+            <button onClick={finishWizard} style={{flex:2,padding:"14px",background:`linear-gradient(135deg,${T.accent},#991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish ✓</button>
+          </div>
+        </>)}
+      </div>
+    </div>
+  );
+}
+
+function ProfileRestEdit({profile, onSave, T}) {
+  const [editing, setEditing] = React.useState(false);
+  const [val, setVal] = React.useState(String(profile.restTime||90));
+  if(!editing) return (
+    <button onClick={()=>setEditing(true)} style={{background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Edit Rest Timer ({profile.restTime||90}s)</button>
+  );
+  return (
+    <div style={{display:"flex",gap:8}}>
+      <input type="number" value={val} onChange={e=>setVal(e.target.value)} style={{flex:1,background:T.input,border:"1.5px solid "+T.accent,color:T.text,padding:"10px 14px",borderRadius:10,fontSize:15,fontFamily:T.font}} />
+      <button onClick={()=>{const t=Math.max(10,parseInt(val)||90);const updated={...profile,restTime:t};const profiles=(getShared("profiles")||[]).map(p=>p.id===profile.id?updated:p);setShared("profiles",profiles);onSave(updated);setEditing(false);}} style={{background:T.accent,border:"none",color:"#fff",padding:"10px 18px",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save</button>
+    </div>
+  );
+}
+
+function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [loading, setLoading] = useState(true);
   const [day, setDay] = useState(autoDay());
   const [view, setView] = useState("log");
@@ -182,6 +433,8 @@ export default function WorkoutLog() {
   const [renameValue, setRenameValue] = useState("");
   const [suggestion, setSuggestion] = useState(null);
   const [exerciseCatalog, setExerciseCatalog] = useState([]);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [confirmDeleteProfile, setConfirmDeleteProfile] = useState(false);
   const repsRef = useRef(null);
   const weightRef = useRef(null);
   const newExRef = useRef(null);
@@ -326,7 +579,7 @@ export default function WorkoutLog() {
     var exData=getAllExercises().find(e=>e.name===activeEx);
     var loggedNow=(updated[activeEx]||[]).length;
     if(exData&&loggedNow>=exData.sets&&editIdx===null){var ud={...done,[activeEx]:true};setDone(ud);await store.set(`done-${day}-${todayKey()}`,ud);}
-    if(editIdx===null&&exData){const comp=["Leg Press","Lat Pulldown","Machine Chest Press","Seated Cable Row","Machine Shoulder Press"].some(c=>activeEx.includes(c));var tn=Date.now();setNow(tn);setTimerStart(tn);setTimerDuration(comp?120:75);setTimerMinimized(false);}
+    if(editIdx===null&&exData){var tn=Date.now();setNow(tn);setTimerStart(tn);setTimerDuration(profile.restTime||90);setTimerMinimized(false);}
     setSelectedDiff("just_right");
     var sg=suggestWeight(activeEx,weight,selectedDiff);if(sg&&editIdx===null){setSuggestion(sg);setWeight(String(sg.weight));}else{setSuggestion(null);}
     setTimeout(() => {repsRef.current?.focus();repsRef.current?.select();},60);
@@ -422,12 +675,13 @@ export default function WorkoutLog() {
     return `WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${dateLabel()}\n\nPROGRAM: 5-day hypertrophy split (Push/Pull/Legs/Arms&Shoulders/Full Upper), Wed+Sat rest\nGOAL: Body recomp — visible abs by June. TRT ~150mg/wk + tirzepatide. Progressive overload while cutting.\n\n${ciLines.length?"CHECK-IN:\n"+ciLines.join("\n")+"\n\n":""}SESSION: Volume ${vol.toLocaleString()} lb | ${Object.keys(sets).length}/${allEx.length} exercises\n${skipped.length?`Skipped: ${skipped.join(", ")}`:"All completed"}\n\nSETS:\n${setsText||"None"}\n${customExercises.length?`\nADDED: ${customExercises.map(e=>e.name).join(", ")}`:""}\n\nPREVIOUS ${day.toUpperCase()} (${hist.length}):\n${histText||"First session"}\n\nAnalyze:\n1. Compare to last ${day} — volume, progression, regression. Note difficulty ratings.\n2. Exact weight/rep targets for next ${day}\n3. Flag anything off\n4. One-sentence verdict\nDirect. No filler.`;
   }
 
-  async function sendToSheets(entry){if(!sheetsUrl)return;setSheetsSyncStatus("sending");try{const r=await fetch(sheetsUrl,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(entry)});const d=await r.json();setSheetsSyncStatus(d.status==="ok"?"ok":"error");}catch(e){setSheetsSyncStatus("error");}}
+  async function sendToSheets(entry){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;setSheetsSyncStatus("sending");try{const r=await fetch(sheetsUrl,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(entry)});const d=await r.json();setSheetsSyncStatus(d.status==="ok"?"ok":"error");}catch(e){setSheetsSyncStatus("error");}}
 
-  async function deleteFromSheets(date,day){if(!sheetsUrl)return;try{await fetch(sheetsUrl+"?action=delete&date="+encodeURIComponent(date)+"&day="+encodeURIComponent(day));}catch(e){}}
-  async function clearAllFromSheets(){if(!sheetsUrl)return;try{await fetch(sheetsUrl+"?action=clearall");}catch(e){}}
+  async function deleteFromSheets(date,day){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;try{await fetch(sheetsUrl+"?action=delete&date="+encodeURIComponent(date)+"&day="+encodeURIComponent(day));}catch(e){}}
+  async function clearAllFromSheets(){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;try{await fetch(sheetsUrl+"?action=clearall");}catch(e){}}
 
   async function syncFromSheets(){
+    if(activeProfileId!=="peter")return;
     if(!sheetsUrl)return;
     try{
       var r=await fetch(sheetsUrl+"?action=sync");
@@ -450,7 +704,7 @@ export default function WorkoutLog() {
   const[syncing,setSyncing]=useState(false);
   async function manualSync(){setSyncing(true);await syncFromSheets();setSyncing(false);}
 
-  useEffect(function(){if(!loading&&sheetsUrl){setTimeout(syncFromSheets,2000);}},[loading]);
+  useEffect(function(){if(!loading&&sheetsUrl&&activeProfileId==="peter"){setTimeout(syncFromSheets,2000);}},[loading]);
 
   async function finishWorkout(ci) {
     const w=getWorkout();const text=buildLogText(ci||{});const entry={day,label:w.label,date:todayKey(),dateLabel:dateLabel(),sets:{...sets},customExercises:[...customExercises],checkIn:ci||{},logText:text};
@@ -492,6 +746,27 @@ export default function WorkoutLog() {
 
       {showFinishModal && <FinishModal energy={finishEnergy} setEnergy={setFinishEnergy} sleep={finishSleep} setSleep={setFinishSleep} bodyweight={finishWeight} setBodyweight={setFinishWeight} notes={finishNotes} setNotes={setFinishNotes} onConfirm={()=>finishWorkout({energy:finishEnergy,sleep:finishSleep,bodyweight:finishWeight,notes:finishNotes})} onSkip={()=>finishWorkout({})} onCancel={()=>setShowFinishModal(false)} />}
 
+      {showProfileModal && (
+        <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowProfileModal(false)}>
+          <div style={{background:T.surface,borderRadius:"16px 16px 0 0",padding:"24px 20px 36px",width:"100%",maxWidth:480}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:18,fontWeight:700,color:T.text,marginBottom:4}}>{profile.name}</div>
+            <div style={{fontSize:13,color:T.dim,marginBottom:20}}>Rest timer: {profile.restTime||90}s</div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <ProfileRestEdit profile={profile} onSave={(updated)=>{onProfileUpdated(updated);setShowProfileModal(false);}} T={T} />
+              <button onClick={()=>{setShowProfileModal(false);onLogout();}} style={{background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Switch Profile</button>
+              {confirmDeleteProfile ? (
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>setConfirmDeleteProfile(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+                  <button onClick={async()=>{const profiles=(getShared("profiles")||[]).filter(p=>p.id!==activeProfileId);setShared("profiles",profiles);setShared("active-profile",null);setConfirmDeleteProfile(false);setShowProfileModal(false);onLogout();}} style={{flex:1,background:"#dc2626",border:"none",color:"#fff",padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Delete</button>
+                </div>
+              ) : (
+                <button onClick={()=>setConfirmDeleteProfile(true)} style={{background:"none",border:"1.5px solid #dc2626",color:"#dc2626",padding:"12px 0",borderRadius:10,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete Profile…</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ TIMER — FULL or MINIMIZED ═══ */}
       {timerActive && !timerMinimized && (
         <div style={{position:"fixed",inset:0,zIndex:150,background:T.timerBg,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s"}}>
@@ -524,12 +799,13 @@ export default function WorkoutLog() {
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 20px 12px"}}>
           <div>
             <div style={{fontSize:22,fontWeight:800,color:T.text,lineHeight:1,letterSpacing:-0.5}}>Workout Log</div>
-            <div style={{fontSize:12,color:T.dim,marginTop:4,fontWeight:400}}>{day} · {dateLabel()}</div>
+            <div style={{fontSize:12,color:T.dim,marginTop:4,fontWeight:400}}>{profile.name} · {day} · {dateLabel()}</div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {totalSets>0&&view==="log"&&<div style={{textAlign:"right"}}><div style={{fontSize:28,fontWeight:700,color:T.accent,lineHeight:1}}>{totalSets}</div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginTop:2}}>sets</div></div>}
+            <button onClick={()=>setShowProfileModal(true)} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:34,height:34,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,fontWeight:700,flexShrink:0}}>{profile.name.charAt(0).toUpperCase()}</button>
             <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen on (tap to disable)":"Keep screen on"} style={{background:wakeLockOn?T.accentDim:"transparent",border:"1.5px solid "+(wakeLockOn?T.accent:T.border),color:wakeLockOn?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
-            <button onClick={manualSync} disabled={syncing} style={{background:syncing?T.accentDim:"transparent",border:"1.5px solid "+(syncing?T.accent:T.border),color:syncing?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:syncing?"default":"pointer",fontSize:14,flexShrink:0,animation:syncing?"pulse 1s infinite":"none"}}>↻</button>
+            {activeProfileId==="peter"&&<button onClick={manualSync} disabled={syncing} style={{background:syncing?T.accentDim:"transparent",border:"1.5px solid "+(syncing?T.accent:T.border),color:syncing?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:syncing?"default":"pointer",fontSize:14,flexShrink:0,animation:syncing?"pulse 1s infinite":"none"}}>↻</button>}
             <button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);}} style={{background:view==="edit"?T.accentDim:"transparent",border:"1.5px solid "+(view==="edit"?T.accent:T.border),color:view==="edit"?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,flexShrink:0}}>⚙</button>
           </div>
         </div>
