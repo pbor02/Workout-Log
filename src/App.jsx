@@ -494,6 +494,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [newExName, setNewExName] = useState("");
   const [newExSets, setNewExSets] = useState("3");
   const [newExReps, setNewExReps] = useState("10-12");
+  useEffect(() => { setNewExReps(isCardio(newExName.trim()) ? "30" : "10-12"); }, [newExName, exerciseCatalog]);
   const [reordering, setReordering] = useState(false);
   const [toast, setToast] = useState(null);
   const [timerStart, setTimerStart] = useState(null);
