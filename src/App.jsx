@@ -370,14 +370,14 @@ function ProfileScreen({onSelect}) {
 }
 
 function ProfileRestEdit({profile, onSave, T}) {
-  const [editing, setEditing] = React.useState(false);
-  const [val, setVal] = React.useState(String(profile.restTime||90));
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(String(profile.restTime||90));
   if(!editing) return (
     <button onClick={()=>setEditing(true)} style={{background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Edit Rest Timer ({profile.restTime||90}s)</button>
   );
   return (
     <div style={{display:"flex",gap:8}}>
-      <input type="number" value={val} onChange={e=>setVal(e.target.value)} style={{flex:1,background:T.input,border:"1.5px solid "+T.accent,color:T.text,padding:"10px 14px",borderRadius:10,fontSize:15,fontFamily:T.font}} />
+      <input type="number" value={val} onChange={e=>setVal(e.target.value)} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"10px 14px",borderRadius:10,fontSize:15,fontFamily:T.font,outline:"none"}} />
       <button onClick={()=>{const t=Math.max(10,parseInt(val)||90);const updated={...profile,restTime:t};const profiles=(getShared("profiles")||[]).map(p=>p.id===profile.id?updated:p);setShared("profiles",profiles);onSave(updated);setEditing(false);}} style={{background:T.accent,border:"none",color:"#fff",padding:"10px 18px",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save</button>
     </div>
   );
@@ -749,7 +749,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       {showProfileModal && (
         <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowProfileModal(false)}>
           <div style={{background:T.surface,borderRadius:"16px 16px 0 0",padding:"24px 20px 36px",width:"100%",maxWidth:480}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:18,fontWeight:700,color:T.text,marginBottom:4}}>{profile.name}</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+              <div style={{fontSize:18,fontWeight:700,color:T.text}}>{profile.name}</div>
+              <button onClick={()=>setShowProfileModal(false)} style={{background:"none",border:"none",color:T.dim,fontSize:20,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
+            </div>
             <div style={{fontSize:13,color:T.dim,marginBottom:20}}>Rest timer: {profile.restTime||90}s</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               <ProfileRestEdit profile={profile} onSave={(updated)=>{onProfileUpdated(updated);setShowProfileModal(false);}} T={T} />
