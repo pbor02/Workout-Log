@@ -47,6 +47,18 @@ const EXERCISE_CATALOG_DEFAULT = [
   {name:"Flat Dumbbell Press",category:"Chest"},
   {name:"Incline Dumbbell Press",category:"Chest"},
   {name:"Smith Machine Bench Press",category:"Chest"},
+  {name:"Barbell Bench Press",category:"Chest"},
+  {name:"Incline Barbell Press",category:"Chest"},
+  {name:"Decline Barbell Press",category:"Chest"},
+  {name:"Decline Dumbbell Press",category:"Chest"},
+  {name:"Dumbbell Fly",category:"Chest"},
+  {name:"Incline Dumbbell Fly",category:"Chest"},
+  {name:"Cable Fly — high to low",category:"Chest"},
+  {name:"Cable Fly — mid",category:"Chest"},
+  {name:"Push-Up",category:"Chest"},
+  {name:"Weighted Push-Up",category:"Chest"},
+  {name:"Chest Dip",category:"Chest"},
+  {name:"Close-Grip Bench Press",category:"Chest"},
   // Back
   {name:"Lat Pulldown",category:"Back"},
   {name:"Seated Cable Row",category:"Back"},
@@ -54,6 +66,20 @@ const EXERCISE_CATALOG_DEFAULT = [
   {name:"Cable Single-Arm Rear Delt Pull",category:"Back"},
   {name:"T-Bar Row",category:"Back"},
   {name:"Assisted Pull-Up",category:"Back"},
+  {name:"Pull-Up",category:"Back"},
+  {name:"Chin-Up",category:"Back"},
+  {name:"Deadlift",category:"Back"},
+  {name:"Conventional Deadlift",category:"Back"},
+  {name:"Rack Pull",category:"Back"},
+  {name:"Barbell Row",category:"Back"},
+  {name:"Dumbbell Row",category:"Back"},
+  {name:"Chest Supported Row",category:"Back"},
+  {name:"Wide Grip Lat Pulldown",category:"Back"},
+  {name:"Close Grip Lat Pulldown",category:"Back"},
+  {name:"Straight Arm Pulldown",category:"Back"},
+  {name:"Low Row Machine",category:"Back"},
+  {name:"Hyperextension",category:"Back"},
+  {name:"Reverse Hyperextension",category:"Back"},
   // Shoulders
   {name:"Machine Shoulder Press",category:"Shoulders"},
   {name:"Cable Single-Arm Front Raise",category:"Shoulders"},
@@ -64,6 +90,15 @@ const EXERCISE_CATALOG_DEFAULT = [
   {name:"Pec Deck — Rear Delt",category:"Shoulders"},
   {name:"Face Pull",category:"Shoulders"},
   {name:"Dumbbell Lateral Raise",category:"Shoulders"},
+  {name:"Dumbbell Shoulder Press",category:"Shoulders"},
+  {name:"Barbell Overhead Press",category:"Shoulders"},
+  {name:"Arnold Press",category:"Shoulders"},
+  {name:"Seated Dumbbell Press",category:"Shoulders"},
+  {name:"Dumbbell Front Raise",category:"Shoulders"},
+  {name:"Barbell Upright Row",category:"Shoulders"},
+  {name:"Cable Upright Row",category:"Shoulders"},
+  {name:"Rear Delt Fly",category:"Shoulders"},
+  {name:"Bent Over Rear Delt Raise",category:"Shoulders"},
   // Biceps
   {name:"Preacher Curl Machine",category:"Biceps"},
   {name:"Cable Curl — single arm",category:"Biceps"},
@@ -72,6 +107,13 @@ const EXERCISE_CATALOG_DEFAULT = [
   {name:"Incline Neutral-Grip DB Curl",category:"Biceps"},
   {name:"EZ Bar Curl",category:"Biceps"},
   {name:"Dumbbell Hammer Curl",category:"Biceps"},
+  {name:"Barbell Curl",category:"Biceps"},
+  {name:"Concentration Curl",category:"Biceps"},
+  {name:"Preacher Curl",category:"Biceps"},
+  {name:"Spider Curl",category:"Biceps"},
+  {name:"Reverse Curl",category:"Biceps"},
+  {name:"Zottman Curl",category:"Biceps"},
+  {name:"Cable Preacher Curl",category:"Biceps"},
   // Triceps
   {name:"Cable Tricep Pushdown — rope",category:"Triceps"},
   {name:"EZ Bar Pushdown",category:"Triceps"},
@@ -79,6 +121,12 @@ const EXERCISE_CATALOG_DEFAULT = [
   {name:"Overhead Cable Extension — single arm",category:"Triceps"},
   {name:"Tricep Dip Machine",category:"Triceps"},
   {name:"Skull Crushers",category:"Triceps"},
+  {name:"Tricep Dip",category:"Triceps"},
+  {name:"Diamond Push-Up",category:"Triceps"},
+  {name:"Dumbbell Overhead Extension",category:"Triceps"},
+  {name:"Tricep Kickback",category:"Triceps"},
+  {name:"Cable Kickback",category:"Triceps"},
+  {name:"JM Press",category:"Triceps"},
   // Legs
   {name:"Leg Press",category:"Legs"},
   {name:"Leg Press — close feet high reps",category:"Legs"},
@@ -88,9 +136,54 @@ const EXERCISE_CATALOG_DEFAULT = [
   {name:"Hack Squat",category:"Legs"},
   {name:"Bulgarian Split Squat",category:"Legs"},
   {name:"Romanian Deadlift",category:"Legs"},
+  {name:"Barbell Back Squat",category:"Legs"},
+  {name:"Front Squat",category:"Legs"},
+  {name:"Goblet Squat",category:"Legs"},
+  {name:"Sumo Deadlift",category:"Legs"},
+  {name:"Lying Leg Curl",category:"Legs"},
+  {name:"Hip Thrust",category:"Legs"},
+  {name:"Barbell Hip Thrust",category:"Legs"},
+  {name:"Walking Lunges",category:"Legs"},
+  {name:"Reverse Lunges",category:"Legs"},
+  {name:"Split Squat",category:"Legs"},
+  {name:"Step-Up",category:"Legs"},
+  {name:"Single-Leg Press",category:"Legs"},
+  {name:"Smith Machine Squat",category:"Legs"},
+  {name:"Leg Adduction Machine",category:"Legs"},
+  {name:"Leg Abduction Machine",category:"Legs"},
+  {name:"Glute Ham Raise",category:"Legs"},
+  {name:"Stiff-Leg Deadlift",category:"Legs"},
+  {name:"Calf Press on Leg Press",category:"Legs"},
   // Calves
   {name:"Seated Calf Raise",category:"Calves"},
   {name:"Standing Calf Raise",category:"Calves"},
+  {name:"Donkey Calf Raise",category:"Calves"},
+  {name:"Smith Machine Calf Raise",category:"Calves"},
+  {name:"Single-Leg Calf Raise",category:"Calves"},
+  {name:"Leg Press Calf Raise",category:"Calves"},
+  // Core
+  {name:"Plank",category:"Core"},
+  {name:"Hanging Leg Raise",category:"Core"},
+  {name:"Cable Crunch",category:"Core"},
+  {name:"Ab Wheel Rollout",category:"Core"},
+  {name:"Decline Sit-Up",category:"Core"},
+  {name:"Crunch",category:"Core"},
+  {name:"Russian Twist",category:"Core"},
+  {name:"Bicycle Crunch",category:"Core"},
+  {name:"Knee Raise",category:"Core"},
+  {name:"Dragon Flag",category:"Core"},
+  {name:"Landmine Rotation",category:"Core"},
+  {name:"Side Plank",category:"Core"},
+  {name:"Dead Bug",category:"Core"},
+  {name:"Hollow Body Hold",category:"Core"},
+  // Cardio
+  {name:"Treadmill",category:"Cardio"},
+  {name:"Stationary Bike",category:"Cardio"},
+  {name:"Rowing Machine",category:"Cardio"},
+  {name:"Elliptical",category:"Cardio"},
+  {name:"Jump Rope",category:"Cardio"},
+  {name:"Stair Climber",category:"Cardio"},
+  {name:"Sled Push",category:"Cardio"},
 ];
 
 const autoDay = () => DAYS[new Date().getDay()];
@@ -439,6 +532,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const weightRef = useRef(null);
   const newExRef = useRef(null);
   const renameRef = useRef(null);
+  const addExFormRef = useRef(null);
   const exRefs = useRef({});
   const dayCache = useRef({});
 
@@ -672,7 +766,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     const hist=Object.values(history).filter(e=>e.day===day).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
     const histText=hist.map(e=>{const s=Object.entries(e.sets||{}).map(([ex,sts])=>`  ${ex}: ${sts.map(x=>`${x.weight}x${x.reps}${x.diff?` [${x.diff}]`:""}`).join(", ")}`).join("\n");return `${e.dateLabel||e.date} — ${e.label}\n${s}`;}).join("\n\n");
     const ciLines=[];if(ci?.energy)ciLines.push(`Energy: ${ci.energy}/5`);if(ci?.sleep)ciLines.push(`Sleep: ${ci.sleep}/5`);if(ci?.bodyweight)ciLines.push(`BW: ${ci.bodyweight}lb`);if(ci?.notes)ciLines.push(`Notes: ${ci.notes}`);
-    return `WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${dateLabel()}\n\nPROGRAM: 5-day hypertrophy split (Push/Pull/Legs/Arms&Shoulders/Full Upper), Wed+Sat rest\nGOAL: Body recomp — visible abs by June. TRT ~150mg/wk + tirzepatide. Progressive overload while cutting.\n\n${ciLines.length?"CHECK-IN:\n"+ciLines.join("\n")+"\n\n":""}SESSION: Volume ${vol.toLocaleString()} lb | ${Object.keys(sets).length}/${allEx.length} exercises\n${skipped.length?`Skipped: ${skipped.join(", ")}`:"All completed"}\n\nSETS:\n${setsText||"None"}\n${customExercises.length?`\nADDED: ${customExercises.map(e=>e.name).join(", ")}`:""}\n\nPREVIOUS ${day.toUpperCase()} (${hist.length}):\n${histText||"First session"}\n\nAnalyze:\n1. Compare to last ${day} — volume, progression, regression. Note difficulty ratings.\n2. Exact weight/rep targets for next ${day}\n3. Flag anything off\n4. One-sentence verdict\nDirect. No filler.`;
+    const header = activeProfileId === "peter"
+      ? `WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${dateLabel()}\n\nPROGRAM: 5-day hypertrophy split (Push/Pull/Legs/Arms&Shoulders/Full Upper), Wed+Sat rest\nGOAL: Body recomp — visible abs by June. TRT ~150mg/wk + tirzepatide. Progressive overload while cutting.`
+      : `WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${dateLabel()}`;
+    return `${header}\n\n${ciLines.length?"CHECK-IN:\n"+ciLines.join("\n")+"\n\n":""}SESSION: Volume ${vol.toLocaleString()} lb | ${Object.keys(sets).length}/${allEx.length} exercises\n${skipped.length?`Skipped: ${skipped.join(", ")}`:"All completed"}\n\nSETS:\n${setsText||"None"}\n${customExercises.length?`\nADDED: ${customExercises.map(e=>e.name).join(", ")}`:""}\n\nPREVIOUS ${day.toUpperCase()} (${hist.length}):\n${histText||"First session"}\n\nAnalyze:\n1. Compare to last ${day} — volume, progression, regression. Note difficulty ratings.\n2. Exact weight/rep targets for next ${day}\n3. Flag anything off\n4. One-sentence verdict\nDirect. No filler.`;
   }
 
   async function sendToSheets(entry){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;setSheetsSyncStatus("sending");try{const r=await fetch(sheetsUrl,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(entry)});const d=await r.json();setSheetsSyncStatus(d.status==="ok"?"ok":"error");}catch(e){setSheetsSyncStatus("error");}}
@@ -980,12 +1077,12 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             {!reordering&&(<>
               {!showAddEx?(
                 <div style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.surface}}>
-                  <button onClick={()=>setShowAddEx(true)} style={{width:"100%",padding:"14px 0",background:T.bg,border:`1.5px dashed ${T.border2}`,borderRadius:10,color:T.sub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                  <button onClick={()=>{setShowAddEx(true);setTimeout(()=>addExFormRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"}),150);}} style={{width:"100%",padding:"14px 0",background:T.bg,border:`1.5px dashed ${T.border2}`,borderRadius:10,color:T.sub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                     <span style={{fontSize:20,color:T.accent,fontWeight:300}}>+</span> Add Exercise
                   </button>
                 </div>
               ):(
-                <div style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.accentLight,animation:"slideIn .2s ease"}}>
+                <div ref={addExFormRef} style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.accentLight,animation:"slideIn .2s ease"}}>
                   <div style={{fontSize:12,color:T.accent,fontWeight:600,marginBottom:10}}>Add Exercise</div>
                   <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>setNewExName(name)} catalog={exerciseCatalog} placeholder="Exercise name" /></div>
                   <div style={{display:"flex",gap:8,marginBottom:8}}>
@@ -1116,6 +1213,7 @@ function ExercisePicker({value, onChange, onSelect, catalog, placeholder}) {
         onFocus={() => setOpen(true)}
         onBlur={() => { closeTimer.current = setTimeout(() => setOpen(false), 200); }}
         placeholder={placeholder || "Exercise name"}
+        autoComplete="off"
         style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"11px 14px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none"}}
       />
       {open && filtered.length > 0 && (
