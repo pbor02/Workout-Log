@@ -39,6 +39,60 @@ const DEFAULT_WORKOUTS = {
   ]},
 };
 
+const EXERCISE_CATALOG_DEFAULT = [
+  // Chest
+  {name:"Machine Chest Press",category:"Chest"},
+  {name:"Pec Deck — Chest Fly",category:"Chest"},
+  {name:"Cable Crossover low-to-high",category:"Chest"},
+  {name:"Flat Dumbbell Press",category:"Chest"},
+  {name:"Incline Dumbbell Press",category:"Chest"},
+  {name:"Smith Machine Bench Press",category:"Chest"},
+  // Back
+  {name:"Lat Pulldown",category:"Back"},
+  {name:"Seated Cable Row",category:"Back"},
+  {name:"Single-Arm Cable Row",category:"Back"},
+  {name:"Cable Single-Arm Rear Delt Pull",category:"Back"},
+  {name:"T-Bar Row",category:"Back"},
+  {name:"Assisted Pull-Up",category:"Back"},
+  // Shoulders
+  {name:"Machine Shoulder Press",category:"Shoulders"},
+  {name:"Cable Single-Arm Front Raise",category:"Shoulders"},
+  {name:"Cable Single-Arm Lateral Raise",category:"Shoulders"},
+  {name:"Cable Lateral Raise — single arm",category:"Shoulders"},
+  {name:"Cable Front Raise — single arm",category:"Shoulders"},
+  {name:"Lateral Raise Machine (HOME)",category:"Shoulders"},
+  {name:"Pec Deck — Rear Delt",category:"Shoulders"},
+  {name:"Face Pull",category:"Shoulders"},
+  {name:"Dumbbell Lateral Raise",category:"Shoulders"},
+  // Biceps
+  {name:"Preacher Curl Machine",category:"Biceps"},
+  {name:"Cable Curl — single arm",category:"Biceps"},
+  {name:"Cable Curl — single arm (supinated)",category:"Biceps"},
+  {name:"Cable Hammer Curl (rope)",category:"Biceps"},
+  {name:"Incline Neutral-Grip DB Curl",category:"Biceps"},
+  {name:"EZ Bar Curl",category:"Biceps"},
+  {name:"Dumbbell Hammer Curl",category:"Biceps"},
+  // Triceps
+  {name:"Cable Tricep Pushdown — rope",category:"Triceps"},
+  {name:"EZ Bar Pushdown",category:"Triceps"},
+  {name:"Overhead Cable Tricep Extension",category:"Triceps"},
+  {name:"Overhead Cable Extension — single arm",category:"Triceps"},
+  {name:"Tricep Dip Machine",category:"Triceps"},
+  {name:"Skull Crushers",category:"Triceps"},
+  // Legs
+  {name:"Leg Press",category:"Legs"},
+  {name:"Leg Press — close feet high reps",category:"Legs"},
+  {name:"Leg Extension",category:"Legs"},
+  {name:"Seated Leg Curl",category:"Legs"},
+  {name:"Seated Leg Curl — drop set",category:"Legs"},
+  {name:"Hack Squat",category:"Legs"},
+  {name:"Bulgarian Split Squat",category:"Legs"},
+  {name:"Romanian Deadlift",category:"Legs"},
+  // Calves
+  {name:"Seated Calf Raise",category:"Calves"},
+  {name:"Standing Calf Raise",category:"Calves"},
+];
+
 const autoDay = () => DAYS[new Date().getDay()];
 const todayKey = () => new Date().toISOString().slice(0, 10);
 const dateLabel = () => new Date().toLocaleDateString("en-US", { month:"short", day:"numeric" });
@@ -116,6 +170,10 @@ export default function WorkoutLog() {
   const [editExName, setEditExName] = useState("");
   const [editExSets, setEditExSets] = useState("");
   const [editExReps, setEditExReps] = useState("");
+  const [showAddTemplate, setShowAddTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [newTemplateSets, setNewTemplateSets] = useState("3");
+  const [newTemplateReps, setNewTemplateReps] = useState("10-12");
   const [editLabel, setEditLabel] = useState("");
   const [editSub, setEditSub] = useState("");
   const [editingMeta, setEditingMeta] = useState(false);
@@ -123,6 +181,7 @@ export default function WorkoutLog() {
   const [renamingEx, setRenamingEx] = useState(null);
   const [renameValue, setRenameValue] = useState("");
   const [suggestion, setSuggestion] = useState(null);
+  const [exerciseCatalog, setExerciseCatalog] = useState([]);
   const repsRef = useRef(null);
   const weightRef = useRef(null);
   const newExRef = useRef(null);
@@ -131,8 +190,10 @@ export default function WorkoutLog() {
   const dayCache = useRef({});
 
   useEffect(() => { (async () => {
-    const [hist,s,d,cex,order,rn,cw] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts')]);
-    if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw); setLoading(false);
+    const [hist,s,d,cex,order,rn,cw,cat] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts'),store.get('exercise-catalog')]);
+    if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw);
+    if(cat){setExerciseCatalog(cat);}else{setExerciseCatalog(EXERCISE_CATALOG_DEFAULT);await store.set('exercise-catalog',EXERCISE_CATALOG_DEFAULT);}
+    setLoading(false);
   })(); }, []);
 
   useEffect(() => {
@@ -275,7 +336,17 @@ export default function WorkoutLog() {
   function startEditSet(ex,i){setActiveEx(ex);setEditIdx(i);const s=sets[ex][i];setWeight(s.weight);setReps(s.reps);setSelectedDiff(s.diff||"just_right");setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},80);}
   async function removeSet(ex,i){const a=(sets[ex]||[]).filter((_,idx)=>idx!==i);const u={...sets};if(a.length)u[ex]=a;else delete u[ex];setSets(u);if(editIdx===i)setEditIdx(null);await store.set(`sets-${day}-${todayKey()}`,u);}
   async function toggleDone(ex){const u={...done,[ex]:!done[ex]};setDone(u);await store.set(`done-${day}-${todayKey()}`,u);}
-  async function addCustomExercise(){if(!newExName.trim())return;const ex={name:newExName.trim(),sets:parseInt(newExSets)||3,reps:newExReps||"10-12",custom:true};const upd=[...customExercises,ex];setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);await saveOrder([...getAllExercises(),ex]);setNewExName("");setNewExSets("3");setNewExReps("10-12");setShowAddEx(false);showToast("Added");}
+  async function addToCatalog(name, category) {
+    if(!name.trim()) return;
+    const exists = exerciseCatalog.some(e => e.name.toLowerCase() === name.trim().toLowerCase());
+    if(!exists) {
+      const updated = [...exerciseCatalog, {name: name.trim(), category: category || "Other"}];
+      setExerciseCatalog(updated);
+      await store.set('exercise-catalog', updated);
+    }
+  }
+
+  async function addCustomExercise(){if(!newExName.trim())return;const ex={name:newExName.trim(),sets:parseInt(newExSets)||3,reps:newExReps||"10-12",custom:true};const upd=[...customExercises,ex];setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);await saveOrder([...getAllExercises(),ex]);addToCatalog(newExName.trim(),"Other");setNewExName("");setNewExSets("3");setNewExReps("10-12");setShowAddEx(false);showToast("Added");}
   async function removeCustomExercise(idx){const ex=customExercises[idx];const upd=customExercises.filter((_,i)=>i!==idx);setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);if(sets[ex.name]){const u={...sets};delete u[ex.name];setSets(u);await store.set(`sets-${day}-${todayKey()}`,u);}await saveOrder(getAllExercises().filter(e=>e.name!==ex.name));}
 
   async function renameExercise(origName,newName){
@@ -485,7 +556,7 @@ export default function WorkoutLog() {
               <div style={{fontSize:56,opacity:0.7}}>🔋</div>
               <div style={{fontSize:28,fontWeight:700,color:T.dim}}>Rest Day</div>
               <div style={{fontSize:14,color:T.sub}}>{w.sub}</div>
-              <button onClick={()=>{setShowAddEx(true);setTimeout(()=>newExRef.current?.focus(),100);}} style={{marginTop:16,background:T.surface,border:`1.5px dashed ${T.border2}`,color:T.sub,padding:"12px 24px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>+ Add exercise anyway</button>
+              <button onClick={()=>setShowAddEx(true)} style={{marginTop:16,background:T.surface,border:`1.5px dashed ${T.border2}`,color:T.sub,padding:"12px 24px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>+ Add exercise anyway</button>
             </div>
           ):(<>
             {/* Banner */}
@@ -579,14 +650,14 @@ export default function WorkoutLog() {
             {!reordering&&(<>
               {!showAddEx?(
                 <div style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.surface}}>
-                  <button onClick={()=>{setShowAddEx(true);setTimeout(()=>newExRef.current?.focus(),100);}} style={{width:"100%",padding:"14px 0",background:T.bg,border:`1.5px dashed ${T.border2}`,borderRadius:10,color:T.sub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                  <button onClick={()=>setShowAddEx(true)} style={{width:"100%",padding:"14px 0",background:T.bg,border:`1.5px dashed ${T.border2}`,borderRadius:10,color:T.sub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                     <span style={{fontSize:20,color:T.accent,fontWeight:300}}>+</span> Add Exercise
                   </button>
                 </div>
               ):(
                 <div style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.accentLight,animation:"slideIn .2s ease"}}>
                   <div style={{fontSize:12,color:T.accent,fontWeight:600,marginBottom:10}}>Add Exercise</div>
-                  <input ref={newExRef} type="text" value={newExName} onChange={e=>setNewExName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addCustomExercise();}} placeholder="Exercise name" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"11px 14px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",marginBottom:8}} />
+                  <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>setNewExName(name)} catalog={exerciseCatalog} placeholder="Exercise name" /></div>
                   <div style={{display:"flex",gap:8,marginBottom:8}}>
                     <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newExSets} onChange={e=>setNewExSets(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                     <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Rep range</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
@@ -649,7 +720,7 @@ export default function WorkoutLog() {
             {(getWorkout().exercises||[]).map(function(ex,i) {
               if(editExIdx===i) return (
                 <div key={i} style={{padding:"12px",background:T.accentLight,border:"1.5px solid "+T.accent,borderRadius:10,marginBottom:8}}>
-                  <input type="text" value={editExName} onChange={function(e){setEditExName(e.target.value);}} placeholder="Exercise name" style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"9px 12px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",marginBottom:6}} />
+                  <div style={{marginBottom:6}}><ExercisePicker value={editExName} onChange={setEditExName} onSelect={(name)=>setEditExName(name)} catalog={exerciseCatalog} /></div>
                   <div style={{display:"flex",gap:8,marginBottom:8}}>
                     <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={editExSets} onChange={function(e){setEditExSets(e.target.value);}} style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                     <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={editExReps} onChange={function(e){setEditExReps(e.target.value);}} style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
@@ -670,7 +741,22 @@ export default function WorkoutLog() {
                 </div>
               );
             })}
-            <button onClick={function(){addTemplateExercise(day,"New Exercise",3,"10-12");}} style={{width:"100%",marginTop:12,padding:"12px",background:T.bg,border:"1.5px dashed "+T.border2,borderRadius:10,color:T.sub,fontSize:13,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><span style={{fontSize:18,color:T.accent}}>+</span> Add to Template</button>
+            {!showAddTemplate ? (
+              <button onClick={function(){setShowAddTemplate(true);setNewTemplateName("");setNewTemplateSets("3");setNewTemplateReps("10-12");}} style={{width:"100%",marginTop:12,padding:"12px",background:T.bg,border:"1.5px dashed "+T.border2,borderRadius:10,color:T.sub,fontSize:13,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><span style={{fontSize:18,color:T.accent}}>+</span> Add to Template</button>
+            ) : (
+              <div style={{marginTop:12,padding:"12px",background:T.accentLight,border:"1.5px solid "+T.accent,borderRadius:10}}>
+                <div style={{fontSize:10,color:T.accent,fontWeight:600,marginBottom:8}}>Add to Template</div>
+                <div style={{marginBottom:6}}><ExercisePicker value={newTemplateName} onChange={setNewTemplateName} onSelect={(name)=>setNewTemplateName(name)} catalog={exerciseCatalog} placeholder="Exercise name" /></div>
+                <div style={{display:"flex",gap:8,marginBottom:8}}>
+                  <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newTemplateSets} onChange={function(e){setNewTemplateSets(e.target.value);}} style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                  <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={newTemplateReps} onChange={function(e){setNewTemplateReps(e.target.value);}} style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={function(){if(!newTemplateName.trim())return;addTemplateExercise(day,newTemplateName,newTemplateSets,newTemplateReps);addToCatalog(newTemplateName,"Other");setShowAddTemplate(false);setNewTemplateName("");setNewTemplateSets("3");setNewTemplateReps("10-12");}} disabled={!newTemplateName.trim()} style={{flex:1,padding:"9px",background:!newTemplateName.trim()?T.surface3:T.accent,color:!newTemplateName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newTemplateName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                  <button onClick={function(){setShowAddTemplate(false);}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+                </div>
+              </div>
+            )}
             </>)}
             {customWorkouts&&customWorkouts[day]&&<button onClick={function(){resetTemplate(day);}} style={{width:"100%",marginTop:10,padding:"10px",background:"transparent",border:"1.5px solid "+T.red+"33",color:T.red,borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Reset to Default</button>}
           </div>
@@ -679,6 +765,47 @@ export default function WorkoutLog() {
       </div>
     </div>
     </>
+  );
+}
+
+// ─── EXERCISE PICKER ─────────────────────────────────────────────────────────
+function ExercisePicker({value, onChange, onSelect, catalog, placeholder}) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef(null);
+  const query = (value || "").toLowerCase();
+  const filtered = query.length > 0
+    ? catalog.filter(e => e.name.toLowerCase().includes(query) || e.category.toLowerCase().includes(query)).slice(0, 8)
+    : [];
+  const groups = {};
+  filtered.forEach(e => { if(!groups[e.category]) groups[e.category] = []; groups[e.category].push(e); });
+  return (
+    <div style={{position:"relative"}}>
+      <input
+        type="text" value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => { closeTimer.current = setTimeout(() => setOpen(false), 200); }}
+        placeholder={placeholder || "Exercise name"}
+        style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"11px 14px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none"}}
+      />
+      {open && filtered.length > 0 && (
+        <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:100,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,marginTop:4,maxHeight:240,overflowY:"auto",boxShadow:"0 8px 24px rgba(0,0,0,0.4)"}}>
+          {Object.entries(groups).map(([cat, exercises]) => (
+            <div key={cat}>
+              <div style={{padding:"6px 14px",fontSize:10,fontWeight:600,color:T.accent,background:T.surface2}}>{cat}</div>
+              {exercises.map(e => (
+                <div key={e.name}
+                  onMouseDown={ev => { ev.preventDefault(); clearTimeout(closeTimer.current); onSelect(e.name); setOpen(false); }}
+                  style={{padding:"10px 14px",fontSize:13,color:T.text,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${T.border}`}}>
+                  <span>{e.name}</span>
+                  <span style={{fontSize:10,color:T.dim}}>{cat}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
