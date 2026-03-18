@@ -971,7 +971,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               {showAddEx ? (
               <div style={{width:"100%",maxWidth:400,background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10,padding:"12px",textAlign:"left",marginTop:8}}>
                 <div style={{fontSize:12,color:T.accent,fontWeight:600,marginBottom:10}}>Add Exercise</div>
-                <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>setNewExName(name)} catalog={exerciseCatalog} placeholder="Exercise name" /></div>
+                <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>setNewExName(name)} catalog={exerciseCatalog} placeholder="Exercise name" dropUp={true} /></div>
                 <div style={{display:"flex",gap:8,marginBottom:8}}>
                   <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newExSets} onChange={e=>setNewExSets(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                   <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Rep range</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
@@ -1084,7 +1084,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               ):(
                 <div ref={addExFormRef} style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.accentLight,animation:"slideIn .2s ease"}}>
                   <div style={{fontSize:12,color:T.accent,fontWeight:600,marginBottom:10}}>Add Exercise</div>
-                  <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>setNewExName(name)} catalog={exerciseCatalog} placeholder="Exercise name" /></div>
+                  <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>setNewExName(name)} catalog={exerciseCatalog} placeholder="Exercise name" dropUp={true} /></div>
                   <div style={{display:"flex",gap:8,marginBottom:8}}>
                     <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newExSets} onChange={e=>setNewExSets(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                     <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Rep range</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
@@ -1196,7 +1196,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 }
 
 // ─── EXERCISE PICKER ─────────────────────────────────────────────────────────
-function ExercisePicker({value, onChange, onSelect, catalog, placeholder}) {
+function ExercisePicker({value, onChange, onSelect, catalog, placeholder, dropUp}) {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef(null);
   const query = (value || "").toLowerCase();
@@ -1205,6 +1205,9 @@ function ExercisePicker({value, onChange, onSelect, catalog, placeholder}) {
     : catalog.slice(0, 25);
   const groups = {};
   filtered.forEach(e => { if(!groups[e.category]) groups[e.category] = []; groups[e.category].push(e); });
+  const dropStyle = dropUp
+    ? {position:"absolute",bottom:"calc(100% + 4px)",left:0,right:0,zIndex:100,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,maxHeight:240,overflowY:"auto",boxShadow:"0 -8px 24px rgba(0,0,0,0.4)"}
+    : {position:"absolute",top:"100%",left:0,right:0,zIndex:100,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,marginTop:4,maxHeight:240,overflowY:"auto",boxShadow:"0 8px 24px rgba(0,0,0,0.4)"};
   return (
     <div style={{position:"relative"}}>
       <input
@@ -1217,7 +1220,7 @@ function ExercisePicker({value, onChange, onSelect, catalog, placeholder}) {
         style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"11px 14px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none"}}
       />
       {open && filtered.length > 0 && (
-        <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:100,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,marginTop:4,maxHeight:240,overflowY:"auto",boxShadow:"0 8px 24px rgba(0,0,0,0.4)"}}>
+        <div style={dropStyle}>
           {Object.entries(groups).map(([cat, exercises]) => (
             <div key={cat}>
               <div style={{padding:"6px 14px",fontSize:10,fontWeight:600,color:T.accent,background:T.surface2}}>{cat}</div>
