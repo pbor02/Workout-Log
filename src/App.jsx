@@ -1011,6 +1011,13 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             </div>
             <div style={{fontSize:13,color:T.dim,marginBottom:20}}>Rest timer: {profile.restTime||90}s</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {/* Quick-action toggles */}
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setWakeLockOn(v=>!v)} style={{flex:1,background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>☀ {wakeLockOn?"Screen On":"Screen Lock"}</button>
+                {activeProfileId==="peter"&&<button onClick={()=>{manualSync();setShowProfileModal(false);}} style={{flex:1,background:syncing?T.accentDim:"none",border:`1.5px solid ${syncing?T.accent:T.border}`,color:syncing?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>↻ {syncing?"Syncing…":"Sync"}</button>}
+              </div>
+              {view==="log"&&!isRest&&<button onClick={()=>{setReordering(v=>!v);setShowProfileModal(false);}} style={{background:reordering?T.accentDim:"none",border:`1.5px solid ${reordering?T.accent:T.border}`,color:reordering?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⇅ {reordering?"Stop Reordering":"Reorder Exercises"}</button>}
+              <button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);setShowProfileModal(false);}} style={{background:view==="edit"?T.accentDim:"none",border:`1.5px solid ${view==="edit"?T.accent:T.border}`,color:view==="edit"?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⚙ {view==="edit"?"Exit Edit Mode":"Edit Template"}</button>
               <ProfileRestEdit profile={profile} onSave={(updated)=>{onProfileUpdated(updated);setShowProfileModal(false);}} T={T} />
               <div style={{display:"flex",gap:8}}>
                 <button onClick={backupProfile} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⬇ Backup</button>
@@ -1076,19 +1083,18 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
         </div>
       )}
       {timerActive && timerMinimized && (
-        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:timerRemaining<=10?T.accent:T.surface2,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",animation:"fadeIn .15s",borderBottom:"1px solid "+T.border}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:6,height:6,borderRadius:"50%",background:timerRemaining<=10?"#000":T.accent,animation:"pulse 1s infinite"}} />
-            <span style={{color:timerRemaining<=10?"#000":T.text,fontSize:13,fontWeight:600,fontFamily:T.font}}>REST</span>
-            <span style={{color:timerRemaining<=10?"#000a":T.dim,fontSize:12,fontFamily:T.font}}>{activeEx}</span>
-          </div>
-          <span style={{color:timerRemaining<=10?"#000":T.accent,fontSize:22,fontWeight:800,fontFamily:T.mono}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</span>
+        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",zIndex:150,background:timerRemaining<=10?T.accent:T.surface2,border:`1.5px solid ${timerRemaining<=10?T.accent:T.accent}`,borderRadius:100,padding:"10px 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",animation:"fadeIn .15s",boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
+          <div style={{width:7,height:7,borderRadius:"50%",background:timerRemaining<=10?"#000":T.accent,animation:"pulse 1s infinite",flexShrink:0}} />
+          <span style={{color:timerRemaining<=10?"#000":T.text,fontSize:13,fontWeight:600,fontFamily:T.font,whiteSpace:"nowrap"}}>REST</span>
+          {activeEx&&<span style={{color:timerRemaining<=10?"#000a":T.dim,fontSize:12,fontFamily:T.font,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{activeEx}</span>}
+          <span style={{color:timerRemaining<=10?"#000":T.accent,fontSize:18,fontWeight:800,fontFamily:T.mono,whiteSpace:"nowrap"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</span>
+          <span style={{color:timerRemaining<=10?"#000":T.dim,fontSize:11}}>▲</span>
         </div>
       )}
 
       {/* ═══ HEADER ═══ */}
-      <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0,marginTop:timerActive&&timerMinimized?42:0}}>
-        {/* Row 1: Workout identity + actions */}
+      <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
+        {/* Row 1: Workout identity + profile button only */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"14px 16px 10px"}}>
           <div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1097,13 +1103,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             </div>
             <div style={{fontSize:12,color:T.sub,marginTop:4,fontWeight:400}}>{dayFull}{w.sub?` · ${w.sub}`:isRest?" · Rest Day":""}</div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <button onClick={()=>setShowProfileModal(true)} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>{profile.name.charAt(0).toUpperCase()}</button>
-            <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen on (tap to disable)":"Keep screen on"} style={{background:wakeLockOn?T.accentDim:"transparent",border:"1.5px solid "+(wakeLockOn?T.accent:T.border),color:wakeLockOn?T.accent:T.dim,width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,flexShrink:0}}>☀</button>
-            {activeProfileId==="peter"&&<button onClick={manualSync} title="Sync" style={{background:syncing?T.accentDim:"transparent",border:"1.5px solid "+(syncing?T.accent:T.border),color:syncing?T.accent:T.dim,width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,flexShrink:0}}>↻</button>}
-            {view==="log"&&!isRest&&<button onClick={()=>setReordering(!reordering)} title="Reorder" style={{background:reordering?T.accentDim:"transparent",border:`1.5px solid ${reordering?T.accent:T.border}`,color:reordering?T.accent:T.dim,width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,flexShrink:0}}>⇅</button>}
-            <button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);}} style={{background:view==="edit"?T.accentDim:"transparent",border:"1.5px solid "+(view==="edit"?T.accent:T.border),color:view==="edit"?T.accent:T.dim,width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>⚙</button>
-          </div>
+          <button onClick={()=>setShowProfileModal(true)} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0,marginTop:2}}>{profile.name.charAt(0).toUpperCase()}</button>
         </div>
         {/* Row 2: Collapsible day picker */}
         <div style={{padding:"0 16px 10px"}}>
