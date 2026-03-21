@@ -1093,35 +1093,30 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ HEADER ═══ */}
       <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
-        {/* Row 1: Workout identity + profile button only */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"14px 16px 10px"}}>
-          <div>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
+        {/* Row 1: Workout identity + day chip + profile button */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px 10px"}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
               <div style={{fontSize:24,fontWeight:800,color:T.text,lineHeight:1,letterSpacing:-0.5}}>{w.label||"WORKOUT"}</div>
-              {workoutStartTime&&<span style={{fontSize:13,color:T.dim,fontFamily:T.mono,fontWeight:500}}>{workoutMin}:{String(workoutSec).padStart(2,"0")}</span>}
+              <button onClick={()=>setDayPickerOpen(v=>!v)} style={{background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,padding:"4px 10px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                {day.slice(0,3)} <span style={{fontSize:9,opacity:0.7}}>{dayPickerOpen?"▲":"▾"}</span>
+              </button>
+              {workoutStartTime&&<span style={{fontSize:12,color:T.dim,fontFamily:T.mono,fontWeight:500}}>{workoutMin}:{String(workoutSec).padStart(2,"0")}</span>}
             </div>
             <div style={{fontSize:12,color:T.sub,marginTop:4,fontWeight:400}}>{dayFull}{w.sub?` · ${w.sub}`:isRest?" · Rest Day":""}</div>
           </div>
-          <button onClick={()=>setShowProfileModal(true)} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0,marginTop:2}}>{profile.name.charAt(0).toUpperCase()}</button>
+          <button onClick={()=>setShowProfileModal(true)} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0,marginLeft:12}}>{profile.name.charAt(0).toUpperCase()}</button>
         </div>
-        {/* Row 2: Collapsible day picker */}
-        <div style={{padding:"0 16px 10px"}}>
-          {!dayPickerOpen ? (
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <button onClick={()=>setDayPickerOpen(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"6px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",gap:6}}>
-                {day} <span style={{fontSize:10,opacity:0.8}}>▾</span>
-              </button>
-            </div>
-          ) : (
-            <div style={{display:"flex",alignItems:"center",gap:5,overflowX:"auto"}}>
-              {DAYS.map(d=>{const sel=d===day,tod=d===today,rest=(getWorkout(d).exercises||[]).length===0; return (
-                <button key={d} onClick={()=>{if(sel){setDayPickerOpen(false);}else{switchDay(d);}}} style={{background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:tod?T.green:T.border}`,color:sel?"#fff":tod?T.green:rest?T.dim:T.sub,padding:"6px 11px",borderRadius:8,fontSize:12,fontWeight:sel||tod?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",flexShrink:0,position:"relative"}}>
-                  {d.slice(0,3)}{tod&&!sel&&<span style={{position:"absolute",top:2,right:3,width:4,height:4,borderRadius:"50%",background:T.green,display:"block"}} />}
-                </button>);
-              })}
-            </div>
-          )}
-        </div>
+        {/* Expanded day picker */}
+        {dayPickerOpen&&(
+          <div style={{display:"flex",alignItems:"center",gap:5,padding:"0 16px 10px",overflowX:"auto"}}>
+            {DAYS.map(d=>{const sel=d===day,tod=d===today,rest=(getWorkout(d).exercises||[]).length===0; return (
+              <button key={d} onClick={()=>{if(sel){setDayPickerOpen(false);}else{switchDay(d);}}} style={{background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:tod?T.green:T.border}`,color:sel?"#fff":tod?T.green:rest?T.dim:T.sub,padding:"6px 11px",borderRadius:8,fontSize:12,fontWeight:sel||tod?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",flexShrink:0,position:"relative"}}>
+                {d.slice(0,3)}{tod&&!sel&&<span style={{position:"absolute",top:2,right:3,width:4,height:4,borderRadius:"50%",background:T.green,display:"block"}} />}
+              </button>);
+            })}
+          </div>
+        )}
         {/* Row 3: Tabs + progress bar */}
         <div style={{display:"flex",alignItems:"center",borderTop:`1px solid ${T.border}`}}>
           {[["log","Log"],["history","History"]].map(([v,l])=>(
