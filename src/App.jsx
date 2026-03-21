@@ -569,9 +569,11 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   useEffect(() => { setNewExReps(isCardio(newExName.trim()) ? "30" : "10-12"); }, [newExName, exerciseCatalog]);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [confirmDeleteProfile, setConfirmDeleteProfile] = useState(false);
+  const [showPlanEditor, setShowPlanEditor] = useState(false);
+  const [planEditorText, setPlanEditorText] = useState("");
   const repsRef = useRef(null);
   const weightRef = useRef(null);
-  const justBecameVisibleRef = useRef(false);
+  const timerHiddenRef = useRef(false);
   const newExRef = useRef(null);
   const renameRef = useRef(null);
   const addExFormRef = useRef(null);
@@ -671,10 +673,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   useEffect(() => {
     function onVis() {
-      if (document.visibilityState === 'visible') {
-        justBecameVisibleRef.current = true;
-        setTimeout(() => { justBecameVisibleRef.current = false; }, 2000);
-      }
+      if (document.visibilityState === 'hidden') timerHiddenRef.current = true;
     }
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
@@ -691,7 +690,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       showToast("REST DONE — GO");
       setTimerStart(null);
       setTimerMinimized(false);
-      if (!justBecameVisibleRef.current) {
+      if (!timerHiddenRef.current) {
         setTimeout(() => { repsRef.current?.focus(); repsRef.current?.select(); }, 200);
       }
     }
@@ -730,7 +729,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     var exData=getAllExercises().find(e=>e.name===activeEx);
     var loggedNow=(updated[activeEx]||[]).length;
     if(exData&&loggedNow>=exData.sets&&editIdx===null){var ud={...done,[activeEx]:true};setDone(ud);await store.set(`done-${day}-${todayKey()}`,ud);}
-    if(!cardio&&editIdx===null&&exData){var tn=Date.now();setNow(tn);setTimerStart(tn);setTimerDuration(profile.restTime||90);setTimerMinimized(false);}
+    if(!cardio&&editIdx===null&&exData){var tn=Date.now();setNow(tn);timerHiddenRef.current=false;setTimerStart(tn);setTimerDuration(profile.restTime||90);setTimerMinimized(false);}
     setSelectedDiff("just_right");
     var sg=suggestWeight(activeEx,weight,selectedDiff);if(sg&&editIdx===null&&!cardio){setSuggestion(sg);setWeight(String(sg.weight));}else{setSuggestion(null);}
     setTimeout(() => {repsRef.current?.focus();repsRef.current?.select();},60);
@@ -764,6 +763,24 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     var u={...renames,[origName]:newName.trim()};setRenames(u);await store.set(`renames-${day}-${todayKey()}`,u);setRenamingEx(null);showToast("Renamed");
   }
 
+  function openPlanEditor() {
+    const plan = {};
+    DAYS.forEach(d => { plan[d] = getWorkout(d); });
+    setPlanEditorText(JSON.stringify(plan, null, 2));
+    setShowPlanEditor(true);
+    setShowProfileModal(false);
+  }
+  async function savePlanJson() {
+    try {
+      const plan = JSON.parse(planEditorText);
+      const cw = {};
+      DAYS.forEach(d => { if (plan[d] && Array.isArray(plan[d].exercises)) cw[d] = plan[d]; });
+      setCustomWorkouts(Object.keys(cw).length ? cw : null);
+      await store.set('custom-workouts', Object.keys(cw).length ? cw : null);
+      setShowPlanEditor(false);
+      showToast("Plan updated");
+    } catch(e) { showToast("Invalid JSON"); }
+  }
   async function saveTemplate(dayName, updatedExercises) {
     var cw = Object.assign({}, customWorkouts || {});
     var base = DEFAULT_WORKOUTS[dayName] || {label:"CUSTOM",sub:""};
@@ -990,6 +1007,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                   ⬆ Restore<input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])restoreFromBackup(e.target.files[0]);e.target.value="";}} />
                 </label>
               </div>
+              <button onClick={openPlanEditor} style={{background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Edit Workout Plan (JSON)</button>
               <button onClick={()=>{setShowProfileModal(false);onLogout();}} style={{background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Switch Profile</button>
               {confirmDeleteProfile ? (
                 <div style={{display:"flex",gap:8}}>
@@ -1000,6 +1018,29 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 <button onClick={()=>setConfirmDeleteProfile(true)} style={{background:"none",border:"1.5px solid #dc2626",color:"#dc2626",padding:"12px 0",borderRadius:10,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete Profile…</button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ PLAN JSON EDITOR ═══ */}
+      {showPlanEditor && (
+        <div style={{position:"fixed",inset:0,zIndex:200,background:T.bg,display:"flex",flexDirection:"column"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 20px 12px",borderBottom:"1px solid "+T.border,flexShrink:0}}>
+            <div style={{fontSize:17,fontWeight:700,color:T.text}}>Workout Plan JSON</div>
+            <button onClick={()=>setShowPlanEditor(false)} style={{background:"none",border:"none",color:T.dim,fontSize:20,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
+          </div>
+          <div style={{padding:"10px 16px",background:T.surface2,borderBottom:"1px solid "+T.border,flexShrink:0}}>
+            <div style={{fontSize:12,color:T.dim,lineHeight:1.5}}>Paste this into Claude or ChatGPT and ask it to update your plan. Then paste the response back and tap Save.</div>
+          </div>
+          <textarea
+            value={planEditorText}
+            onChange={e=>setPlanEditorText(e.target.value)}
+            spellCheck={false}
+            style={{flex:1,width:"100%",background:T.surface,color:T.text,border:"none",padding:"14px 16px",fontSize:12,fontFamily:T.mono,resize:"none",outline:"none",boxSizing:"border-box"}}
+          />
+          <div style={{display:"flex",gap:10,padding:"12px 16px 32px",flexShrink:0,borderTop:"1px solid "+T.border}}>
+            <button onClick={()=>setShowPlanEditor(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+            <button onClick={savePlanJson} style={{flex:2,background:T.accent,border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save Plan</button>
           </div>
         </div>
       )}
