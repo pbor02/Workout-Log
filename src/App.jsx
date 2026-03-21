@@ -1016,8 +1016,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 <button onClick={()=>setWakeLockOn(v=>!v)} style={{flex:1,background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>☀ {wakeLockOn?"Screen On":"Screen Lock"}</button>
                 {activeProfileId==="peter"&&<button onClick={()=>{manualSync();setShowProfileModal(false);}} style={{flex:1,background:syncing?T.accentDim:"none",border:`1.5px solid ${syncing?T.accent:T.border}`,color:syncing?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>↻ {syncing?"Syncing…":"Sync"}</button>}
               </div>
-              {view==="log"&&!isRest&&<button onClick={()=>{setReordering(v=>!v);setShowProfileModal(false);}} style={{background:reordering?T.accentDim:"none",border:`1.5px solid ${reordering?T.accent:T.border}`,color:reordering?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⇅ {reordering?"Stop Reordering":"Reorder Exercises"}</button>}
-              <button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);setShowProfileModal(false);}} style={{background:view==="edit"?T.accentDim:"none",border:`1.5px solid ${view==="edit"?T.accent:T.border}`,color:view==="edit"?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⚙ {view==="edit"?"Exit Edit Mode":"Edit Template"}</button>
+<button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);setShowProfileModal(false);}} style={{background:view==="edit"?T.accentDim:"none",border:`1.5px solid ${view==="edit"?T.accent:T.border}`,color:view==="edit"?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⚙ {view==="edit"?"Exit Edit Mode":"Edit Template"}</button>
               <ProfileRestEdit profile={profile} onSave={(updated)=>{onProfileUpdated(updated);setShowProfileModal(false);}} T={T} />
               <div style={{display:"flex",gap:8}}>
                 <button onClick={backupProfile} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⬇ Backup</button>
@@ -1250,13 +1249,19 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               );
             })}
 
-            {/* Add exercise */}
+            {/* Add exercise / Reorder */}
+            {reordering&&(
+              <div style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.surface}}>
+                <button onClick={()=>setReordering(false)} style={{width:"100%",padding:"14px 0",background:T.accentDim,border:`1.5px solid ${T.accent}`,borderRadius:10,color:T.accent,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Done Reordering</button>
+              </div>
+            )}
             {!reordering&&(<>
               {!showAddEx?(
-                <div style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.surface}}>
-                  <button onClick={()=>{setShowAddEx(true);setTimeout(()=>addExFormRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"}),150);}} style={{width:"100%",padding:"14px 0",background:T.bg,border:`1.5px dashed ${T.border2}`,borderRadius:10,color:T.sub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                <div style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.surface,display:"flex",gap:8}}>
+                  <button onClick={()=>{setShowAddEx(true);setTimeout(()=>addExFormRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"}),150);}} style={{flex:1,padding:"14px 0",background:T.bg,border:`1.5px dashed ${T.border2}`,borderRadius:10,color:T.sub,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                     <span style={{fontSize:20,color:T.accent,fontWeight:300}}>+</span> Add Exercise
                   </button>
+                  <button onClick={()=>setReordering(true)} title="Reorder" style={{padding:"14px 16px",background:T.bg,border:`1.5px solid ${T.border}`,borderRadius:10,color:T.dim,fontSize:16,cursor:"pointer",fontFamily:T.font,flexShrink:0}}>⇅</button>
                 </div>
               ):(
                 <div ref={addExFormRef} style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.accentLight,animation:"slideIn .2s ease"}}>
