@@ -537,6 +537,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [timerDuration, setTimerDuration] = useState(0);
   const [timerMinimized, setTimerMinimized] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [workoutStartTime, setWorkoutStartTime] = useState(null);
+  const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [finishEnergy, setFinishEnergy] = useState(0);
   const [finishSleep, setFinishSleep] = useState(0);
@@ -921,8 +923,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     }catch(e){showToast("Sync failed");}
   }
 
-  const [workoutStartTime, setWorkoutStartTime] = useState(null);
-  const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const[syncing,setSyncing]=useState(false);
   async function manualSync(){setSyncing(true);await syncFromSheets();setSyncing(false);}
 
