@@ -532,7 +532,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [newExName, setNewExName] = useState("");
   const [newExSets, setNewExSets] = useState("3");
   const [newExReps, setNewExReps] = useState("10-12");
-  useEffect(() => { setNewExReps(isCardio(newExName.trim()) ? "30" : "10-12"); }, [newExName, exerciseCatalog]);
   const [reordering, setReordering] = useState(false);
   const [toast, setToast] = useState(null);
   const [timerStart, setTimerStart] = useState(null);
@@ -568,6 +567,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [editTargetReps, setEditTargetReps] = useState("");
   const [suggestion, setSuggestion] = useState(null);
   const [exerciseCatalog, setExerciseCatalog] = useState([]);
+  useEffect(() => { setNewExReps(isCardio(newExName.trim()) ? "30" : "10-12"); }, [newExName, exerciseCatalog]);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [confirmDeleteProfile, setConfirmDeleteProfile] = useState(false);
   const repsRef = useRef(null);
