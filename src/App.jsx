@@ -571,6 +571,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   useEffect(() => { setNewExReps(isCardio(newExName.trim()) ? "30" : "10-12"); }, [newExName, exerciseCatalog]);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [confirmDeleteProfile, setConfirmDeleteProfile] = useState(false);
+  const [clearConfirm, setClearConfirm] = useState(0);
   const [showPlanEditor, setShowPlanEditor] = useState(false);
   const [planEditorText, setPlanEditorText] = useState("");
   const repsRef = useRef(null);
@@ -1280,7 +1281,11 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             {totalSets>0&&!reordering&&(
               <div style={{padding:20,borderTop:`1px solid ${T.border}`,background:T.surface}}>
                 <button onClick={()=>{setShowFinishModal(true);setFinishEnergy(0);setFinishSleep(0);setFinishWeight("");setFinishNotes("");}} style={{width:"100%",padding:16,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish & Analyze</button>
-                <div style={{display:"flex",justifyContent:"center",marginTop:10}}><button onClick={clearToday} style={{background:"none",border:"none",color:T.dim,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Clear all</button></div>
+                <div style={{display:"flex",justifyContent:"center",marginTop:10}}>
+                  {clearConfirm===0&&<button onClick={()=>{setClearConfirm(1);setTimeout(()=>setClearConfirm(0),3000);}} style={{background:"none",border:"none",color:T.dim,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Clear all</button>}
+                  {clearConfirm===1&&<button onClick={()=>{setClearConfirm(2);setTimeout(()=>setClearConfirm(0),3000);}} style={{background:"none",border:`1px solid ${T.red}`,color:T.red,fontSize:12,cursor:"pointer",fontFamily:T.font,borderRadius:6,padding:"4px 12px"}}>Are you sure?</button>}
+                  {clearConfirm===2&&<button onClick={()=>{setClearConfirm(0);clearToday();}} style={{background:T.red,border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:T.font,borderRadius:6,padding:"4px 12px"}}>Yes, clear everything</button>}
+                </div>
               </div>
             )}
           </>)}
