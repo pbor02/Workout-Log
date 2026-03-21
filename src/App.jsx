@@ -253,6 +253,8 @@ function migrateIfNeeded() {
 export default function App() {
   const [profileReady, setProfileReady] = useState(false);
   const [activeProfile, setActiveProfile] = useState(null);
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
   useEffect(() => {
     migrateIfNeeded();
     const active = getShared("active-profile");
@@ -260,8 +262,9 @@ export default function App() {
     const profile = profiles.find(p => p.id === active);
     if(profile) { activeProfileId = profile.id; setActiveProfile(profile); }
     setProfileReady(true);
+    if(!isStandalone && !getShared("install-guide-dismissed")) setShowInstallGuide(true);
   }, []);
-  function onProfileSelected(profile) { activeProfileId = profile.id; setShared("active-profile", profile.id); setActiveProfile(profile); }
+  function onProfileSelected(profile) { activeProfileId = profile.id; setShared("active-profile", profile.id); setActiveProfile(profile); if(!isStandalone && !getShared("install-guide-dismissed")) setShowInstallGuide(true); }
   function onLogout() { activeProfileId = null; setShared("active-profile", null); setActiveProfile(null); }
   function onProfileUpdated(updatedProfile) {
     const profiles = getShared("profiles") || [];
@@ -270,9 +273,41 @@ export default function App() {
     setShared("profiles", profiles);
     setActiveProfile(updatedProfile);
   }
+  function dismissInstallGuide(permanent) { setShowInstallGuide(false); if(permanent) setShared("install-guide-dismissed", true); }
   if(!profileReady) return <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.font}}><style>{css}</style><div style={{color:T.dim,fontSize:13,animation:"pulse 1.5s infinite"}}>Loading...</div></div>;
-  if(!activeProfile) return <ProfileScreen onSelect={onProfileSelected} />;
-  return <WorkoutLog profile={activeProfile} onLogout={onLogout} onProfileUpdated={onProfileUpdated} />;
+  return (<>
+    <style>{css}</style>
+    {showInstallGuide && (
+      <div style={{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>dismissInstallGuide(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:T.surface,borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",width:"100%",maxWidth:480}}>
+          <div style={{width:40,height:4,background:T.border,borderRadius:2,margin:"0 auto 24px"}} />
+          <div style={{fontSize:22,fontWeight:800,marginBottom:6}}>Add to Home Screen</div>
+          <div style={{fontSize:13,color:T.sub,marginBottom:24,lineHeight:1.6}}>For the best experience, install this app on your device — it'll work offline and feel like a native app.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:28}}>
+            <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+              <div style={{width:32,height:32,borderRadius:8,background:T.accentDim,border:`1.5px solid ${T.accent}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>1</div>
+              <div><div style={{fontSize:14,fontWeight:600,marginBottom:2}}>Open in Safari</div><div style={{fontSize:12,color:T.sub}}>This only works in Safari — not Chrome or Firefox.</div></div>
+            </div>
+            <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+              <div style={{width:32,height:32,borderRadius:8,background:T.accentDim,border:`1.5px solid ${T.accent}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>2</div>
+              <div><div style={{fontSize:14,fontWeight:600,marginBottom:2}}>Tap the Share button</div><div style={{fontSize:12,color:T.sub}}>The <span style={{fontWeight:700}}>⬆ Share</span> icon at the bottom of the screen.</div></div>
+            </div>
+            <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+              <div style={{width:32,height:32,borderRadius:8,background:T.accentDim,border:`1.5px solid ${T.accent}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>3</div>
+              <div><div style={{fontSize:14,fontWeight:600,marginBottom:2}}>Tap "Add to Home Screen"</div><div style={{fontSize:12,color:T.sub}}>Scroll down in the share sheet and tap <span style={{fontWeight:700}}>Add to Home Screen</span>.</div></div>
+            </div>
+            <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+              <div style={{width:32,height:32,borderRadius:8,background:T.accentDim,border:`1.5px solid ${T.accent}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>4</div>
+              <div><div style={{fontSize:14,fontWeight:600,marginBottom:2}}>Tap Add</div><div style={{fontSize:12,color:T.sub}}>Confirm and the app icon will appear on your Home Screen.</div></div>
+            </div>
+          </div>
+          <button onClick={()=>dismissInstallGuide(true)} style={{width:"100%",padding:"15px",background:`linear-gradient(135deg,${T.accent},#991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>Got it</button>
+          <button onClick={()=>dismissInstallGuide(false)} style={{width:"100%",padding:"12px",background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Remind me later</button>
+        </div>
+      </div>
+    )}
+    {!activeProfile ? <ProfileScreen onSelect={onProfileSelected} /> : <WorkoutLog profile={activeProfile} onLogout={onLogout} onProfileUpdated={onProfileUpdated} />}
+  </>);
 }
 
 function ProfileScreen({onSelect}) {
@@ -525,6 +560,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [renames, setRenames] = useState({});
   const [renamingEx, setRenamingEx] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+  const [editingTarget, setEditingTarget] = useState(null);
+  const [editTargetSets, setEditTargetSets] = useState("");
+  const [editTargetReps, setEditTargetReps] = useState("");
   const [suggestion, setSuggestion] = useState(null);
   const [exerciseCatalog, setExerciseCatalog] = useState([]);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -536,6 +574,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const addExFormRef = useRef(null);
   const exRefs = useRef({});
   const dayCache = useRef({});
+  const aiImportRef = useRef(null);
 
   useEffect(() => { (async () => {
     const [hist,s,d,cex,order,rn,cw,cat] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts'),store.get('exercise-catalog')]);
@@ -751,6 +790,24 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     await saveTemplate(dayName, current);
     showToast("Removed");
   }
+  async function saveExerciseTarget(exName, newSets, newReps) {
+    const baseList = getBaseExercises();
+    const baseIdx = baseList.findIndex(e => e.name === exName);
+    if(baseIdx >= 0) {
+      var current = (getWorkout(day).exercises || []).slice();
+      current[baseIdx] = {name:exName, sets:parseInt(newSets)||3, reps:newReps||(isCardio(exName)?"30":"10-12")};
+      await saveTemplate(day, current);
+    } else {
+      const customIdx = customExercises.findIndex(e => e.name === exName);
+      if(customIdx >= 0) {
+        const upd = customExercises.map((e,i) => i===customIdx ? {...e, sets:isCardio(exName)?1:(parseInt(newSets)||3), reps:newReps||(isCardio(exName)?"30":"10-12")} : e);
+        setCustomExercises(upd);
+        await store.set(`custom-ex-${day}-${todayKey()}`, upd);
+      }
+    }
+    setEditingTarget(null);
+    showToast("Target updated");
+  }
   async function updateTemplateExercise(dayName, idx, name, sets, repRange) {
     var current = (getWorkout(dayName).exercises || []).slice();
     current[idx] = {name:name, sets:parseInt(sets)||3, reps:repRange||"10-12"};
@@ -764,6 +821,26 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     setCustomWorkouts(Object.keys(cw).length ? cw : null);
     await store.set('custom-workouts', Object.keys(cw).length ? cw : null);
     showToast("Reset to default");
+  }
+  function downloadTemplateForAI() {
+    const exercises = getWorkout(day).exercises || [];
+    const dayHistory = Object.values(history).filter(e=>e.day===day).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6).map(session=>({date:session.dateLabel||session.date,exercises:Object.entries(session.sets||{}).map(([name,sts])=>({name,sets:sts.map(s=>({weight:s.weight,reps:s.reps,difficulty:s.diff||"just_right"}))}))}));
+    const data={_instructions:"You are a fitness coach. Review the exercises, their current targets, and recent session history. Return ONLY valid JSON in the _responseFormat — no extra text. Adjust sets/reps based on performance and difficulty ratings (easy=increase, hard=decrease/maintain).",_responseFormat:{exercises:[{name:"Exercise Name",sets:3,reps:"10-12",note:"optional note"}]},day,label:getWorkout(day).label,currentTemplate:exercises.map(e=>({name:e.name,sets:e.sets,reps:e.reps})),recentHistory:dayHistory};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=`${day.toLowerCase()}-template-for-ai.json`;a.click();URL.revokeObjectURL(url);
+  }
+  async function importAITemplate(file) {
+    try {
+      const text=await file.text();
+      const data=JSON.parse(text);
+      const updates=data.exercises;
+      if(!updates||!Array.isArray(updates)){showToast("Invalid format");return;}
+      const current=(getWorkout(day).exercises||[]).slice();
+      const updated=current.map(e=>{const u=updates.find(x=>x.name.toLowerCase()===e.name.toLowerCase());return u?{name:e.name,sets:parseInt(u.sets)||e.sets,reps:u.reps||e.reps}:e;});
+      await saveTemplate(day,updated);
+      showToast(`Updated ${updates.filter(u=>current.some(e=>e.name.toLowerCase()===u.name.toLowerCase())).length} exercises`);
+    } catch(err) { showToast("Import failed"); }
   }
 
   function buildLogText(ci) {
@@ -839,7 +916,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     } catch(e) { showToast("Restore failed"); }
   }
 
-  useEffect(function(){if(!loading&&sheetsUrl&&activeProfileId==="peter"){setTimeout(syncFromSheets,2000);}},[loading]);
+  // Pull from Sheets disabled — push only
 
   async function finishWorkout(ci) {
     const w=getWorkout();const text=buildLogText(ci||{});const entry={day,label:w.label,date:todayKey(),dateLabel:dateLabel(),sets:{...sets},customExercises:[...customExercises],checkIn:ci||{},logText:text};
@@ -920,9 +997,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             <div style={{fontSize:110,fontWeight:800,letterSpacing:2,color:timerRemaining<=10?T.accent:T.text,lineHeight:1,animation:timerRemaining<=10?"timerPulse 1s infinite":"none",fontFamily:T.mono}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</div>
             <div style={{fontSize:13,color:T.dim,marginTop:16,marginBottom:36,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:300,margin:"16px auto 36px"}}>{activeEx||""}</div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={()=>setTimerDuration(p=>Math.max(5,p-15))} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>−15s</button>
               <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} style={{background:T.accent,border:"none",color:"#fff",padding:"14px 36px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Skip — Go</button>
-              <button onClick={()=>setTimerMinimized(true)} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 20px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Minimize</button>
-              <button onClick={()=>setTimerDuration(p=>p+30)} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>+30s</button>
+              <button onClick={()=>setTimerDuration(p=>p+15)} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>+15s</button>
             </div>
           </div>
         </div>
@@ -949,7 +1026,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             {totalSets>0&&view==="log"&&<div style={{textAlign:"right"}}><div style={{fontSize:28,fontWeight:700,color:T.accent,lineHeight:1}}>{totalSets}</div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginTop:2}}>sets</div></div>}
             <button onClick={()=>setShowProfileModal(true)} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:34,height:34,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,fontWeight:700,flexShrink:0}}>{profile.name.charAt(0).toUpperCase()}</button>
             <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen on (tap to disable)":"Keep screen on"} style={{background:wakeLockOn?T.accentDim:"transparent",border:"1.5px solid "+(wakeLockOn?T.accent:T.border),color:wakeLockOn?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
-            {activeProfileId==="peter"&&<button onClick={manualSync} disabled={syncing} style={{background:syncing?T.accentDim:"transparent",border:"1.5px solid "+(syncing?T.accent:T.border),color:syncing?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:syncing?"default":"pointer",fontSize:14,flexShrink:0,animation:syncing?"pulse 1s infinite":"none"}}>↻</button>}
             <button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);}} style={{background:view==="edit"?T.accentDim:"transparent",border:"1.5px solid "+(view==="edit"?T.accent:T.border),color:view==="edit"?T.accent:T.dim,width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,flexShrink:0}}>⚙</button>
           </div>
         </div>
@@ -1035,8 +1111,18 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                         {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accent,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:14,fontWeight:500,color:isCustom?T.yellow:T.text,lineHeight:1.3}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
                       </div>
                       {!reordering&&<>
-                        <div style={{paddingLeft:30,display:"flex",alignItems:"center",gap:8,marginBottom:exSets.length>0?10:0}}>
-                          <span style={{fontSize:12,color:T.dim}}>{exCardio?`${ex.reps} min`:`${ex.sets}×${ex.reps}`}</span>
+                        <div style={{paddingLeft:30,display:"flex",alignItems:"center",gap:8,marginBottom:exSets.length>0?10:0,flexWrap:"wrap"}}>
+                          {editingTarget===ex.name&&isActive?(
+                            <div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",alignItems:"center",gap:6}}>
+                              {!exCardio&&<input type="number" inputMode="numeric" value={editTargetSets} onChange={e=>setEditTargetSets(e.target.value)} placeholder="sets" style={{width:44,background:T.surface2,border:`1.5px solid ${T.accent}`,color:T.text,padding:"3px 6px",borderRadius:6,fontSize:12,fontFamily:T.mono,outline:"none",textAlign:"center"}} />}
+                              {!exCardio&&<span style={{fontSize:11,color:T.dim}}>×</span>}
+                              <input type="text" value={editTargetReps} onChange={e=>setEditTargetReps(e.target.value)} placeholder={exCardio?"min":"reps"} style={{width:exCardio?50:56,background:T.surface2,border:`1.5px solid ${T.accent}`,color:T.text,padding:"3px 6px",borderRadius:6,fontSize:12,fontFamily:T.mono,outline:"none",textAlign:"center"}} />
+                              <button onClick={()=>saveExerciseTarget(ex.name,editTargetSets,editTargetReps)} style={{background:T.accent,color:"#fff",border:"none",padding:"3px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font,fontWeight:600}}>✓</button>
+                              <button onClick={()=>setEditingTarget(null)} style={{background:"none",border:`1px solid ${T.border}`,color:T.dim,padding:"3px 8px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button>
+                            </div>
+                          ):(
+                            <span data-no-row-click onClick={e=>{e.stopPropagation();if(isActive){setEditingTarget(ex.name);setEditTargetSets(String(ex.sets));setEditTargetReps(ex.reps);}}} style={{fontSize:12,color:T.dim,cursor:isActive?"pointer":"default",textDecoration:isActive?"underline dotted":"none",textUnderlineOffset:2}}>{exCardio?`${ex.reps} min`:`${ex.sets}×${ex.reps}`}</span>
+                          )}
                           {exSets.length>0&&<span style={{fontSize:12,color:targetMet?T.green:T.accent,fontWeight:600}}>{exCardio?`${exSets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min ✓`:`${exSets.length}/${ex.sets}${targetMet?" ✓":""}`}</span>}
                           {!exSets.length&&lastSession&&<span style={{fontSize:12,color:T.dim,fontStyle:"italic"}}>{exCardio?`last: ${lastSession.reps} min`:`last: ${lastSession.weight}×${lastSession.reps}`}</span>}
                           {!exSets.length&&(function(){var tgt=getSessionTarget(ex.name);return tgt?<div style={{marginTop:4,fontSize:11,color:T.accent,fontWeight:500}}>{"\ud83c\udfaf Target: "+tgt.weight+"lb \u00d7 "+tgt.reps+" \u2014 "+tgt.note}</div>:null;})()}
@@ -1199,6 +1285,15 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             )}
             </>)}
             {customWorkouts&&customWorkouts[day]&&<button onClick={function(){resetTemplate(day);}} style={{width:"100%",marginTop:10,padding:"10px",background:"transparent",border:"1.5px solid "+T.red+"33",color:T.red,borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Reset to Default</button>}
+            <div style={{marginTop:16,padding:"14px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:10}}>
+              <div style={{fontSize:11,color:T.dim,fontWeight:600,marginBottom:10,letterSpacing:0.5}}>AI PROGRAM EDITOR</div>
+              <div style={{fontSize:12,color:T.sub,marginBottom:12,lineHeight:1.5}}>Download today's template + history, upload to any AI (ChatGPT, Claude, etc.), then import the AI's response to update your targets.</div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={downloadTemplateForAI} style={{flex:1,padding:"10px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>⬇ Download</button>
+                <button onClick={()=>aiImportRef.current?.click()} style={{flex:1,padding:"10px",background:T.accent,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>⬆ Upload Response</button>
+              </div>
+              <input ref={aiImportRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])importAITemplate(e.target.files[0]);e.target.value="";}} />
+            </div>
           </div>
         )}
         {view==="history"&&<HistoryView history={history} onDelete={deleteHistoryEntry} onClearAll={clearAllHistory} />}
