@@ -1096,7 +1096,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               {d.slice(0,3)}
             </button>);
           })}
-          {day!==today&&<button onClick={()=>switchDay(today)} style={{background:"none",border:"none",color:T.green,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",padding:"6px 8px"}}>↩ Today</button>}
         </div>
         <div style={{display:"flex",borderTop:`1px solid ${T.border}`}}>
           {[["log","Log"],["history","History"]].map(([v,l])=>(
