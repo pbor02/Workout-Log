@@ -1092,11 +1092,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
         </div>
         <div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 20px 12px",overflowX:"auto"}}>
           {DAYS.map(d=>{const sel=d===day,tod=d===today,rest=(getWorkout(d).exercises||[]).length===0; return (
-            <button key={d} onClick={()=>switchDay(d)} style={{position:"relative",background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:T.border}`,color:sel?"#fff":rest?T.dim:T.sub,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:sel?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>
-              {d.slice(0,3)}{tod&&<span style={{position:"absolute",top:-3,right:-3,width:6,height:6,background:T.green,borderRadius:"50%",border:`2px solid ${sel?T.accent:T.surface}`}} />}
+            <button key={d} onClick={()=>switchDay(d)} style={{background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:tod?T.green:T.border}`,color:sel?"#fff":tod?T.green:rest?T.dim:T.sub,padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:sel||tod?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>
+              {d.slice(0,3)}
             </button>);
           })}
-          {day!==today&&<button onClick={()=>switchDay(today)} style={{background:"none",border:"none",color:T.green,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",padding:"6px 8px"}}>↩ Today</button>}
         </div>
         <div style={{display:"flex",borderTop:`1px solid ${T.border}`}}>
           {[["log","Log"],["history","History"]].map(([v,l])=>(
