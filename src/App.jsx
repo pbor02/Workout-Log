@@ -262,9 +262,12 @@ export default function App() {
     const profile = profiles.find(p => p.id === active);
     if(profile) { activeProfileId = profile.id; setActiveProfile(profile); }
     setProfileReady(true);
-    if(!isStandalone && !getShared("install-guide-dismissed")) setShowInstallGuide(true);
+    if(!isStandalone && !getShared("install-guide-dismissed")) {
+      if(profiles.length > 0) { setShared("install-guide-dismissed", true); }
+      else { setShowInstallGuide(true); }
+    }
   }, []);
-  function onProfileSelected(profile) { activeProfileId = profile.id; setShared("active-profile", profile.id); setActiveProfile(profile); if(!isStandalone && !getShared("install-guide-dismissed")) setShowInstallGuide(true); }
+  function onProfileSelected(profile) { activeProfileId = profile.id; setShared("active-profile", profile.id); setActiveProfile(profile); const ps=getShared("profiles")||[]; if(!isStandalone && !getShared("install-guide-dismissed") && ps.length<=1) setShowInstallGuide(true); }
   function onLogout() { activeProfileId = null; setShared("active-profile", null); setActiveProfile(null); }
   function onProfileUpdated(updatedProfile) {
     const profiles = getShared("profiles") || [];
