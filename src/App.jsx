@@ -571,6 +571,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [confirmDeleteProfile, setConfirmDeleteProfile] = useState(false);
   const repsRef = useRef(null);
   const weightRef = useRef(null);
+  const justBecameVisibleRef = useRef(false);
   const newExRef = useRef(null);
   const renameRef = useRef(null);
   const addExFormRef = useRef(null);
@@ -668,6 +669,17 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     }
   }, [timerStart]);
 
+  useEffect(() => {
+    function onVis() {
+      if (document.visibilityState === 'visible') {
+        justBecameVisibleRef.current = true;
+        setTimeout(() => { justBecameVisibleRef.current = false; }, 2000);
+      }
+    }
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
   var timerElapsed = timerStart ? Math.floor((now - timerStart) / 1000) : 0;
   var timerRemaining = timerStart ? Math.max(0, timerDuration - timerElapsed) : 0;
   var timerPct = timerDuration > 0 ? Math.min(100, (timerElapsed / timerDuration) * 100) : 0;
@@ -679,7 +691,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       showToast("REST DONE — GO");
       setTimerStart(null);
       setTimerMinimized(false);
-      setTimeout(() => { repsRef.current?.focus(); repsRef.current?.select(); }, 200);
+      if (!justBecameVisibleRef.current) {
+        setTimeout(() => { repsRef.current?.focus(); repsRef.current?.select(); }, 200);
+      }
     }
   }, [timerDone]);
 
