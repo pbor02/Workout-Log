@@ -262,9 +262,8 @@ export default function App() {
     const profile = profiles.find(p => p.id === active);
     if(profile) { activeProfileId = profile.id; setActiveProfile(profile); }
     setProfileReady(true);
-    if(!isStandalone && !getShared("install-guide-dismissed")) {
-      if(profiles.length > 0) { setShared("install-guide-dismissed", true); }
-      else { setShowInstallGuide(true); }
+    if(!isStandalone && profiles.length > 0 && !getShared("install-guide-dismissed")) {
+      setShared("install-guide-dismissed", true);
     }
   }, []);
   function onProfileSelected(profile) { activeProfileId = profile.id; setShared("active-profile", profile.id); setActiveProfile(profile); const ps=getShared("profiles")||[]; if(!isStandalone && !getShared("install-guide-dismissed") && ps.length<=1) setShowInstallGuide(true); }
@@ -1004,6 +1003,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} style={{background:T.accent,border:"none",color:"#fff",padding:"14px 36px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Skip — Go</button>
               <button onClick={()=>setTimerDuration(p=>p+15)} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>+15s</button>
             </div>
+            <div style={{display:"flex",justifyContent:"center",marginTop:16}}>
+              <button onClick={()=>setTimerMinimized(true)} style={{background:"transparent",border:`1px solid ${T.border}`,color:T.dim,padding:"10px 28px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Minimize</button>
+            </div>
           </div>
         </div>
       )}
@@ -1366,7 +1368,7 @@ function HistoryView({history, onDelete, onClearAll}) {
     a.href = url; a.download = `workout-history-${new Date().toISOString().slice(0,10)}.json`;
     a.click(); URL.revokeObjectURL(url);
   }
-  function getWeekly(){const w={};histEntries.forEach(e=>{if(!e.date)return;const parts=e.date.split('-');const d=parts.length===3?new Date(Number(parts[0]),Number(parts[1])-1,Number(parts[2])):new Date(e.date);if(isNaN(d))return;const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());if(isNaN(sun))return;const k=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;if(!w[k])w[k]={sessions:0,volume:0,sets:0};w[k].sessions++;w[k].sets+=Object.values(e.sets||{}).reduce((a,b)=>a+b.length,0);w[k].volume+=Object.values(e.sets||{}).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);});return Object.entries(w).sort(([a],[b])=>b.localeCompare(a)).map(([k,v])=>{const[sy,sm,sd]=k.split('-').map(Number);const s=new Date(sy,sm-1,sd);if(isNaN(s))return null;const en=new Date(s);en.setDate(s.getDate()+6);const f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});return{key:k,label:`${f(s)} – ${f(en)}`,...v};}).filter(Boolean);}
+  function getWeekly(){const w={};histEntries.forEach(e=>{if(!e.date)return;const parts=e.date.split('-');const d=parts.length===3?new Date(Number(parts[0]),Number(parts[1])-1,Number(parts[2])):new Date(e.date);if(isNaN(d))return;const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());if(isNaN(sun))return;const k=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;if(!w[k])w[k]={sessions:0,volume:0,sets:0,days:{}};w[k].sessions++;w[k].sets+=Object.values(e.sets||{}).reduce((a,b)=>a+b.length,0);const dayVol=Object.values(e.sets||{}).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);w[k].volume+=dayVol;const di=d.getDay();w[k].days[di]=(w[k].days[di]||0)+dayVol;});return Object.entries(w).sort(([a],[b])=>b.localeCompare(a)).map(([k,v])=>{const[sy,sm,sd]=k.split('-').map(Number);const s=new Date(sy,sm-1,sd);if(isNaN(s))return null;const en=new Date(s);en.setDate(s.getDate()+6);const f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});return{key:k,label:`${f(s)} – ${f(en)}`,...v};}).filter(Boolean);}
   const weekly=getWeekly(),maxVol=Math.max(...weekly.map(w=>w.volume),1);
   if(!histEntries.length) return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 24px",textAlign:"center"}}><div style={{fontSize:40,opacity:0.6,marginBottom:12}}>📋</div><div style={{fontSize:20,fontWeight:700,color:T.dim}}>No history yet</div><div style={{fontSize:13,color:T.dim,marginTop:8}}>Finish a workout to see it here</div></div>;
   return (
@@ -1374,7 +1376,7 @@ function HistoryView({history, onDelete, onClearAll}) {
       <div style={{display:"flex",margin:"0 20px 14px",border:`1.5px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
         {[["sessions","Sessions"],["weekly","Weekly Vol"]].map(([v,l])=>(<button key={v} onClick={()=>setHv(v)} style={{flex:1,padding:"9px 0",background:hv===v?T.accent:T.surface,color:hv===v?"#fff":T.sub,border:"none",fontSize:12,fontWeight:hv===v?600:400,cursor:"pointer",fontFamily:T.font}}>{l}</button>))}
       </div>
-      {hv==="weekly"&&<div style={{padding:"0 20px"}}>{weekly.map((wk,i)=>(<div key={wk.key} style={{marginBottom:16}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.sub,marginBottom:6}}><span>{wk.label}</span><span>{wk.sessions} sessions · {wk.sets} sets</span></div><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,height:22,background:T.surface2,borderRadius:6,overflow:"hidden"}}><div style={{height:"100%",width:`${(wk.volume/maxVol)*100}%`,background:`linear-gradient(90deg, ${T.accent}, #ef4444)`,borderRadius:6}} /></div><span style={{fontSize:13,fontWeight:600,color:T.text,minWidth:60,textAlign:"right"}}>{(wk.volume/1000).toFixed(1)}k</span></div></div>))}</div>}
+      {hv==="weekly"&&<div style={{padding:"0 20px"}}>{weekly.map((wk)=>{const dayVols=[0,1,2,3,4,5,6].map(d=>wk.days?wk.days[d]||0:0);const maxDay=Math.max(...dayVols,1);const W=280,H=64,px=14,py=8;const pts=dayVols.map((v,d)=>[px+(d/6)*(W-2*px),H-py-(v/maxDay)*(H-2*py)]);return(<div key={wk.key} style={{marginBottom:20}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.sub,marginBottom:6}}><span>{wk.label}</span><span>{wk.sessions} sessions · {(wk.volume/1000).toFixed(1)}k lb</span></div><svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",display:"block"}}><polyline points={pts.map(([x,y])=>`${x},${y}`).join(" ")} fill="none" stroke={T.accent} strokeWidth="2" strokeLinejoin="round" strokeOpacity="0.7"/>{pts.map(([x,y],d)=>dayVols[d]>0&&<circle key={d} cx={x} cy={y} r={3.5} fill={T.accent}/>)}{["S","M","T","W","T","F","S"].map((lb,d)=><text key={d} x={pts[d][0]} y={H-1} textAnchor="middle" fill={T.dim} fontSize={9} fontFamily={T.font}>{lb}</text>)}</svg></div>);})}</div>}
       {hv==="sessions"&&(<>
         {histEntries.map((entry,idx)=>{const isOpen=expanded===idx;const ts=Object.values(entry.sets||{}).reduce((a,b)=>a+b.length,0);const tv=Object.values(entry.sets||{}).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);return(<div key={entry.key} style={{borderBottom:`1px solid ${T.border}`}}>
           <div onClick={()=>setExpanded(isOpen?null:idx)} style={{padding:"16px 20px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",background:isOpen?T.accentLight:T.surface}}>
