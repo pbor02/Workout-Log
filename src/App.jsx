@@ -714,6 +714,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   }
 
   function findLastExercise(n) { for(const e of Object.values(history).sort((a,b)=>new Date(b.date)-new Date(a.date))){const s=e.sets?.[n];if(s?.length)return s[s.length-1];} return null; }
+  function findPR(n) { var best=null; for(const e of Object.values(history)){const sts=e.sets?.[n];if(!sts?.length)continue;for(const s of sts){const w=parseFloat(s.weight);if(!w)continue;if(!best||w>best.weight||(w===best.weight&&parseInt(s.reps)>parseInt(best.reps))){best={weight:w,reps:s.reps,date:e.dateLabel||e.date};}}} return best; }
 
   function openExercise(ex) { if(activeEx===ex){setActiveEx(null);setWeight("");setReps("");setEditIdx(null);setSuggestion(null);return;} setActiveEx(ex);setEditIdx(null);setSuggestion(null);
     const xs=sets[ex]||[]; if(xs.length){const l=xs[xs.length-1];setWeight(l.weight);setReps(l.reps);var sg=suggestWeight(ex,l.weight,l.diff);if(sg){setSuggestion(sg);setWeight(String(sg.weight));}} else{const l=findLastExercise(ex);if(l){setWeight(l.weight);setReps(l.reps);var sg2=suggestWeight(ex,l.weight,l.diff);if(sg2){setSuggestion(sg2);setWeight(String(sg2.weight));}}else{setWeight("");setReps("");}}
@@ -1150,7 +1151,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
             {/* Exercises */}
             {allExercises.map((ex,exIdx)=>{
-              const exSets=sets[ex.name]||[],isActive=activeEx===ex.name,isDone=done[ex.name],targetMet=exSets.length>=ex.sets,lastSession=findLastExercise(ex.name),isCustom=ex.custom,exCardio=isCardio(ex.name);
+              const exSets=sets[ex.name]||[],isActive=activeEx===ex.name,isDone=done[ex.name],targetMet=exSets.length>=ex.sets,lastSession=findLastExercise(ex.name),isCustom=ex.custom,exCardio=isCardio(ex.name),exPR=exCardio?null:findPR(ex.name);
               var exVol=exSets.reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);
               if(isDone&&!isActive&&!reordering) return (
                 <div key={ex.name+exIdx} ref={el=>{exRefs.current[ex.name]=el;}} onClick={()=>toggleDone(ex.name)} style={{borderBottom:"1px solid "+T.border,padding:"10px 20px",background:T.surface,opacity:0.5,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1185,6 +1186,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                           )}
                           {exSets.length>0&&<span style={{fontSize:12,color:targetMet?T.green:T.accent,fontWeight:600}}>{exCardio?`${exSets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min ✓`:`${exSets.length}/${ex.sets}${targetMet?" ✓":""}`}</span>}
                           {!exSets.length&&lastSession&&<span style={{fontSize:12,color:T.dim,fontStyle:"italic"}}>{exCardio?`last: ${lastSession.reps} min`:`last: ${lastSession.weight}×${lastSession.reps}`}</span>}
+                          {exPR&&<span style={{fontSize:11,color:T.yellow,fontWeight:600}}>PR {exPR.weight}lb×{exPR.reps} · {exPR.date}</span>}
                           {!exSets.length&&(function(){var tgt=getSessionTarget(ex.name);return tgt?<div style={{marginTop:4,fontSize:11,color:T.accent,fontWeight:500}}>{"\ud83c\udfaf Target: "+tgt.weight+"lb \u00d7 "+tgt.reps+" \u2014 "+tgt.note}</div>:null;})()}
                         </div>
                         {exSets.length>0&&(
