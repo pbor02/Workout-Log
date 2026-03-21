@@ -1013,10 +1013,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             <div style={{fontSize:13,color:T.dim,marginBottom:20}}>Rest timer: {profile.restTime||90}s</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {/* Quick-action toggles */}
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>setWakeLockOn(v=>!v)} style={{flex:1,background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>☀ {wakeLockOn?"Screen On":"Screen Lock"}</button>
-                {activeProfileId==="peter"&&<button onClick={()=>{manualSync();setShowProfileModal(false);}} style={{flex:1,background:syncing?T.accentDim:"none",border:`1.5px solid ${syncing?T.accent:T.border}`,color:syncing?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>↻ {syncing?"Syncing…":"Sync"}</button>}
-              </div>
+              {activeProfileId==="peter"&&<div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{manualSync();setShowProfileModal(false);}} style={{flex:1,background:syncing?T.accentDim:"none",border:`1.5px solid ${syncing?T.accent:T.border}`,color:syncing?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>↻ {syncing?"Syncing…":"Sync"}</button>
+              </div>}
 <button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);setShowProfileModal(false);}} style={{background:view==="edit"?T.accentDim:"none",border:`1.5px solid ${view==="edit"?T.accent:T.border}`,color:view==="edit"?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⚙ {view==="edit"?"Exit Edit Mode":"Edit Template"}</button>
               <ProfileRestEdit profile={profile} onSave={(updated)=>{onProfileUpdated(updated);setShowProfileModal(false);}} T={T} />
               <div style={{display:"flex",gap:8}}>
@@ -1106,7 +1105,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             </div>
             <div style={{fontSize:12,color:T.sub,marginTop:4,fontWeight:400}}>{dayFull}{w.sub?` · ${w.sub}`:isRest?" · Rest Day":""}</div>
           </div>
-          <button onClick={()=>setShowProfileModal(true)} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0,marginLeft:12}}>{profile.name.charAt(0).toUpperCase()}</button>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:12}}>
+            <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen lock on":"Screen lock off"} style={{background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.dim,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
+            <button onClick={()=>setShowProfileModal(true)} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>{profile.name.charAt(0).toUpperCase()}</button>
+          </div>
         </div>
         {/* Expanded day picker */}
         {dayPickerOpen&&(
