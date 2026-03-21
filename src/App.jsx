@@ -1016,6 +1016,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               {activeProfileId==="peter"&&<div style={{display:"flex",gap:8}}>
                 <button onClick={()=>{manualSync();setShowProfileModal(false);}} style={{flex:1,background:syncing?T.accentDim:"none",border:`1.5px solid ${syncing?T.accent:T.border}`,color:syncing?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>↻ {syncing?"Syncing…":"Sync"}</button>
               </div>}
+<button onClick={()=>{setView("history");setShowProfileModal(false);}} style={{background:"none",border:`1.5px solid ${T.border}`,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>📋 View History</button>
 <button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);setShowProfileModal(false);}} style={{background:view==="edit"?T.accentDim:"none",border:`1.5px solid ${view==="edit"?T.accent:T.border}`,color:view==="edit"?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⚙ {view==="edit"?"Exit Edit Mode":"Edit Template"}</button>
               <ProfileRestEdit profile={profile} onSave={(updated)=>{onProfileUpdated(updated);setShowProfileModal(false);}} T={T} />
               <div style={{display:"flex",gap:8}}>
@@ -1120,18 +1121,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             })}
           </div>
         )}
-        {/* Row 3: Tabs + progress bar */}
-        <div style={{display:"flex",alignItems:"center",borderTop:`1px solid ${T.border}`}}>
-          {[["log","Log"],["history","History"]].map(([v,l])=>(
-            <button key={v} onClick={()=>{setView(v);setReordering(false);}} style={{flex:1,padding:"8px 0",background:"transparent",border:"none",borderBottom:`2.5px solid ${view===v?T.accent:"transparent"}`,color:view===v?T.text:T.dim,fontSize:13,fontWeight:view===v?600:400,cursor:"pointer",fontFamily:T.font}}>{l}</button>
-          ))}
-          {view==="log"&&!isRest&&allExercises.length>0&&(
-            <div style={{display:"flex",alignItems:"center",gap:8,paddingRight:16,paddingLeft:8,flexShrink:0}}>
-              <div style={{width:60,height:4,background:T.surface3,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${doneCount/allExercises.length*100}%`,background:`linear-gradient(90deg,${T.accent},#ef4444)`,transition:"width .4s ease",borderRadius:3}} /></div>
-              <span style={{fontSize:11,color:T.dim,fontWeight:500,whiteSpace:"nowrap"}}>{doneCount}/{allExercises.length}</span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ═══ CONTENT ═══ */}
@@ -1282,6 +1271,17 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
             {totalSets>0&&!reordering&&(
               <div style={{padding:20,borderTop:`1px solid ${T.border}`,background:T.surface}}>
+                {allExercises.length>0&&(
+                  <div style={{marginBottom:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                      <span style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5}}>PROGRESS</span>
+                      <span style={{fontSize:11,color:doneCount===allExercises.length?T.accent:T.dim,fontWeight:600}}>{doneCount}/{allExercises.length}</span>
+                    </div>
+                    <div style={{height:5,background:T.surface3,borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${doneCount/allExercises.length*100}%`,background:`linear-gradient(90deg,${T.accent},#ef4444)`,transition:"width .4s ease",borderRadius:3}} />
+                    </div>
+                  </div>
+                )}
                 <button onClick={()=>{setShowFinishModal(true);setFinishEnergy(0);setFinishSleep(0);setFinishWeight("");setFinishNotes("");}} style={{width:"100%",padding:16,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish & Analyze</button>
                 <div style={{display:"flex",justifyContent:"center",marginTop:10}}>
                   {clearConfirm===0&&<button onClick={()=>{setClearConfirm(1);setTimeout(()=>setClearConfirm(0),3000);}} style={{background:"none",border:"none",color:T.dim,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Clear all</button>}
@@ -1384,7 +1384,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             </div>
           </div>
         )}
-        {view==="history"&&<HistoryView history={history} onDelete={deleteHistoryEntry} onClearAll={clearAllHistory} />}
+        {view==="history"&&(
+          <>
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",borderBottom:`1px solid ${T.border}`,background:T.surface,flexShrink:0}}>
+              <button onClick={()=>setView("log")} style={{background:"none",border:"none",color:T.accent,fontSize:14,cursor:"pointer",fontFamily:T.font,padding:0,fontWeight:600}}>← Back</button>
+            </div>
+            <HistoryView history={history} onDelete={deleteHistoryEntry} onClearAll={clearAllHistory} />
+          </>
+        )}
       </div>
     </div>
     </>
