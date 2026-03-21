@@ -1121,12 +1121,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             })}
           </div>
         )}
-        {/* Row 3: Progress bar */}
-        {view==="log"&&!isRest&&allExercises.length>0&&(
-          <div style={{height:3,background:T.surface3}}>
-            <div style={{height:"100%",width:`${doneCount/allExercises.length*100}%`,background:`linear-gradient(90deg,${T.accent},#ef4444)`,transition:"width .4s ease"}} />
-          </div>
-        )}
       </div>
 
       {/* ═══ CONTENT ═══ */}
@@ -1277,6 +1271,17 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
             {totalSets>0&&!reordering&&(
               <div style={{padding:20,borderTop:`1px solid ${T.border}`,background:T.surface}}>
+                {allExercises.length>0&&(
+                  <div style={{marginBottom:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                      <span style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5}}>PROGRESS</span>
+                      <span style={{fontSize:11,color:doneCount===allExercises.length?T.accent:T.dim,fontWeight:600}}>{doneCount}/{allExercises.length}</span>
+                    </div>
+                    <div style={{height:5,background:T.surface3,borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${doneCount/allExercises.length*100}%`,background:`linear-gradient(90deg,${T.accent},#ef4444)`,transition:"width .4s ease",borderRadius:3}} />
+                    </div>
+                  </div>
+                )}
                 <button onClick={()=>{setShowFinishModal(true);setFinishEnergy(0);setFinishSleep(0);setFinishWeight("");setFinishNotes("");}} style={{width:"100%",padding:16,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish & Analyze</button>
                 <div style={{display:"flex",justifyContent:"center",marginTop:10}}>
                   {clearConfirm===0&&<button onClick={()=>{setClearConfirm(1);setTimeout(()=>setClearConfirm(0),3000);}} style={{background:"none",border:"none",color:T.dim,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Clear all</button>}
