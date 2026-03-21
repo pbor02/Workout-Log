@@ -1111,7 +1111,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               <button onClick={()=>setDayPickerOpen(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"6px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",gap:6}}>
                 {day} <span style={{fontSize:10,opacity:0.8}}>▾</span>
               </button>
-              {day!==today&&<button onClick={()=>switchDay(today)} style={{background:"none",border:"none",color:T.green,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font,padding:"6px 0"}}>↩ Today</button>}
             </div>
           ) : (
             <div style={{display:"flex",alignItems:"center",gap:5,overflowX:"auto"}}>
