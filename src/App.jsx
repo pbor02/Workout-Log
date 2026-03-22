@@ -227,6 +227,7 @@ const css = `
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
+  .bottom-nav{padding-bottom:env(safe-area-inset-bottom,0px)}
 `;
 
 function migrateIfNeeded() {
@@ -990,7 +991,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const workoutElapsed=workoutStartTime?Math.floor((now-workoutStartTime)/1000):0;
   const workoutMin=Math.floor(workoutElapsed/60),workoutSec=workoutElapsed%60;
   const dayFull=new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
-  if(view!=="log"&&view!=="history"&&view!=="edit") setView("log");
+  if(view!=="log"&&view!=="history"&&view!=="edit"&&view!=="profile") setView("log");
 
   if(loading) return <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.font}}><div style={{color:T.dim,fontSize:13,letterSpacing:2,animation:"pulse 1.5s infinite"}}>Loading...</div></div>;
 
@@ -1003,42 +1004,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {showFinishModal && <FinishModal energy={finishEnergy} setEnergy={setFinishEnergy} sleep={finishSleep} setSleep={setFinishSleep} bodyweight={finishWeight} setBodyweight={setFinishWeight} notes={finishNotes} setNotes={setFinishNotes} onConfirm={()=>finishWorkout({energy:finishEnergy,sleep:finishSleep,bodyweight:finishWeight,notes:finishNotes})} onSkip={()=>finishWorkout({})} onCancel={()=>setShowFinishModal(false)} />}
 
-      {showProfileModal && (
-        <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowProfileModal(false)}>
-          <div style={{background:T.surface,borderRadius:"16px 16px 0 0",padding:"24px 20px 36px",width:"100%",maxWidth:480}} onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-              <div style={{fontSize:18,fontWeight:700,color:T.text}}>{profile.name}</div>
-              <button onClick={()=>setShowProfileModal(false)} style={{background:"none",border:"none",color:T.dim,fontSize:20,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
-            </div>
-            <div style={{fontSize:13,color:T.dim,marginBottom:20}}>Rest timer: {profile.restTime||90}s</div>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {/* Quick-action toggles */}
-              {activeProfileId==="peter"&&<div style={{display:"flex",gap:8}}>
-                <button onClick={()=>{manualSync();setShowProfileModal(false);}} style={{flex:1,background:syncing?T.accentDim:"none",border:`1.5px solid ${syncing?T.accent:T.border}`,color:syncing?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>↻ {syncing?"Syncing…":"Sync"}</button>
-              </div>}
-<button onClick={()=>{setView("history");setShowProfileModal(false);}} style={{background:"none",border:`1.5px solid ${T.border}`,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>📋 View History</button>
-<button onClick={()=>{setView(view==="edit"?"log":"edit");setReordering(false);setEditExIdx(null);setEditingMeta(false);setShowProfileModal(false);}} style={{background:view==="edit"?T.accentDim:"none",border:`1.5px solid ${view==="edit"?T.accent:T.border}`,color:view==="edit"?T.accent:T.sub,padding:"12px 0",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⚙ {view==="edit"?"Exit Edit Mode":"Edit Template"}</button>
-              <ProfileRestEdit profile={profile} onSave={(updated)=>{onProfileUpdated(updated);setShowProfileModal(false);}} T={T} />
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={backupProfile} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⬇ Backup</button>
-                <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>
-                  ⬆ Restore<input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])restoreFromBackup(e.target.files[0]);e.target.value="";}} />
-                </label>
-              </div>
-              <button onClick={openPlanEditor} style={{background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Edit Workout Plan (JSON)</button>
-              <button onClick={()=>{setShowProfileModal(false);onLogout();}} style={{background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Switch Profile</button>
-              {confirmDeleteProfile ? (
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>setConfirmDeleteProfile(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
-                  <button onClick={async()=>{const profiles=(getShared("profiles")||[]).filter(p=>p.id!==activeProfileId);setShared("profiles",profiles);setShared("active-profile",null);setConfirmDeleteProfile(false);setShowProfileModal(false);onLogout();}} style={{flex:1,background:"#dc2626",border:"none",color:"#fff",padding:"12px 0",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Delete</button>
-                </div>
-              ) : (
-                <button onClick={()=>setConfirmDeleteProfile(true)} style={{background:"none",border:"1.5px solid #dc2626",color:"#dc2626",padding:"12px 0",borderRadius:10,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete Profile…</button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ═══ PLAN JSON EDITOR ═══ */}
       {showPlanEditor && (
@@ -1083,7 +1048,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
         </div>
       )}
       {timerActive && timerMinimized && (
-        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",zIndex:150,background:timerRemaining<=10?T.accent:T.surface2,border:`1.5px solid ${timerRemaining<=10?T.accent:T.accent}`,borderRadius:100,padding:"10px 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",animation:"fadeIn .15s",boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
+        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",bottom:70,left:"50%",transform:"translateX(-50%)",zIndex:150,background:timerRemaining<=10?T.accent:T.surface2,border:`1.5px solid ${timerRemaining<=10?T.accent:T.accent}`,borderRadius:100,padding:"10px 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",animation:"fadeIn .15s",boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
           <div style={{width:7,height:7,borderRadius:"50%",background:timerRemaining<=10?"#000":T.accent,animation:"pulse 1s infinite",flexShrink:0}} />
           <span style={{color:timerRemaining<=10?"#000":T.text,fontSize:13,fontWeight:600,fontFamily:T.font,whiteSpace:"nowrap"}}>REST</span>
           {activeEx&&<span style={{color:timerRemaining<=10?"#000a":T.dim,fontSize:12,fontFamily:T.font,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{activeEx}</span>}
@@ -1094,24 +1059,30 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ HEADER ═══ */}
       <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
-        {/* Row 1: Workout identity + day chip + profile button */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px 10px"}}>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-              <div style={{fontSize:24,fontWeight:800,color:T.text,lineHeight:1,letterSpacing:-0.5}}>{w.label||"WORKOUT"}</div>
-              <button onClick={()=>setDayPickerOpen(v=>!v)} style={{background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,padding:"4px 10px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                {day.slice(0,3)} <span style={{fontSize:9,opacity:0.7}}>{dayPickerOpen?"▲":"▾"}</span>
-              </button>
-              {workoutStartTime&&<span style={{fontSize:12,color:T.dim,fontFamily:T.mono,fontWeight:500}}>{workoutMin}:{String(workoutSec).padStart(2,"0")}</span>}
-            </div>
-            <div style={{fontSize:12,color:T.sub,marginTop:4,fontWeight:400}}>{dayFull}{w.sub?` · ${w.sub}`:isRest?" · Rest Day":""}</div>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:12}}>
+        {/* Row 1: App title centered, wake lock + profile absolute right */}
+        <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",padding:"14px 16px 6px"}}>
+          <div style={{fontSize:18,fontWeight:700,color:T.text,letterSpacing:-0.3}}>Workout Log</div>
+          <div style={{position:"absolute",right:16,display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen lock on":"Screen lock off"} style={{background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.dim,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
-            <button onClick={()=>setShowProfileModal(true)} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>{profile.name.charAt(0).toUpperCase()}</button>
+            <button onClick={()=>setView("profile")} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>{profile.name.charAt(0).toUpperCase()}</button>
           </div>
         </div>
-        {/* Expanded day picker */}
+        {/* Row 2: Workout identity centered */}
+        <div style={{textAlign:"center",padding:"0 60px 10px"}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.sub,display:"flex",alignItems:"center",justifyContent:"center",gap:0,flexWrap:"wrap"}}>
+            <span>{w.label||"WORKOUT"}</span>
+            <span style={{margin:"0 5px",opacity:0.4}}>·</span>
+            <button onClick={()=>setDayPickerOpen(v=>!v)} style={{background:"transparent",border:"none",color:T.sub,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font,padding:0,display:"inline-flex",alignItems:"center",gap:3}}>
+              {day.slice(0,3)} <span style={{fontSize:9,opacity:0.6}}>{dayPickerOpen?"▲":"▾"}</span>
+            </button>
+            <span style={{margin:"0 5px",opacity:0.4}}>·</span>
+            <span>{new Date().toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+            {workoutStartTime&&<span style={{marginLeft:10,color:T.dim,fontFamily:T.mono,fontWeight:500,fontSize:12}}>{workoutMin}:{String(workoutSec).padStart(2,"0")}</span>}
+          </div>
+          {w.sub&&<div style={{fontSize:11,color:T.dim,marginTop:3}}>{w.sub}</div>}
+          {!w.sub&&isRest&&<div style={{fontSize:11,color:T.dim,marginTop:3}}>Rest Day</div>}
+        </div>
+        {/* Day picker dropdown */}
         {dayPickerOpen&&(
           <div style={{display:"flex",alignItems:"center",gap:5,padding:"0 16px 10px",overflowX:"auto"}}>
             {DAYS.map(d=>{const sel=d===day,tod=d===today,rest=(getWorkout(d).exercises||[]).length===0; return (
@@ -1124,7 +1095,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       </div>
 
       {/* ═══ CONTENT ═══ */}
-      <div style={{flex:1,overflowY:"auto",paddingBottom:timerActive&&timerMinimized?64:0}}>
+      <div style={{flex:1,overflowY:"auto",paddingBottom:timerActive&&timerMinimized?140:70}}>
         {view==="log"&&(<>
           {isRest?(
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 24px",textAlign:"center",gap:16}}>
@@ -1385,13 +1356,56 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           </div>
         )}
         {view==="history"&&(
-          <>
-            <div style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",borderBottom:`1px solid ${T.border}`,background:T.surface,flexShrink:0}}>
-              <button onClick={()=>setView("log")} style={{background:"none",border:"none",color:T.accent,fontSize:14,cursor:"pointer",fontFamily:T.font,padding:0,fontWeight:600}}>← Back</button>
-            </div>
-            <HistoryView history={history} onDelete={deleteHistoryEntry} onClearAll={clearAllHistory} />
-          </>
+          <HistoryView history={history} onDelete={deleteHistoryEntry} onClearAll={clearAllHistory} />
         )}
+
+        {view==="profile"&&(
+          <div style={{padding:"24px 20px"}}>
+            <div style={{fontSize:22,fontWeight:800,color:T.text,marginBottom:4}}>{profile.name}</div>
+            <div style={{fontSize:13,color:T.dim,marginBottom:28}}>Profile</div>
+            {/* Rest timer */}
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:10}}>REST TIMER</div>
+              <div style={{display:"flex",gap:8}}>
+                {[60,90,120].map(s=>(
+                  <button key={s} onClick={async()=>{const u={...profile,restTime:s};onProfileUpdated(u);}} style={{flex:1,padding:"12px 0",background:(profile.restTime||90)===s?T.accentDim:"none",border:`1.5px solid ${(profile.restTime||90)===s?T.accent:T.border}`,color:(profile.restTime||90)===s?T.accent:T.sub,borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>{s}s</button>
+                ))}
+                <button onClick={()=>{const v=prompt("Custom rest time (seconds):",(profile.restTime||90).toString());const n=parseInt(v);if(n&&n>0){const u={...profile,restTime:n};onProfileUpdated(u);}}} style={{flex:1,padding:"12px 0",background:![60,90,120].includes(profile.restTime||90)?T.accentDim:"none",border:`1.5px solid ${![60,90,120].includes(profile.restTime||90)?T.accent:T.border}`,color:![60,90,120].includes(profile.restTime||90)?T.accent:T.sub,borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{![60,90,120].includes(profile.restTime||90)?`${profile.restTime}s`:"Custom"}</button>
+              </div>
+            </div>
+            {/* Sync — peter only */}
+            {activeProfileId==="peter"&&(
+              <button onClick={()=>manualSync()} style={{width:"100%",background:syncing?T.accentDim:"none",border:`1.5px solid ${syncing?T.accent:T.border}`,color:syncing?T.accent:T.sub,padding:"14px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>↻ {syncing?"Syncing…":"Sync from Sheets"}</button>
+            )}
+            {/* Backup / Restore */}
+            <div style={{display:"flex",gap:8,marginBottom:10}}>
+              <button onClick={backupProfile} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⬇ Backup</button>
+              <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>
+                ⬆ Restore<input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])restoreFromBackup(e.target.files[0]);e.target.value="";}} />
+              </label>
+            </div>
+            <button onClick={openPlanEditor} style={{width:"100%",background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>Edit Workout Plan (JSON)</button>
+            <button onClick={()=>{onLogout();}} style={{width:"100%",background:"none",border:`1.5px solid ${T.border}`,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>Switch Profile</button>
+            {confirmDeleteProfile ? (
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setConfirmDeleteProfile(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+                <button onClick={async()=>{const profiles=(getShared("profiles")||[]).filter(p=>p.id!==activeProfileId);setShared("profiles",profiles);setShared("active-profile",null);setConfirmDeleteProfile(false);onLogout();}} style={{flex:1,background:"#dc2626",border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Delete</button>
+              </div>
+            ) : (
+              <button onClick={()=>setConfirmDeleteProfile(true)} style={{width:"100%",background:"none",border:"1.5px solid #dc2626",color:"#dc2626",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete Profile…</button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ═══ BOTTOM NAV ═══ */}
+      <div className="bottom-nav" style={{position:"fixed",bottom:0,left:0,right:0,background:T.surface,borderTop:`1px solid ${T.border}`,display:"flex",zIndex:100,height:60,maxWidth:540,margin:"0 auto"}}>
+        {[{v:"log",icon:"🏋️",label:"Log"},{v:"history",icon:"📊",label:"History"},{v:"edit",icon:"⚙",label:"Edit"},{v:"profile",icon:"👤",label:"Profile"}].map(({v,icon,label})=>(
+          <button key={v} onClick={()=>{setView(v);if(v==="edit"){setReordering(false);setEditExIdx(null);setEditingMeta(false);}}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"none",border:"none",cursor:"pointer",fontFamily:T.font,gap:2,color:view===v?T.accent:T.dim,padding:"8px 0"}}>
+            <span style={{fontSize:19,lineHeight:1}}>{icon}</span>
+            <span style={{fontSize:10,fontWeight:view===v?700:500,letterSpacing:0.2}}>{label}</span>
+          </button>
+        ))}
       </div>
     </div>
     </>
