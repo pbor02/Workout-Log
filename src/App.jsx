@@ -983,8 +983,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     if(entry) deleteFromSheets(entry.date, entry.day);
   }
   async function editHistoryEntry(key, newSets) {
-    const updated = {...history, [key]: {...history[key], sets: newSets}};
+    const orig = history[key];
+    const updatedEntry = {...orig, sets: newSets};
+    const updated = {...history, [key]: updatedEntry};
     setHistory(updated); await store.set("iron-history", updated); showToast("Updated");
+    if(activeProfileId === "peter" && orig) {
+      await deleteFromSheets(orig.date, orig.day);
+      await sendToSheets(updatedEntry);
+    }
   }
   async function clearAllHistory() {
     setHistory({}); await store.set("iron-history", {}); showToast("History cleared");
