@@ -906,6 +906,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   async function sendToSheets(entry){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;setSheetsSyncStatus("sending");try{const r=await fetch(sheetsUrl,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(entry)});const d=await r.json();setSheetsSyncStatus(d.status==="ok"?"ok":"error");}catch(e){setSheetsSyncStatus("error");}}
 
+  async function updateInSheets(entry){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;setSheetsSyncStatus("sending");try{const r=await fetch(sheetsUrl,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({...entry,_action:"update"})});const d=await r.json();setSheetsSyncStatus(d.status==="ok"?"ok":"error");}catch(e){setSheetsSyncStatus("error");}}
+
   async function deleteFromSheets(date,day){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;try{await fetch(sheetsUrl+"?action=delete&date="+encodeURIComponent(date)+"&day="+encodeURIComponent(day));}catch(e){}}
   async function clearAllFromSheets(){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;try{await fetch(sheetsUrl+"?action=clearall");}catch(e){}}
 
@@ -993,8 +995,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     const updated = {...history, [key]: updatedEntry};
     setHistory(updated); await store.set("iron-history", updated); showToast("Updated");
     if(activeProfileId === "peter" && orig) {
-      await deleteFromSheets(orig.date, orig.day);
-      await sendToSheets(updatedEntry);
+      await updateInSheets(updatedEntry);
     }
   }
   async function clearAllHistory() {
