@@ -214,6 +214,7 @@ const T = {
 };
 
 const DIFF = { easy:{label:"Easy",color:"#22c55e",bg:"#22c55e0c",btnBg:"#22c55e18",icon:"\u2191"}, just_right:{label:"Just Right",color:"#eab308",bg:"#eab3080c",btnBg:"#eab30818",icon:"\u2022"}, hard:{label:"Hard",color:"#ef4444",bg:"#ef44440c",btnBg:"#ef444418",icon:"\u2193"} };
+const CATEGORIES = ["Chest","Back","Shoulders","Biceps","Triceps","Legs","Calves","Core","Cardio","Other"];
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
@@ -534,6 +535,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [newExName, setNewExName] = useState("");
   const [newExSets, setNewExSets] = useState("3");
   const [newExReps, setNewExReps] = useState("10-12");
+  const [newExCategory, setNewExCategory] = useState("Other");
+  const [newTemplateCategory, setNewTemplateCategory] = useState("Other");
   const [reordering, setReordering] = useState(false);
   const [toast, setToast] = useState(null);
   const [timerStart, setTimerStart] = useState(null);
@@ -765,7 +768,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     }
   }
 
-  async function addCustomExercise(){if(!newExName.trim())return;const _cardio=isCardio(newExName.trim());const ex={name:newExName.trim(),sets:_cardio?1:(parseInt(newExSets)||3),reps:newExReps||(_cardio?"30":"10-12"),custom:true};const upd=[...customExercises,ex];setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);await saveOrder([...getAllExercises(),ex]);addToCatalog(newExName.trim(),"Other");setNewExName("");setNewExSets("3");setNewExReps("10-12");setShowAddEx(false);showToast("Added");}
+  async function addCustomExercise(){if(!newExName.trim())return;const _cardio=isCardio(newExName.trim());const ex={name:newExName.trim(),sets:_cardio?1:(parseInt(newExSets)||3),reps:newExReps||(_cardio?"30":"10-12"),custom:true};const upd=[...customExercises,ex];setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);await saveOrder([...getAllExercises(),ex]);addToCatalog(newExName.trim(),_cardio?"Cardio":newExCategory);setNewExName("");setNewExSets("3");setNewExReps("10-12");setNewExCategory("Other");setShowAddEx(false);showToast("Added");}
   async function removeCustomExercise(idx){const ex=customExercises[idx];const upd=customExercises.filter((_,i)=>i!==idx);setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);if(sets[ex.name]){const u={...sets};delete u[ex.name];setSets(u);await store.set(`sets-${day}-${todayKey()}`,u);}await saveOrder(getAllExercises().filter(e=>e.name!==ex.name));}
 
   async function renameExercise(origName,newName){
@@ -1240,7 +1243,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               ):(
                 <div ref={addExFormRef} style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.accentLight,animation:"slideIn .2s ease"}}>
                   <div style={{fontSize:12,color:T.accent,fontWeight:600,marginBottom:10}}>Add Exercise</div>
-                  <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>setNewExName(name)} catalog={exerciseCatalog} placeholder="Exercise name" dropUp={true} /></div>
+                  <div style={{marginBottom:8}}><ExercisePicker value={newExName} onChange={setNewExName} onSelect={(name)=>{setNewExName(name);const cat=exerciseCatalog.find(e=>e.name.toLowerCase()===name.toLowerCase());setNewExCategory(cat?cat.category:"Other");}} catalog={exerciseCatalog} placeholder="Exercise name" dropUp={true} /></div>
                   {isCardio(newExName.trim())?(
                     <div style={{marginBottom:8}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Target duration (min)</div><input type="number" inputMode="numeric" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="30" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                   ):(
@@ -1249,9 +1252,17 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                       <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:3}}>Rep range</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                     </div>
                   )}
+                  {!isCardio(newExName.trim())&&<div style={{marginBottom:10}}>
+                    <div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:5}}>Category</div>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                      {CATEGORIES.filter(c=>c!=="Cardio").map(cat=>(
+                        <button key={cat} onClick={()=>setNewExCategory(cat)} style={{padding:"4px 10px",fontSize:11,fontWeight:newExCategory===cat?600:400,background:newExCategory===cat?T.accentDim:"transparent",border:`1px solid ${newExCategory===cat?T.accent:T.border}`,color:newExCategory===cat?T.accent:T.dim,borderRadius:6,cursor:"pointer",fontFamily:T.font}}>{cat}</button>
+                      ))}
+                    </div>
+                  </div>}
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
-                    <button onClick={()=>{setShowAddEx(false);setNewExName("");}} style={{flex:1,padding:"11px 0",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+                    <button onClick={()=>{setShowAddEx(false);setNewExName("");setNewExCategory("Other");}} style={{flex:1,padding:"11px 0",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
               )}
@@ -1348,14 +1359,22 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             ) : (
               <div style={{marginTop:12,padding:"12px",background:T.accentLight,border:"1.5px solid "+T.accent,borderRadius:10}}>
                 <div style={{fontSize:10,color:T.accent,fontWeight:600,marginBottom:8}}>Add to Template</div>
-                <div style={{marginBottom:6}}><ExercisePicker value={newTemplateName} onChange={setNewTemplateName} onSelect={(name)=>setNewTemplateName(name)} catalog={exerciseCatalog} placeholder="Exercise name" /></div>
+                <div style={{marginBottom:6}}><ExercisePicker value={newTemplateName} onChange={setNewTemplateName} onSelect={(name)=>{setNewTemplateName(name);const cat=exerciseCatalog.find(e=>e.name.toLowerCase()===name.toLowerCase());setNewTemplateCategory(cat?cat.category:"Other");}} catalog={exerciseCatalog} placeholder="Exercise name" /></div>
                 <div style={{display:"flex",gap:8,marginBottom:8}}>
                   <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={newTemplateSets} onChange={function(e){setNewTemplateSets(e.target.value);}} style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                   <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={newTemplateReps} onChange={function(e){setNewTemplateReps(e.target.value);}} style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                 </div>
+                <div style={{marginBottom:8}}>
+                  <div style={{fontSize:10,color:T.dim,marginBottom:5}}>Category</div>
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                    {CATEGORIES.map(cat=>(
+                      <button key={cat} onClick={function(){setNewTemplateCategory(cat);}} style={{padding:"4px 10px",fontSize:11,fontWeight:newTemplateCategory===cat?600:400,background:newTemplateCategory===cat?T.accentDim:"transparent",border:`1px solid ${newTemplateCategory===cat?T.accent:T.border}`,color:newTemplateCategory===cat?T.accent:T.dim,borderRadius:6,cursor:"pointer",fontFamily:T.font}}>{cat}</button>
+                    ))}
+                  </div>
+                </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={function(){if(!newTemplateName.trim())return;addTemplateExercise(day,newTemplateName,newTemplateSets,newTemplateReps);addToCatalog(newTemplateName,"Other");setShowAddTemplate(false);setNewTemplateName("");setNewTemplateSets("3");setNewTemplateReps("10-12");}} disabled={!newTemplateName.trim()} style={{flex:1,padding:"9px",background:!newTemplateName.trim()?T.surface3:T.accent,color:!newTemplateName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newTemplateName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
-                  <button onClick={function(){setShowAddTemplate(false);}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+                  <button onClick={function(){if(!newTemplateName.trim())return;addTemplateExercise(day,newTemplateName,newTemplateSets,newTemplateReps);addToCatalog(newTemplateName,newTemplateCategory);setShowAddTemplate(false);setNewTemplateName("");setNewTemplateSets("3");setNewTemplateReps("10-12");setNewTemplateCategory("Other");}} disabled={!newTemplateName.trim()} style={{flex:1,padding:"9px",background:!newTemplateName.trim()?T.surface3:T.accent,color:!newTemplateName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newTemplateName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                  <button onClick={function(){setShowAddTemplate(false);setNewTemplateCategory("Other");}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                 </div>
               </div>
             )}
