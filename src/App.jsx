@@ -1129,6 +1129,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       {/* ═══ CONTENT ═══ */}
       <div style={{flex:1,overflowY:"auto",paddingBottom:70}}>
         {view==="log"&&(<>
+          {/* Program picker — outside isRest check so it shows on rest days too */}
+          {programs.length>0&&!activeSessionProgram&&totalSets===0&&(!todayCompleted||ignoreTodayCompletion)&&<ProgramPickerCard programs={programs} onStart={(programId,workoutIdx)=>setActiveSessionProgram({programId,workoutIdx})} />}
+          {/* Active program session banner */}
+          {activeSessionProgram&&(()=>{const prog=programs.find(p=>p.id===activeSessionProgram.programId);return prog?(<div style={{margin:"12px 16px 0",background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:10,color:T.accent,fontWeight:700,letterSpacing:0.5}}>{prog.name.toUpperCase()} · {activeSessionProgram.workoutIdx+1}/{prog.workouts.length}</div><div style={{fontSize:12,color:T.sub,marginTop:1}}>Program session active</div></div><button onClick={()=>setActiveSessionProgram(null)} style={{background:"none",border:`1px solid ${T.border}`,color:T.dim,padding:"5px 10px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>Cancel</button></div>):null;})()}
           {isRest?(
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 24px",textAlign:"center",gap:16}}>
               <div style={{fontSize:56,opacity:0.7}}>🔋</div>
@@ -1157,8 +1161,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             </div>
           ):(<>
 
-            {/* Program picker — shown when programs exist, no active session, no sets logged yet */}
-            {programs.length>0&&!activeSessionProgram&&totalSets===0&&(!todayCompleted||ignoreTodayCompletion)&&<ProgramPickerCard programs={programs} onStart={(programId,workoutIdx)=>setActiveSessionProgram({programId,workoutIdx})} />}
             {/* Post-completion card OR exercise list */}
             {todayCompleted&&totalSets===0&&!ignoreTodayCompletion?(()=>{
               const ce=history[`${todayKey()}-${day}`];
