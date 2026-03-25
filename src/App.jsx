@@ -217,7 +217,7 @@ const DIFF = { easy:{label:"Easy",color:"#22c55e",bg:"#22c55e0c",btnBg:"#22c55e1
 const CATEGORIES = ["Chest","Back","Shoulders","Biceps","Triceps","Legs","Calves","Core","Cardio","Other"];
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:${T.border2};border-radius:2px}
   input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -378,7 +378,7 @@ function ProfileScreen({onSelect}) {
     <div style={wrap}>
       <style>{css}</style>
       <div style={inner}>
-        <div style={{fontSize:30,fontWeight:800,letterSpacing:-0.5,marginBottom:4}}>Workout Log</div>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:40,letterSpacing:2,lineHeight:1,marginBottom:4}}><span style={{color:T.accent}}>Workout</span><span style={{color:T.text}}> Log</span></div>
         <div style={{fontSize:13,color:T.dim,marginBottom:40}}>Choose your profile</div>
         {profiles.map(p=>(
           <div key={p.id} style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:14,padding:"20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -718,7 +718,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     if(d===day) return;
     dayCache.current[day] = {sets:sets,done:done,customExercises:customExercises,exerciseOrder:exerciseOrder,renames:renames};
     store.set(`sets-${day}-${todayKey()}`,sets);store.set(`done-${day}-${todayKey()}`,done);store.set(`custom-ex-${day}-${todayKey()}`,customExercises);store.set(`renames-${day}-${todayKey()}`,renames);
-    setDay(d);setActiveEx(null);setWeight("");setReps("");setEditIdx(null);setView("log");setReordering(false);setRenamingEx(null);setSuggestion(null);setIgnoreTodayCompletion(false);
+    setDay(d);setActiveEx(null);setWeight("");setReps("");setEditIdx(null);if(view!=="edit")setView("log");setReordering(false);setRenamingEx(null);setSuggestion(null);setIgnoreTodayCompletion(false);setEditExIdx(null);setEditingMeta(false);setShowAddTemplate(false);
     var cached = dayCache.current[d];
     if(cached){setSets(cached.sets||{});setDone(cached.done||{});setCustomExercises(cached.customExercises||[]);setExerciseOrder(cached.exerciseOrder);setRenames(cached.renames||{});}
     else{const[s,dn,cex,order,rn]=await Promise.all([store.get(`sets-${d}-${todayKey()}`),store.get(`done-${d}-${todayKey()}`),store.get(`custom-ex-${d}-${todayKey()}`),store.get(`order-${d}`),store.get(`renames-${d}-${todayKey()}`)]);setSets(s||{});setDone(dn||{});setCustomExercises(cex||[]);setExerciseOrder(order);setRenames(rn||{});}
@@ -1084,7 +1084,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         {/* Row 1: App title centered, wake lock + profile absolute right */}
         <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",padding:"14px 16px 6px"}}>
-          <div style={{fontSize:20,fontWeight:800,color:T.text,letterSpacing:-0.5}}>Workout Log</div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,lineHeight:1}}><span style={{color:T.accent}}>Workout</span><span style={{color:T.text}}> Log</span></div>
           <div style={{position:"absolute",right:16,display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen lock on":"Screen lock off"} style={{background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.dim,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
             <button onClick={()=>setView("profile")} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>{profile.name.charAt(0).toUpperCase()}</button>
@@ -1317,6 +1317,18 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
         {view==="edit"&&(
           <div style={{padding:"16px 20px"}}>
+            {/* Day selector — switch days without leaving Edit */}
+            <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",paddingBottom:2}}>
+              {DAYS.map(d=>{
+                const sel=d===day,isToday=d===today;
+                const hasExercises=(getWorkout(d).exercises||[]).length>0;
+                return(
+                  <button key={d} onClick={()=>switchDay(d)} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,fontSize:12,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:isToday?T.green:T.border}`,color:sel?"#fff":isToday?T.green:hasExercises?T.sub:T.dim,position:"relative"}}>
+                    {d.slice(0,3)}{isToday&&!sel&&<span style={{position:"absolute",top:2,right:3,width:4,height:4,borderRadius:"50%",background:T.green,display:"block"}} />}
+                  </button>
+                );
+              })}
+            </div>
             <div style={{background:T.yellowBg,border:"1.5px solid "+T.yellow+"44",borderRadius:10,padding:"12px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
               <span style={{fontSize:16}}>⚠️</span>
               <div style={{fontSize:12,color:T.yellow,fontWeight:500,lineHeight:1.4}}>Editing your program template. Changes apply to all future {day} workouts.</div>
