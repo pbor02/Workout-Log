@@ -575,6 +575,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [suggestion, setSuggestion] = useState(null);
   const [exerciseCatalog, setExerciseCatalog] = useState([]);
   const [ignoreTodayCompletion, setIgnoreTodayCompletion] = useState(false);
+  const [programs, setPrograms] = useState([]);
+  const [activeSessionProgram, setActiveSessionProgram] = useState(null); // {programId, workoutIdx} | null
+  const [showProgramManager, setShowProgramManager] = useState(false);
   useEffect(() => { setNewExReps(isCardio(newExName.trim()) ? "30" : "10-12"); }, [newExName, exerciseCatalog]);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [confirmDeleteProfile, setConfirmDeleteProfile] = useState(false);
@@ -592,8 +595,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const aiImportRef = useRef(null);
 
   useEffect(() => { (async () => {
-    const [hist,s,d,cex,order,rn,cw,cat,wst] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-${todayKey()}`)]);
-    if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw); if(wst)setWorkoutStartTime(wst);
+    const [hist,s,d,cex,order,rn,cw,cat,wst,progs] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-${todayKey()}`),store.get('custom-programs')]);
+    if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw); if(wst)setWorkoutStartTime(wst); if(progs)setPrograms(progs);
     if(cat){const stored=new Set(cat.map(e=>e.name.toLowerCase()));const merged=[...cat,...EXERCISE_CATALOG_DEFAULT.filter(e=>!stored.has(e.name.toLowerCase()))];setExerciseCatalog(merged);if(merged.length>cat.length)await store.set('exercise-catalog',merged);}else{setExerciseCatalog(EXERCISE_CATALOG_DEFAULT);await store.set('exercise-catalog',EXERCISE_CATALOG_DEFAULT);}
     setLoading(false);
   })(); }, []);
@@ -707,7 +710,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   }, [timerDone]);
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 2400); }
-  function getWorkout(d) { var dd=d||day; var cw=customWorkouts||{}; return cw[dd]||DEFAULT_WORKOUTS[dd]||{label:'REST',sub:'',exercises:[]}; }
+  function getWorkout(d) { if(!d&&activeSessionProgram){const prog=programs.find(p=>p.id===activeSessionProgram.programId);if(prog&&prog.workouts[activeSessionProgram.workoutIdx])return prog.workouts[activeSessionProgram.workoutIdx];} var dd=d||day; var cw=customWorkouts||{}; return cw[dd]||DEFAULT_WORKOUTS[dd]||{label:'REST',sub:'',exercises:[]}; }
+  async function savePrograms(updated){setPrograms(updated);await store.set('custom-programs',updated);}
   function getBaseExercises() { return getWorkout().exercises || []; }
   function getAllExercises() { const all=[...getBaseExercises(),...customExercises]; if(exerciseOrder?.length){const map={};all.forEach(e=>{map[e.name]=e;});const ord=[];exerciseOrder.forEach(n=>{if(map[n]){ord.push(map[n]);delete map[n];}});Object.values(map).forEach(e=>ord.push(e));return ord;} return all; }
   async function saveOrder(list) { const n=list.map(e=>e.name); setExerciseOrder(n); await store.set(`order-${day}`,n); }
@@ -979,11 +983,12 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     setWorkoutStartTime(null);
     await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{}),store.set(`workout-start-${day}-${todayKey()}`,null)]);
     dayCache.current={};
+    if(activeSessionProgram){const{programId,workoutIdx}=activeSessionProgram;const updProgs=programs.map(p=>{if(p.id!==programId)return p;const nextIdx=(workoutIdx+1)%p.workouts.length;return{...p,currentIdx:nextIdx};});await savePrograms(updProgs);setActiveSessionProgram(null);}
     setView("log");
     showToast("Workout saved");
   }
 
-  async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setWorkoutStartTime(null);await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{}),store.set(`workout-start-${day}-${todayKey()}`,null)]); showToast("Cleared");}
+  async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setWorkoutStartTime(null);setActiveSessionProgram(null);await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{}),store.set(`workout-start-${day}-${todayKey()}`,null)]); showToast("Cleared");}
 
   async function deleteHistoryEntry(key) {
     const entry = history[key];
@@ -1048,6 +1053,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
         </div>
       )}
 
+      {/* ═══ PROGRAM MANAGER ═══ */}
+      {showProgramManager&&<ProgramManagerOverlay programs={programs} onSave={async(p)=>{await savePrograms(p);}} onClose={()=>setShowProgramManager(false)} customWorkouts={customWorkouts} />}
+
       {/* ═══ TIMER — FULL or MINIMIZED ═══ */}
       {timerActive && !timerMinimized && (
         <div style={{position:"fixed",inset:0,zIndex:150,background:T.timerBg,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s"}}>
@@ -1104,6 +1112,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           </div>
           {w.sub&&<div style={{fontSize:11,color:T.dim,marginTop:3}}>{w.sub}</div>}
           {!w.sub&&isRest&&<div style={{fontSize:11,color:T.dim,marginTop:3}}>Rest Day</div>}
+          {activeSessionProgram&&(()=>{const prog=programs.find(p=>p.id===activeSessionProgram.programId);return prog?<div style={{fontSize:10,color:T.accent,marginTop:3,fontWeight:600,letterSpacing:0.3}}>{prog.name} · {activeSessionProgram.workoutIdx+1}/{prog.workouts.length}</div>:null;})()}
         </div>
         {/* Day picker dropdown */}
         {dayPickerOpen&&(
@@ -1148,6 +1157,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             </div>
           ):(<>
 
+            {/* Program picker — shown when programs exist, no active session, no sets logged yet */}
+            {programs.length>0&&!activeSessionProgram&&totalSets===0&&(!todayCompleted||ignoreTodayCompletion)&&<ProgramPickerCard programs={programs} onStart={(programId,workoutIdx)=>setActiveSessionProgram({programId,workoutIdx})} />}
             {/* Post-completion card OR exercise list */}
             {todayCompleted&&totalSets===0&&!ignoreTodayCompletion?(()=>{
               const ce=history[`${todayKey()}-${day}`];
@@ -1424,6 +1435,17 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               </div>
               <input ref={aiImportRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])importAITemplate(e.target.files[0]);e.target.value="";}} />
             </div>
+            <div style={{marginTop:12,padding:"14px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5}}>PROGRAMS</div>
+                <button onClick={()=>setShowProgramManager(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Manage</button>
+              </div>
+              {programs.length===0?(
+                <div style={{fontSize:12,color:T.dim,lineHeight:1.5}}>Create a program (e.g. Push / Pull / Legs) to rotate workouts independent of the day of the week.</div>
+              ):(
+                <div>{programs.map(p=>{const ni=p.currentIdx%Math.max(1,p.workouts.length);const nw=p.workouts[ni];return(<div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:6,marginBottom:6,borderBottom:`1px solid ${T.border}`}}><div><div style={{fontSize:13,fontWeight:600,color:T.text}}>{p.name}</div><div style={{fontSize:11,color:T.dim}}>Next: {nw?.label||"—"} ({ni+1}/{p.workouts.length})</div></div></div>);})}</div>
+              )}
+            </div>
           </div>
         )}
         {view==="history"&&(
@@ -1481,6 +1503,228 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       </div>
     </div>
     </>
+  );
+}
+
+// ─── PROGRAM PICKER CARD ────────────────────────────────────────────────────
+function ProgramPickerCard({programs, onStart}) {
+  const [expanded, setExpanded] = useState(null);
+  const visible = programs.filter(p => p.workouts && p.workouts.length > 0);
+  if(!visible.length) return null;
+  return (
+    <div style={{margin:"16px 16px 4px"}}>
+      {visible.map(prog => {
+        const nextIdx = prog.currentIdx % prog.workouts.length;
+        const nextW = prog.workouts[nextIdx];
+        const isExp = expanded === prog.id;
+        return (
+          <div key={prog.id} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,marginBottom:10,overflow:"hidden"}}>
+            <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:10,color:T.accent,fontWeight:600,letterSpacing:0.5,marginBottom:3}}>{prog.name.toUpperCase()}</div>
+                <div style={{fontSize:18,fontWeight:700,color:T.text,letterSpacing:-0.3}}>{nextW.label}</div>
+                {nextW.sub&&<div style={{fontSize:11,color:T.dim,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nextW.sub}</div>}
+                <div style={{fontSize:10,color:T.dim,marginTop:3}}>{(nextW.exercises||[]).length} exercises · {nextIdx+1} of {prog.workouts.length}</div>
+              </div>
+              <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,marginLeft:12}}>
+                <button onClick={()=>setExpanded(isExp?null:prog.id)} style={{background:"none",border:`1.5px solid ${T.border}`,color:T.sub,width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12}}>{isExp?"▲":"▾"}</button>
+                <button onClick={()=>onStart(prog.id,nextIdx)} style={{background:T.accent,border:"none",color:"#fff",padding:"9px 18px",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>Start</button>
+              </div>
+            </div>
+            {isExp&&(
+              <div style={{borderTop:`1px solid ${T.border}`,padding:"8px 12px 12px"}}>
+                <div style={{fontSize:10,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:6,paddingLeft:4}}>PICK DIFFERENT WORKOUT</div>
+                {prog.workouts.map((w,wi)=>(
+                  <button key={wi} onClick={()=>{onStart(prog.id,wi);setExpanded(null);}} style={{display:"flex",width:"100%",justifyContent:"space-between",alignItems:"center",background:wi===nextIdx?T.accentLight:"transparent",border:`1px solid ${wi===nextIdx?T.accent:T.border}`,borderRadius:8,padding:"10px 12px",marginBottom:4,cursor:"pointer",fontFamily:T.font,textAlign:"left",boxSizing:"border-box"}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:600,color:wi===nextIdx?T.accent:T.text}}>{w.label}</div>
+                      {w.sub&&<div style={{fontSize:11,color:T.dim}}>{w.sub}</div>}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                      {wi===nextIdx&&<span style={{fontSize:9,color:T.accent,fontWeight:700,letterSpacing:0.5,background:T.accentDim,padding:"2px 6px",borderRadius:4}}>NEXT</span>}
+                      <span style={{fontSize:11,color:T.dim}}>{(w.exercises||[]).length} ex</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <div style={{textAlign:"center",marginBottom:8}}>
+        <span style={{fontSize:11,color:T.dim}}>— or log by day as usual —</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── PROGRAM MANAGER OVERLAY ─────────────────────────────────────────────────
+function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
+  const [progs, setProgs] = useState(() => programs.map(p => ({...p, workouts: p.workouts.map(w => ({...w, exercises: (w.exercises||[]).map(e => ({...e}))}))})));
+  const [expandedId, setExpandedId] = useState(null);
+  const [showNewProg, setShowNewProg] = useState(false);
+  const [newProgName, setNewProgName] = useState("");
+  const [addingWorkoutTo, setAddingWorkoutTo] = useState(null); // progId
+  const [wLabel, setWLabel] = useState("");
+  const [wSub, setWSub] = useState("");
+  const [wTemplate, setWTemplate] = useState("");
+
+  function save(updated) { setProgs(updated); onSave(updated); }
+
+  function addProgram() {
+    if(!newProgName.trim()) return;
+    const np = {id:"p-"+Date.now(), name:newProgName.trim(), currentIdx:0, workouts:[]};
+    const updated = [...progs, np];
+    save(updated);
+    setShowNewProg(false); setNewProgName(""); setExpandedId(np.id);
+  }
+
+  function deleteProgram(id) {
+    save(progs.filter(p => p.id !== id));
+    if(expandedId === id) setExpandedId(null);
+  }
+
+  function addWorkout(progId) {
+    if(!wLabel.trim()) return;
+    const templateDay = wTemplate;
+    let exercises = [];
+    if(templateDay) {
+      const dw = (customWorkouts&&customWorkouts[templateDay]) || DEFAULT_WORKOUTS[templateDay] || {exercises:[]};
+      exercises = (dw.exercises||[]).map(e => ({...e}));
+    }
+    const nw = {id:"w-"+Date.now(), label:wLabel.trim().toUpperCase(), sub:wSub.trim(), exercises};
+    const updated = progs.map(p => p.id===progId ? {...p, workouts:[...p.workouts, nw]} : p);
+    save(updated);
+    setAddingWorkoutTo(null); setWLabel(""); setWSub(""); setWTemplate("");
+  }
+
+  function removeWorkout(progId, wi) {
+    const updated = progs.map(p => {
+      if(p.id!==progId) return p;
+      const ws = p.workouts.filter((_,i) => i!==wi);
+      return {...p, workouts:ws, currentIdx:Math.min(p.currentIdx, Math.max(0,ws.length-1))};
+    });
+    save(updated);
+  }
+
+  function moveWorkout(progId, wi, dir) {
+    const updated = progs.map(p => {
+      if(p.id!==progId) return p;
+      const ws = [...p.workouts]; const ni = wi+dir;
+      if(ni<0||ni>=ws.length) return p;
+      [ws[wi],ws[ni]] = [ws[ni],ws[wi]];
+      return {...p, workouts:ws};
+    });
+    save(updated);
+  }
+
+  function setNext(progId, wi) {
+    save(progs.map(p => p.id===progId ? {...p, currentIdx:wi} : p));
+  }
+
+  const templateDays = DAYS.filter(d => ((customWorkouts&&customWorkouts[d])||DEFAULT_WORKOUTS[d]||{exercises:[]}).exercises.length > 0);
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:200,background:T.bg,display:"flex",flexDirection:"column",maxWidth:540,margin:"0 auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
+        <div style={{fontSize:17,fontWeight:700,color:T.text}}>Programs</div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>setShowNewProg(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ New</button>
+          <button onClick={onClose} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
+        </div>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:"12px 16px"}}>
+        {showNewProg&&(
+          <div style={{background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10,padding:"12px",marginBottom:12}}>
+            <div style={{fontSize:11,color:T.accent,fontWeight:600,marginBottom:8}}>New Program</div>
+            <input type="text" value={newProgName} onChange={e=>setNewProgName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addProgram();}} placeholder="e.g. Push / Pull / Legs" autoFocus style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"10px 12px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",boxSizing:"border-box",marginBottom:8}} />
+            <div style={{display:"flex",gap:6}}>
+              <button onClick={addProgram} disabled={!newProgName.trim()} style={{flex:1,padding:"9px",background:!newProgName.trim()?T.surface3:T.accent,color:!newProgName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Create</button>
+              <button onClick={()=>{setShowNewProg(false);setNewProgName("");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {progs.length===0&&!showNewProg&&(
+          <div style={{textAlign:"center",padding:"60px 24px",color:T.dim}}>
+            <div style={{fontSize:40,marginBottom:12}}>🔄</div>
+            <div style={{fontSize:15,fontWeight:700,color:T.sub,marginBottom:8}}>No programs yet</div>
+            <div style={{fontSize:12,lineHeight:1.6}}>Create a program to rotate through workouts like Push / Pull / Legs, independent of the day of the week.</div>
+          </div>
+        )}
+
+        {progs.map(prog => {
+          const nextIdx = prog.currentIdx % Math.max(1, prog.workouts.length);
+          const isExp = expandedId === prog.id;
+          return (
+            <div key={prog.id} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,marginBottom:12,overflow:"hidden"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:isExp?`1px solid ${T.border}`:"none"}}>
+                <div>
+                  <div style={{fontSize:15,fontWeight:700,color:T.text}}>{prog.name}</div>
+                  <div style={{fontSize:11,color:T.dim,marginTop:2}}>{prog.workouts.length} workout{prog.workouts.length!==1?"s":""}{prog.workouts.length>0?` · next: ${prog.workouts[nextIdx]?.label||"—"}`:""}</div>
+                </div>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <button onClick={()=>setExpandedId(isExp?null:prog.id)} style={{background:isExp?T.accentDim:"none",border:`1.5px solid ${isExp?T.accent:T.border}`,color:isExp?T.accent:T.sub,padding:"6px 12px",borderRadius:8,fontSize:11,fontWeight:isExp?600:400,cursor:"pointer",fontFamily:T.font}}>{isExp?"Done":"Edit"}</button>
+                  <button onClick={()=>deleteProgram(prog.id)} style={{background:"none",border:`1.5px solid ${T.red}33`,color:T.red,padding:"6px 8px",borderRadius:8,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button>
+                </div>
+              </div>
+
+              {isExp&&(
+                <div style={{padding:"12px 16px"}}>
+                  {prog.workouts.length===0&&<div style={{textAlign:"center",padding:"20px 0",color:T.dim,fontSize:13}}>No workouts yet. Add one below.</div>}
+                  {prog.workouts.map((w,wi)=>(
+                    <div key={w.id||wi} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${T.border}`}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:600,color:wi===nextIdx?T.accent:T.text}}>{w.label}{wi===nextIdx&&<span style={{fontSize:9,color:T.accent,fontWeight:700,marginLeft:8,background:T.accentDim,padding:"2px 6px",borderRadius:4}}>NEXT</span>}</div>
+                        {w.sub&&<div style={{fontSize:11,color:T.dim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.sub}</div>}
+                        <div style={{fontSize:10,color:T.dim,marginTop:1}}>{(w.exercises||[]).length} exercises</div>
+                      </div>
+                      <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0,marginLeft:8}}>
+                        <button onClick={()=>setNext(prog.id,wi)} title="Set as next" style={{background:wi===nextIdx?T.accent:"none",border:`1.5px solid ${wi===nextIdx?T.accent:T.border}`,color:wi===nextIdx?"#fff":T.dim,width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:10}}>▶</button>
+                        <button onClick={()=>moveWorkout(prog.id,wi,-1)} disabled={wi===0} style={{background:"none",border:`1px solid ${T.border}`,color:wi===0?T.dim:T.sub,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:wi===0?"default":"pointer",fontFamily:T.font}}>↑</button>
+                        <button onClick={()=>moveWorkout(prog.id,wi,1)} disabled={wi===prog.workouts.length-1} style={{background:"none",border:`1px solid ${T.border}`,color:wi===prog.workouts.length-1?T.dim:T.sub,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:wi===prog.workouts.length-1?"default":"pointer",fontFamily:T.font}}>↓</button>
+                        <button onClick={()=>removeWorkout(prog.id,wi)} style={{background:"none",border:`1px solid ${T.red}33`,color:T.red,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {addingWorkoutTo===prog.id?(
+                    <div style={{marginTop:12,padding:"12px",background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10}}>
+                      <div style={{fontSize:11,color:T.accent,fontWeight:600,marginBottom:8}}>Add Workout</div>
+                      <div style={{marginBottom:6}}>
+                        <div style={{fontSize:10,color:T.dim,marginBottom:3}}>Label (e.g. PUSH)</div>
+                        <input type="text" value={wLabel} onChange={e=>setWLabel(e.target.value)} placeholder="PUSH" autoFocus style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"8px 12px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",boxSizing:"border-box",textTransform:"uppercase"}} />
+                      </div>
+                      <div style={{marginBottom:8}}>
+                        <div style={{fontSize:10,color:T.dim,marginBottom:3}}>Description (optional)</div>
+                        <input type="text" value={wSub} onChange={e=>setWSub(e.target.value)} placeholder="Chest · Shoulders · Triceps" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"8px 12px",borderRadius:8,fontSize:12,fontFamily:T.font,outline:"none",boxSizing:"border-box"}} />
+                      </div>
+                      <div style={{marginBottom:12}}>
+                        <div style={{fontSize:10,color:T.dim,marginBottom:5}}>Copy exercises from day</div>
+                        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                          <button onClick={()=>setWTemplate("")} style={{padding:"4px 10px",fontSize:11,fontWeight:wTemplate===""?600:400,background:wTemplate===""?T.accentDim:"transparent",border:`1px solid ${wTemplate===""?T.accent:T.border}`,color:wTemplate===""?T.accent:T.dim,borderRadius:6,cursor:"pointer",fontFamily:T.font}}>Empty</button>
+                          {templateDays.map(d=>{
+                            const dw=(customWorkouts&&customWorkouts[d])||DEFAULT_WORKOUTS[d]||{label:d};
+                            return <button key={d} onClick={()=>setWTemplate(d)} style={{padding:"4px 10px",fontSize:11,fontWeight:wTemplate===d?600:400,background:wTemplate===d?T.accentDim:"transparent",border:`1px solid ${wTemplate===d?T.accent:T.border}`,color:wTemplate===d?T.accent:T.dim,borderRadius:6,cursor:"pointer",fontFamily:T.font}}>{dw.label||d.slice(0,3)}</button>;
+                          })}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:6}}>
+                        <button onClick={()=>addWorkout(prog.id)} disabled={!wLabel.trim()} style={{flex:1,padding:"9px",background:!wLabel.trim()?T.surface3:T.accent,color:!wLabel.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Add Workout</button>
+                        <button onClick={()=>{setAddingWorkoutTo(null);setWLabel("");setWSub("");setWTemplate("");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+                      </div>
+                    </div>
+                  ):(
+                    <button onClick={()=>{setAddingWorkoutTo(prog.id);setWLabel("");setWSub("");setWTemplate("");}} style={{width:"100%",marginTop:10,padding:"11px",background:"transparent",border:`1.5px dashed ${T.border2}`,borderRadius:8,color:T.sub,fontSize:13,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><span style={{fontSize:16,color:T.accent,fontWeight:300}}>+</span> Add Workout</button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
