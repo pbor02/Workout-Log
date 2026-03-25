@@ -1054,7 +1054,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       )}
 
       {/* ═══ PROGRAM MANAGER ═══ */}
-      {showProgramManager&&<ProgramManagerOverlay programs={programs} onSave={async(p)=>{await savePrograms(p);}} onClose={()=>setShowProgramManager(false)} customWorkouts={customWorkouts} />}
+      {showProgramManager&&<ProgramManagerOverlay programs={programs} onSave={async(p)=>{await savePrograms(p);}} onClose={()=>setShowProgramManager(false)} customWorkouts={customWorkouts} exerciseCatalog={exerciseCatalog} />}
 
       {/* ═══ TIMER — FULL or MINIMIZED ═══ */}
       {timerActive && !timerMinimized && (
@@ -1559,15 +1559,22 @@ function ProgramPickerCard({programs, onStart}) {
 }
 
 // ─── PROGRAM MANAGER OVERLAY ─────────────────────────────────────────────────
-function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
+function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerciseCatalog}) {
   const [progs, setProgs] = useState(() => programs.map(p => ({...p, workouts: p.workouts.map(w => ({...w, exercises: (w.exercises||[]).map(e => ({...e}))}))})));
   const [expandedId, setExpandedId] = useState(null);
   const [showNewProg, setShowNewProg] = useState(false);
   const [newProgName, setNewProgName] = useState("");
-  const [addingWorkoutTo, setAddingWorkoutTo] = useState(null); // progId
+  // Add workout form
+  const [addingWorkoutTo, setAddingWorkoutTo] = useState(null);
   const [wLabel, setWLabel] = useState("");
   const [wSub, setWSub] = useState("");
   const [wTemplate, setWTemplate] = useState("");
+  // Exercise edit sub-screen
+  const [editingExKey, setEditingExKey] = useState(null); // {progId, wi}
+  const [addExName, setAddExName] = useState("");
+  const [addExSets, setAddExSets] = useState("3");
+  const [addExReps, setAddExReps] = useState("10-12");
+  const [showAddEx, setShowAddEx] = useState(false);
 
   function save(updated) { setProgs(updated); onSave(updated); }
 
@@ -1575,8 +1582,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
     if(!newProgName.trim()) return;
     const np = {id:"p-"+Date.now(), name:newProgName.trim(), currentIdx:0, workouts:[]};
     const updated = [...progs, np];
-    save(updated);
-    setShowNewProg(false); setNewProgName(""); setExpandedId(np.id);
+    save(updated); setShowNewProg(false); setNewProgName(""); setExpandedId(np.id);
   }
 
   function deleteProgram(id) {
@@ -1586,19 +1592,21 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
 
   function addWorkout(progId) {
     if(!wLabel.trim()) return;
-    const templateDay = wTemplate;
     let exercises = [];
-    if(templateDay) {
-      const dw = (customWorkouts&&customWorkouts[templateDay]) || DEFAULT_WORKOUTS[templateDay] || {exercises:[]};
+    if(wTemplate) {
+      const dw = (customWorkouts&&customWorkouts[wTemplate]) || DEFAULT_WORKOUTS[wTemplate] || {exercises:[]};
       exercises = (dw.exercises||[]).map(e => ({...e}));
     }
     const nw = {id:"w-"+Date.now(), label:wLabel.trim().toUpperCase(), sub:wSub.trim(), exercises};
     const updated = progs.map(p => p.id===progId ? {...p, workouts:[...p.workouts, nw]} : p);
     save(updated);
+    const newWi = updated.find(p=>p.id===progId).workouts.length - 1;
     setAddingWorkoutTo(null); setWLabel(""); setWSub(""); setWTemplate("");
+    setEditingExKey({progId, wi: newWi}); setShowAddEx(true);
   }
 
   function removeWorkout(progId, wi) {
+    if(editingExKey&&editingExKey.progId===progId&&editingExKey.wi===wi) setEditingExKey(null);
     const updated = progs.map(p => {
       if(p.id!==progId) return p;
       const ws = p.workouts.filter((_,i) => i!==wi);
@@ -1618,12 +1626,92 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
     save(updated);
   }
 
-  function setNext(progId, wi) {
-    save(progs.map(p => p.id===progId ? {...p, currentIdx:wi} : p));
+  function setNext(progId, wi) { save(progs.map(p => p.id===progId ? {...p, currentIdx:wi} : p)); }
+
+  function addExToWorkout() {
+    if(!addExName.trim()||!editingExKey) return;
+    const {progId, wi} = editingExKey;
+    const ex = {name:addExName.trim(), sets:parseInt(addExSets)||3, reps:addExReps||"10-12"};
+    const updated = progs.map(p => {
+      if(p.id!==progId) return p;
+      const ws = [...p.workouts];
+      ws[wi] = {...ws[wi], exercises:[...(ws[wi].exercises||[]), ex]};
+      return {...p, workouts:ws};
+    });
+    save(updated); setAddExName(""); setAddExSets("3"); setAddExReps("10-12");
+  }
+
+  function removeExFromWorkout(ei) {
+    if(!editingExKey) return;
+    const {progId, wi} = editingExKey;
+    const updated = progs.map(p => {
+      if(p.id!==progId) return p;
+      const ws = [...p.workouts];
+      ws[wi] = {...ws[wi], exercises:(ws[wi].exercises||[]).filter((_,i)=>i!==ei)};
+      return {...p, workouts:ws};
+    });
+    save(updated);
   }
 
   const templateDays = DAYS.filter(d => ((customWorkouts&&customWorkouts[d])||DEFAULT_WORKOUTS[d]||{exercises:[]}).exercises.length > 0);
 
+  // ── Exercise sub-screen ──
+  if(editingExKey) {
+    const prog = progs.find(p=>p.id===editingExKey.progId);
+    const w = prog?.workouts[editingExKey.wi];
+    if(!prog||!w){setEditingExKey(null);return null;}
+    return (
+      <div style={{position:"fixed",inset:0,zIndex:200,background:T.bg,display:"flex",flexDirection:"column",maxWidth:540,margin:"0 auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <button onClick={()=>{setEditingExKey(null);setShowAddEx(false);setExpandedId(editingExKey.progId);}} style={{background:"none",border:"none",color:T.accent,fontSize:22,cursor:"pointer",padding:0,lineHeight:1,fontFamily:T.font}}>←</button>
+            <div>
+              <div style={{fontSize:10,color:T.dim}}>{prog.name}</div>
+              <div style={{fontSize:17,fontWeight:700,color:T.text}}>{w.label}{w.sub&&<span style={{fontSize:12,color:T.dim,fontWeight:400,marginLeft:8}}>{w.sub}</span>}</div>
+            </div>
+          </div>
+          <button onClick={()=>{setEditingExKey(null);setShowAddEx(false);onClose();}} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"12px 16px"}}>
+          {(w.exercises||[]).length===0&&!showAddEx&&(
+            <div style={{textAlign:"center",padding:"40px 24px",color:T.dim}}>
+              <div style={{fontSize:32,marginBottom:8}}>🏋️</div>
+              <div style={{fontSize:13}}>No exercises yet. Tap "+ Add Exercise" below.</div>
+            </div>
+          )}
+          {(w.exercises||[]).map((ex,ei)=>(
+            <div key={ei} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 14px",background:T.surface,borderRadius:10,marginBottom:8,border:`1px solid ${T.border}`}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:600,color:T.text}}>{ex.name}</div>
+                <div style={{fontSize:11,color:T.dim}}>{ex.sets} × {ex.reps}</div>
+              </div>
+              <button onClick={()=>removeExFromWorkout(ei)} style={{background:"none",border:`1px solid ${T.red}33`,color:T.red,padding:"5px 9px",borderRadius:7,fontSize:12,cursor:"pointer",fontFamily:T.font}}>✕</button>
+            </div>
+          ))}
+          {showAddEx?(
+            <div style={{padding:"14px",background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10,marginTop:4}}>
+              <div style={{fontSize:11,color:T.accent,fontWeight:600,marginBottom:10}}>Add Exercise</div>
+              <div style={{marginBottom:8}}>
+                <ExercisePicker value={addExName} onChange={setAddExName} onSelect={n=>setAddExName(n)} catalog={exerciseCatalog||[]} placeholder="Exercise name" />
+              </div>
+              <div style={{display:"flex",gap:8,marginBottom:10}}>
+                <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Sets</div><input type="number" inputMode="numeric" value={addExSets} onChange={e=>setAddExSets(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:15,fontFamily:T.mono,outline:"none",textAlign:"center",boxSizing:"border-box"}} /></div>
+                <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={addExReps} onChange={e=>setAddExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:15,fontFamily:T.mono,outline:"none",textAlign:"center",boxSizing:"border-box"}} /></div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={addExToWorkout} disabled={!addExName.trim()} style={{flex:2,padding:"11px",background:!addExName.trim()?T.surface3:T.accent,color:!addExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Add</button>
+                <button onClick={()=>{setShowAddEx(false);setAddExName("");setAddExSets("3");setAddExReps("10-12");}} style={{flex:1,padding:"11px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Done</button>
+              </div>
+            </div>
+          ):(
+            <button onClick={()=>setShowAddEx(true)} style={{width:"100%",padding:"13px",background:"transparent",border:`1.5px dashed ${T.border2}`,borderRadius:10,color:T.sub,fontSize:13,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:4}}><span style={{fontSize:18,color:T.accent,fontWeight:300}}>+</span> Add Exercise</button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Program list screen ──
   return (
     <div style={{position:"fixed",inset:0,zIndex:200,background:T.bg,display:"flex",flexDirection:"column",maxWidth:540,margin:"0 auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
@@ -1633,7 +1721,6 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
           <button onClick={onClose} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
         </div>
       </div>
-
       <div style={{flex:1,overflowY:"auto",padding:"12px 16px"}}>
         {showNewProg&&(
           <div style={{background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10,padding:"12px",marginBottom:12}}>
@@ -1645,7 +1732,6 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
             </div>
           </div>
         )}
-
         {progs.length===0&&!showNewProg&&(
           <div style={{textAlign:"center",padding:"60px 24px",color:T.dim}}>
             <div style={{fontSize:40,marginBottom:12}}>🔄</div>
@@ -1653,7 +1739,6 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
             <div style={{fontSize:12,lineHeight:1.6}}>Create a program to rotate through workouts like Push / Pull / Legs, independent of the day of the week.</div>
           </div>
         )}
-
         {progs.map(prog => {
           const nextIdx = prog.currentIdx % Math.max(1, prog.workouts.length);
           const isExp = expandedId === prog.id;
@@ -1669,18 +1754,18 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
                   <button onClick={()=>deleteProgram(prog.id)} style={{background:"none",border:`1.5px solid ${T.red}33`,color:T.red,padding:"6px 8px",borderRadius:8,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button>
                 </div>
               </div>
-
               {isExp&&(
                 <div style={{padding:"12px 16px"}}>
-                  {prog.workouts.length===0&&<div style={{textAlign:"center",padding:"20px 0",color:T.dim,fontSize:13}}>No workouts yet. Add one below.</div>}
+                  {prog.workouts.length===0&&!addingWorkoutTo&&<div style={{textAlign:"center",padding:"20px 0",color:T.dim,fontSize:13}}>No workouts yet. Add one below.</div>}
                   {prog.workouts.map((w,wi)=>(
                     <div key={w.id||wi} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${T.border}`}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13,fontWeight:600,color:wi===nextIdx?T.accent:T.text}}>{w.label}{wi===nextIdx&&<span style={{fontSize:9,color:T.accent,fontWeight:700,marginLeft:8,background:T.accentDim,padding:"2px 6px",borderRadius:4}}>NEXT</span>}</div>
                         {w.sub&&<div style={{fontSize:11,color:T.dim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.sub}</div>}
-                        <div style={{fontSize:10,color:T.dim,marginTop:1}}>{(w.exercises||[]).length} exercises</div>
+                        <div style={{fontSize:10,color:T.dim,marginTop:1}}>{(w.exercises||[]).length} exercise{(w.exercises||[]).length!==1?"s":""}</div>
                       </div>
                       <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0,marginLeft:8}}>
+                        <button onClick={()=>{setEditingExKey({progId:prog.id,wi});setShowAddEx(false);}} style={{background:"none",border:`1.5px solid ${T.border}`,color:T.sub,padding:"5px 9px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>Exercises</button>
                         <button onClick={()=>setNext(prog.id,wi)} title="Set as next" style={{background:wi===nextIdx?T.accent:"none",border:`1.5px solid ${wi===nextIdx?T.accent:T.border}`,color:wi===nextIdx?"#fff":T.dim,width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:10}}>▶</button>
                         <button onClick={()=>moveWorkout(prog.id,wi,-1)} disabled={wi===0} style={{background:"none",border:`1px solid ${T.border}`,color:wi===0?T.dim:T.sub,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:wi===0?"default":"pointer",fontFamily:T.font}}>↑</button>
                         <button onClick={()=>moveWorkout(prog.id,wi,1)} disabled={wi===prog.workouts.length-1} style={{background:"none",border:`1px solid ${T.border}`,color:wi===prog.workouts.length-1?T.dim:T.sub,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:wi===prog.workouts.length-1?"default":"pointer",fontFamily:T.font}}>↓</button>
@@ -1688,30 +1773,26 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts}) {
                       </div>
                     </div>
                   ))}
-
                   {addingWorkoutTo===prog.id?(
                     <div style={{marginTop:12,padding:"12px",background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10}}>
-                      <div style={{fontSize:11,color:T.accent,fontWeight:600,marginBottom:8}}>Add Workout</div>
+                      <div style={{fontSize:11,color:T.accent,fontWeight:600,marginBottom:8}}>New Workout</div>
                       <div style={{marginBottom:6}}>
                         <div style={{fontSize:10,color:T.dim,marginBottom:3}}>Label (e.g. PUSH)</div>
-                        <input type="text" value={wLabel} onChange={e=>setWLabel(e.target.value)} placeholder="PUSH" autoFocus style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"8px 12px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",boxSizing:"border-box",textTransform:"uppercase"}} />
+                        <input type="text" value={wLabel} onChange={e=>setWLabel(e.target.value)} placeholder="PUSH" autoFocus style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px 12px",borderRadius:8,fontSize:15,fontFamily:T.font,outline:"none",boxSizing:"border-box"}} />
                       </div>
                       <div style={{marginBottom:8}}>
                         <div style={{fontSize:10,color:T.dim,marginBottom:3}}>Description (optional)</div>
                         <input type="text" value={wSub} onChange={e=>setWSub(e.target.value)} placeholder="Chest · Shoulders · Triceps" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"8px 12px",borderRadius:8,fontSize:12,fontFamily:T.font,outline:"none",boxSizing:"border-box"}} />
                       </div>
-                      <div style={{marginBottom:12}}>
-                        <div style={{fontSize:10,color:T.dim,marginBottom:5}}>Copy exercises from day</div>
+                      <div style={{marginBottom:10}}>
+                        <div style={{fontSize:10,color:T.dim,marginBottom:5}}>Copy exercises from day (optional)</div>
                         <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                          <button onClick={()=>setWTemplate("")} style={{padding:"4px 10px",fontSize:11,fontWeight:wTemplate===""?600:400,background:wTemplate===""?T.accentDim:"transparent",border:`1px solid ${wTemplate===""?T.accent:T.border}`,color:wTemplate===""?T.accent:T.dim,borderRadius:6,cursor:"pointer",fontFamily:T.font}}>Empty</button>
-                          {templateDays.map(d=>{
-                            const dw=(customWorkouts&&customWorkouts[d])||DEFAULT_WORKOUTS[d]||{label:d};
-                            return <button key={d} onClick={()=>setWTemplate(d)} style={{padding:"4px 10px",fontSize:11,fontWeight:wTemplate===d?600:400,background:wTemplate===d?T.accentDim:"transparent",border:`1px solid ${wTemplate===d?T.accent:T.border}`,color:wTemplate===d?T.accent:T.dim,borderRadius:6,cursor:"pointer",fontFamily:T.font}}>{dw.label||d.slice(0,3)}</button>;
-                          })}
+                          <button onClick={()=>setWTemplate("")} style={{padding:"4px 10px",fontSize:11,fontWeight:wTemplate===""?600:400,background:wTemplate===""?T.accentDim:"transparent",border:`1px solid ${wTemplate===""?T.accent:T.border}`,color:wTemplate===""?T.accent:T.dim,borderRadius:6,cursor:"pointer",fontFamily:T.font}}>None</button>
+                          {templateDays.map(d=>{const dw=(customWorkouts&&customWorkouts[d])||DEFAULT_WORKOUTS[d]||{label:d};return<button key={d} onClick={()=>setWTemplate(d)} style={{padding:"4px 10px",fontSize:11,fontWeight:wTemplate===d?600:400,background:wTemplate===d?T.accentDim:"transparent",border:`1px solid ${wTemplate===d?T.accent:T.border}`,color:wTemplate===d?T.accent:T.dim,borderRadius:6,cursor:"pointer",fontFamily:T.font}}>{dw.label||d.slice(0,3)}</button>;})}
                         </div>
                       </div>
                       <div style={{display:"flex",gap:6}}>
-                        <button onClick={()=>addWorkout(prog.id)} disabled={!wLabel.trim()} style={{flex:1,padding:"9px",background:!wLabel.trim()?T.surface3:T.accent,color:!wLabel.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Add Workout</button>
+                        <button onClick={()=>addWorkout(prog.id)} disabled={!wLabel.trim()} style={{flex:2,padding:"9px",background:!wLabel.trim()?T.surface3:T.accent,color:!wLabel.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Next: Add Exercises →</button>
                         <button onClick={()=>{setAddingWorkoutTo(null);setWLabel("");setWSub("");setWTemplate("");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                       </div>
                     </div>
