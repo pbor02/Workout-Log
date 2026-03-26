@@ -578,6 +578,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [programs, setPrograms] = useState([]);
   const [activeSessionProgram, setActiveSessionProgram] = useState(null); // {programId, workoutIdx} | null
   const [showProgramManager, setShowProgramManager] = useState(false);
+  const [exerciseNotes, setExerciseNotes] = useState({});
+  const [todaySupersets, setTodaySupersets] = useState([]);
+  const [showSupersetCreator, setShowSupersetCreator] = useState(false);
+  const [ssSelection, setSsSelection] = useState([]);
   useEffect(() => { setNewExReps(isCardio(newExName.trim()) ? "30" : "10-12"); }, [newExName, exerciseCatalog]);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [confirmDeleteProfile, setConfirmDeleteProfile] = useState(false);
@@ -595,8 +599,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const aiImportRef = useRef(null);
 
   useEffect(() => { (async () => {
-    const [hist,s,d,cex,order,rn,cw,cat,wst,progs] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-${todayKey()}`),store.get('custom-programs')]);
-    if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw); if(wst)setWorkoutStartTime(wst); if(progs)setPrograms(progs);
+    const [hist,s,d,cex,order,rn,cw,cat,wst,progs,enotes] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-${todayKey()}`),store.get('custom-programs'),store.get(`notes-${day}-${todayKey()}`)]);
+    if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw); if(wst)setWorkoutStartTime(wst); if(progs)setPrograms(progs); if(enotes)setExerciseNotes(enotes);
     if(cat){const stored=new Set(cat.map(e=>e.name.toLowerCase()));const merged=[...cat,...EXERCISE_CATALOG_DEFAULT.filter(e=>!stored.has(e.name.toLowerCase()))];setExerciseCatalog(merged);if(merged.length>cat.length)await store.set('exercise-catalog',merged);}else{setExerciseCatalog(EXERCISE_CATALOG_DEFAULT);await store.set('exercise-catalog',EXERCISE_CATALOG_DEFAULT);}
     setLoading(false);
   })(); }, []);
@@ -712,6 +716,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 2400); }
   function getWorkout(d) { if(!d&&activeSessionProgram){const prog=programs.find(p=>p.id===activeSessionProgram.programId);if(prog&&prog.workouts[activeSessionProgram.workoutIdx])return prog.workouts[activeSessionProgram.workoutIdx];} var dd=d||day; var cw=customWorkouts||{}; return cw[dd]||DEFAULT_WORKOUTS[dd]||{label:'REST',sub:'',exercises:[]}; }
   async function savePrograms(updated){setPrograms(updated);await store.set('custom-programs',updated);}
+  function getSupersets(){const base=(getWorkout().supersets)||[];const merged=[...base];todaySupersets.forEach(g=>{if(!merged.some(b=>b.length===g.length&&b.every((n,i)=>n===g[i])))merged.push(g);});return merged;}
+  function getSupersetFor(exName){return getSupersets().find(g=>g.includes(exName))||null;}
+  async function saveSupersets(dayName,ss){const cw=Object.assign({},customWorkouts||{});const base=cw[dayName]||DEFAULT_WORKOUTS[dayName]||{label:'REST',sub:'',exercises:[]};cw[dayName]={...base,supersets:ss};setCustomWorkouts(cw);await store.set('custom-workouts',cw);}
   function getBaseExercises() { return getWorkout().exercises || []; }
   function getAllExercises() { const all=[...getBaseExercises(),...customExercises]; if(exerciseOrder?.length){const map={};all.forEach(e=>{map[e.name]=e;});const ord=[];exerciseOrder.forEach(n=>{if(map[n]){ord.push(map[n]);delete map[n];}});Object.values(map).forEach(e=>ord.push(e));return ord;} return all; }
   async function saveOrder(list) { const n=list.map(e=>e.name); setExerciseOrder(n); await store.set(`order-${day}`,n); }
@@ -720,12 +727,12 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   async function switchDay(d) {
     setDayPickerOpen(false);
     if(d===day) return;
-    dayCache.current[day] = {sets:sets,done:done,customExercises:customExercises,exerciseOrder:exerciseOrder,renames:renames};
-    store.set(`sets-${day}-${todayKey()}`,sets);store.set(`done-${day}-${todayKey()}`,done);store.set(`custom-ex-${day}-${todayKey()}`,customExercises);store.set(`renames-${day}-${todayKey()}`,renames);
-    setDay(d);setActiveEx(null);setWeight("");setReps("");setEditIdx(null);if(view!=="edit")setView("log");setReordering(false);setRenamingEx(null);setSuggestion(null);setIgnoreTodayCompletion(false);setEditExIdx(null);setEditingMeta(false);setShowAddTemplate(false);
+    dayCache.current[day] = {sets:sets,done:done,customExercises:customExercises,exerciseOrder:exerciseOrder,renames:renames,exerciseNotes:exerciseNotes};
+    store.set(`sets-${day}-${todayKey()}`,sets);store.set(`done-${day}-${todayKey()}`,done);store.set(`custom-ex-${day}-${todayKey()}`,customExercises);store.set(`renames-${day}-${todayKey()}`,renames);store.set(`notes-${day}-${todayKey()}`,exerciseNotes);
+    setDay(d);setActiveEx(null);setWeight("");setReps("");setEditIdx(null);if(view!=="edit")setView("log");setReordering(false);setRenamingEx(null);setSuggestion(null);setIgnoreTodayCompletion(false);setEditExIdx(null);setEditingMeta(false);setShowAddTemplate(false);setExerciseNotes({});
     var cached = dayCache.current[d];
-    if(cached){setSets(cached.sets||{});setDone(cached.done||{});setCustomExercises(cached.customExercises||[]);setExerciseOrder(cached.exerciseOrder);setRenames(cached.renames||{});}
-    else{const[s,dn,cex,order,rn]=await Promise.all([store.get(`sets-${d}-${todayKey()}`),store.get(`done-${d}-${todayKey()}`),store.get(`custom-ex-${d}-${todayKey()}`),store.get(`order-${d}`),store.get(`renames-${d}-${todayKey()}`)]);setSets(s||{});setDone(dn||{});setCustomExercises(cex||[]);setExerciseOrder(order);setRenames(rn||{});}
+    if(cached){setSets(cached.sets||{});setDone(cached.done||{});setCustomExercises(cached.customExercises||[]);setExerciseOrder(cached.exerciseOrder);setRenames(cached.renames||{});setExerciseNotes(cached.exerciseNotes||{});}
+    else{const[s,dn,cex,order,rn,en]=await Promise.all([store.get(`sets-${d}-${todayKey()}`),store.get(`done-${d}-${todayKey()}`),store.get(`custom-ex-${d}-${todayKey()}`),store.get(`order-${d}`),store.get(`renames-${d}-${todayKey()}`),store.get(`notes-${d}-${todayKey()}`)]);setSets(s||{});setDone(dn||{});setCustomExercises(cex||[]);setExerciseOrder(order);setRenames(rn||{});setExerciseNotes(en||{});}
   }
 
   function findLastExercise(n) { for(const e of Object.values(history).sort((a,b)=>new Date(b.date)-new Date(a.date))){const s=e.sets?.[n];if(s?.length)return s[s.length-1];} return null; }
@@ -747,11 +754,19 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     var exData=getAllExercises().find(e=>e.name===activeEx);
     var loggedNow=(updated[activeEx]||[]).length;
     if(exData&&loggedNow>=exData.sets&&editIdx===null){var ud={...done,[activeEx]:true};setDone(ud);await store.set(`done-${day}-${todayKey()}`,ud);}
-    if(!cardio&&editIdx===null&&exData){var tn=Date.now();setNow(tn);timerHiddenRef.current=false;setTimerStart(tn);setTimerDuration(profile.restTime||90);setTimerMinimized(false);}
+    var ssGroup=getSupersetFor(activeEx);
+    var _advInSS=false;
+    if(!cardio&&editIdx===null&&exData){
+      if(ssGroup){
+        var ssIdx=ssGroup.indexOf(activeEx);var nextInSS=ssIdx<ssGroup.length-1?ssGroup[ssIdx+1]:null;
+        if(nextInSS){_advInSS=true;setTimeout(()=>openExercise(nextInSS),300);}
+        else{var tn=Date.now();setNow(tn);timerHiddenRef.current=false;setTimerStart(tn);setTimerDuration(profile.restTime||90);setTimerMinimized(false);}
+      }else{var tn2=Date.now();setNow(tn2);timerHiddenRef.current=false;setTimerStart(tn2);setTimerDuration(profile.restTime||90);setTimerMinimized(false);}
+    }
     setSelectedDiff("just_right");
     var sg=suggestWeight(activeEx,weight,selectedDiff);if(sg&&editIdx===null&&!cardio){setSuggestion(sg);}else{setSuggestion(null);}
     setTimeout(() => {repsRef.current?.focus();repsRef.current?.select();},60);
-    if(exData&&loggedNow>=exData.sets&&editIdx===null){var allE=getAllExercises();var nxt=allE.find(e=>!done[e.name]&&(sets[e.name]||[]).length<e.sets&&e.name!==activeEx);if(nxt)setTimeout(()=>openExercise(nxt.name),400);}
+    if(!_advInSS&&exData&&loggedNow>=exData.sets&&editIdx===null){var allE=getAllExercises();var nxt=allE.find(e=>!done[e.name]&&(sets[e.name]||[]).length<e.sets&&e.name!==activeEx);if(nxt)setTimeout(()=>openExercise(nxt.name),400);}
   }
 
   function startEditSet(ex,i){setActiveEx(ex);setEditIdx(i);const s=sets[ex][i];setWeight(s.weight);setReps(s.reps);setSelectedDiff(s.diff||"just_right");setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},80);}
@@ -897,7 +912,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   function buildLogText(ci) {
     const w=getWorkout(),allEx=getAllExercises();
     const vol=Object.values(sets).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);
-    const setsText=allEx.map(ex=>{const xs=sets[ex.name]||[];if(!xs.length)return null;return `${ex.name} (target ${ex.sets}x${ex.reps}): ${xs.map((s,i)=>`Set ${i+1}: ${s.weight}lb x ${s.reps}${s.diff?` [${DIFF[s.diff]?.label||s.diff}]`:""}`).join(", ")}`;}).filter(Boolean).join("\n");
+    const setsText=allEx.map(ex=>{const xs=sets[ex.name]||[];if(!xs.length)return null;const noteStr=exerciseNotes[ex.name]?` [Note: ${exerciseNotes[ex.name]}]`:"";return `${ex.name} (target ${ex.sets}x${ex.reps}): ${xs.map((s,i)=>`Set ${i+1}: ${s.weight}lb x ${s.reps}${s.diff?` [${DIFF[s.diff]?.label||s.diff}]`:""}`).join(", ")}${noteStr}`;}).filter(Boolean).join("\n");
     const skipped=allEx.filter(ex=>!(sets[ex.name]?.length)).map(e=>e.name);
     const hist=Object.values(history).filter(e=>e.day===day).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
     const histText=hist.map(e=>{const s=Object.entries(e.sets||{}).map(([ex,sts])=>`  ${ex}: ${sts.map(x=>`${x.weight}x${x.reps}${x.diff?` [${x.diff}]`:""}`).join(", ")}`).join("\n");return `${e.dateLabel||e.date} — ${e.label}\n${s}`;}).join("\n\n");
@@ -906,7 +921,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       ? `WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${dateLabel()}\n\nPROGRAM: 5-day hypertrophy split (Push/Pull/Legs/Arms&Shoulders/Full Upper), Wed+Sat rest\nGOAL: Body recomp — visible abs by June. TRT ~150mg/wk + tirzepatide. Progressive overload while cutting.`
       : `WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${dateLabel()}`;
     const durMin=workoutStartTime?Math.floor((Date.now()-workoutStartTime)/60000):0;
-    return `${header}\n\n${ciLines.length?"CHECK-IN:\n"+ciLines.join("\n")+"\n\n":""}SESSION: ${durMin?`${durMin} min | `:""}Volume ${vol.toLocaleString()} lb | ${Object.keys(sets).length}/${allEx.length} exercises\n${skipped.length?`Skipped: ${skipped.join(", ")}`:"All completed"}\n\nSETS:\n${setsText||"None"}\n${customExercises.length?`\nADDED: ${customExercises.map(e=>e.name).join(", ")}`:""}\n\nPREVIOUS ${day.toUpperCase()} (${hist.length}):\n${histText||"First session"}\n\nAnalyze:\n1. Compare to last ${day} — volume, progression, regression. Note difficulty ratings.\n2. Exact weight/rep targets for next ${day}\n3. Flag anything off\n4. One-sentence verdict\nDirect. No filler.`;
+    const ss=getSupersets();const ssText=ss.length?`\n\nSUPERSETS:\n${ss.map(g=>`  ${g.join(" + ")}`).join("\n")}`:"";
+    return `${header}\n\n${ciLines.length?"CHECK-IN:\n"+ciLines.join("\n")+"\n\n":""}SESSION: ${durMin?`${durMin} min | `:""}Volume ${vol.toLocaleString()} lb | ${Object.keys(sets).length}/${allEx.length} exercises\n${skipped.length?`Skipped: ${skipped.join(", ")}`:"All completed"}\n\nSETS:\n${setsText||"None"}\n${customExercises.length?`\nADDED: ${customExercises.map(e=>e.name).join(", ")}`:""}`+ssText+`\n\nPREVIOUS ${day.toUpperCase()} (${hist.length}):\n${histText||"First session"}\n\nAnalyze:\n1. Compare to last ${day} — volume, progression, regression. Note difficulty ratings.\n2. Exact weight/rep targets for next ${day}\n3. Flag anything off\n4. One-sentence verdict\nDirect. No filler.`;
   }
 
   async function sendToSheets(entry){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;setSheetsSyncStatus("sending");try{const r=await fetch(sheetsUrl,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(entry)});const d=await r.json();setSheetsSyncStatus(d.status==="ok"?"ok":"error");}catch(e){setSheetsSyncStatus("error");}}
@@ -975,20 +991,20 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   async function finishWorkout(ci) {
     const w=getWorkout();const duration=workoutStartTime?Math.floor((Date.now()-workoutStartTime)/1000):0;const text=buildLogText(ci||{});
     const displaySets={};Object.entries(sets).forEach(([k,v])=>{displaySets[renames[k]||k]=v;});
-    const entry={day,label:w.label,date:todayKey(),dateLabel:dateLabel(),sets:displaySets,customExercises:[...customExercises],checkIn:ci||{},logText:text,duration};
+    const entry={day,label:w.label,date:todayKey(),dateLabel:dateLabel(),sets:displaySets,customExercises:[...customExercises],checkIn:ci||{},logText:text,duration,notes:{...exerciseNotes},supersets:getSupersets()};
     const uh={...history,[`${todayKey()}-${day}`]:entry};setHistory(uh);await store.set("iron-history",uh);
     setShowFinishModal(false);
     sendToSheets(entry);
-    setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});
+    setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});
     setWorkoutStartTime(null);
-    await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{}),store.set(`workout-start-${day}-${todayKey()}`,null)]);
+    await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{}),store.set(`notes-${day}-${todayKey()}`,{}),store.set(`workout-start-${day}-${todayKey()}`,null)]);
     dayCache.current={};
     if(activeSessionProgram){const{programId,workoutIdx}=activeSessionProgram;const updProgs=programs.map(p=>{if(p.id!==programId)return p;const nextIdx=(workoutIdx+1)%p.workouts.length;return{...p,currentIdx:nextIdx};});await savePrograms(updProgs);setActiveSessionProgram(null);}
     setView("log");
     showToast("Workout saved");
   }
 
-  async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setWorkoutStartTime(null);setActiveSessionProgram(null);await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{}),store.set(`workout-start-${day}-${todayKey()}`,null)]); showToast("Cleared");}
+  async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});setWorkoutStartTime(null);setActiveSessionProgram(null);await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{}),store.set(`notes-${day}-${todayKey()}`,{}),store.set(`workout-start-${day}-${todayKey()}`,null)]); showToast("Cleared");}
 
   async function deleteHistoryEntry(key) {
     const entry = history[key];
@@ -1184,6 +1200,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             })():(
             allExercises.map((ex,exIdx)=>{
               const exSets=sets[ex.name]||[],isActive=activeEx===ex.name,isDone=done[ex.name],targetMet=exSets.length>=ex.sets,lastSession=findLastExercise(ex.name),isCustom=ex.custom,exCardio=isCardio(ex.name),exPR=exCardio?null:findPR(ex.name);
+              const ssGroup=getSupersetFor(ex.name);const isSSFirst=ssGroup&&ssGroup[0]===ex.name;const isSSMember=!!ssGroup;
               var exVol=exSets.reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);
               if(isDone&&!isActive&&!reordering) return (
                 <div key={ex.name+exIdx} ref={el=>{exRefs.current[ex.name]=el;}} onClick={()=>toggleDone(ex.name)} style={{background:T.bg,borderRadius:12,margin:"6px 16px",padding:"12px 16px",opacity:0.5,border:`1px solid ${T.border}`,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1195,13 +1212,13 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 </div>
               );
               return (
-                <div key={ex.name+exIdx} ref={el=>{exRefs.current[ex.name]=el;}} onClick={e=>{if(reordering||e.target.closest("[data-no-row-click]"))return;openExercise(ex.name);}} style={{background:T.surface,borderRadius:12,margin:"6px 16px",padding:"16px",border:isActive?`1.5px solid ${T.accent}33`:`1px solid ${isCustom?T.yellow+"44":T.border}`,boxShadow:isActive?`0 0 20px ${T.accentGlow}`:"0 1px 3px rgba(0,0,0,0.3)",opacity:isDone&&!reordering?0.4:1,cursor:reordering?"default":"pointer"}}>
+                <div key={ex.name+exIdx} ref={el=>{exRefs.current[ex.name]=el;}} onClick={e=>{if(reordering||e.target.closest("[data-no-row-click]"))return;openExercise(ex.name);}} style={{background:T.surface,borderRadius:12,margin:isSSMember?"2px 16px":"6px 16px",padding:"16px",border:isActive?`1.5px solid ${T.accent}33`:`1px solid ${isCustom?T.yellow+"44":T.border}`,borderLeft:isSSMember?`3px solid ${T.accent}`:undefined,boxShadow:isActive?`0 0 20px ${T.accentGlow}`:"0 1px 3px rgba(0,0,0,0.3)",opacity:isDone&&!reordering?0.4:1,cursor:reordering?"default":"pointer"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
                     <div style={{flex:1}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
                         {!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();toggleDone(ex.name);}} style={{width:20,height:20,borderRadius:6,border:`1.5px solid ${isDone?T.green:T.border2}`,background:isDone?T.green:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>{isDone&&<span style={{fontSize:12,color:"#fff",lineHeight:1}}>✓</span>}</button>}
                         {reordering&&<div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}><button onClick={()=>moveExercise(exIdx,-1)} disabled={exIdx===0} style={{background:"none",border:"none",color:exIdx===0?T.border:T.sub,fontSize:13,cursor:exIdx===0?"default":"pointer",padding:0,lineHeight:1}}>▲</button><button onClick={()=>moveExercise(exIdx,1)} disabled={exIdx===allExercises.length-1} style={{background:"none",border:"none",color:exIdx===allExercises.length-1?T.border:T.sub,fontSize:13,cursor:exIdx===allExercises.length-1?"default":"pointer",padding:0,lineHeight:1}}>▼</button></div>}
-                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accent,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
+                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accent,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isSSFirst&&<span style={{fontSize:10,fontWeight:700,color:T.accent,background:T.accentDim,border:`1px solid ${T.accent}44`,borderRadius:4,padding:"1px 5px",marginLeft:6,letterSpacing:0.5}}>⚡ SS</span>}{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
                       </div>
                       {!reordering&&<>
                         <div style={{paddingLeft:30,display:"flex",alignItems:"center",gap:8,marginBottom:exSets.length>0?10:0,flexWrap:"wrap"}}>
@@ -1230,6 +1247,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                               </span>);})}
                           </div>
                         )}
+                        {!isActive&&exerciseNotes[ex.name]&&<div style={{paddingLeft:30,marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {exerciseNotes[ex.name]}</div>}
                       </>}
                     </div>
                     {!reordering&&<div style={{display:"flex",gap:4,flexShrink:0}}>
@@ -1256,6 +1274,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                         </div>}
                         <button onClick={addOrUpdateSet} disabled={!reps||((!exCardio)&&!weight)} style={{background:(!reps||((!exCardio)&&!weight))?T.surface3:T.accent,color:(!reps||((!exCardio)&&!weight))?T.dim:"#fff",border:"none",padding:"10px 24px",borderRadius:10,fontSize:14,fontWeight:700,cursor:(!reps||((!exCardio)&&!weight))?"default":"pointer",fontFamily:T.font,marginLeft:"auto",boxShadow:(!reps||((!exCardio)&&!weight))?"none":`0 2px 12px ${T.accentGlow}`}}>{editIdx!==null?"Update":"Log"}</button>
                       </div>
+                      <input type="text" placeholder="Note (optional)" value={exerciseNotes[ex.name]||""} onChange={async e=>{const v=e.target.value;const u={...exerciseNotes,[ex.name]:v};setExerciseNotes(u);await store.set(`notes-${day}-${todayKey()}`,u);}} style={{marginTop:8,width:"100%",background:T.bg,border:`1px solid ${T.border}`,color:T.sub,padding:"8px 12px",borderRadius:8,fontSize:12,fontFamily:T.font,outline:"none",boxSizing:"border-box"}} />
                     </div>
                   )}
                 </div>
@@ -1428,6 +1447,35 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             )}
             </>)}
             {customWorkouts&&customWorkouts[day]&&<button onClick={function(){resetTemplate(day);}} style={{width:"100%",marginTop:10,padding:"10px",background:"transparent",border:"1.5px solid "+T.red+"33",color:T.red,borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Reset to Default</button>}
+            {(getWorkout().exercises||[]).length>0&&(<div style={{marginTop:10,padding:"14px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5}}>SUPERSETS</div>
+                <button onClick={()=>setShowSupersetCreator(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ Create</button>
+              </div>
+              {getSupersets().length===0?(<div style={{fontSize:12,color:T.dim}}>Group exercises into supersets — no rest between them.</div>):(
+                getSupersets().map((g,gi)=>(
+                  <div key={gi} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+                    <div style={{fontSize:12,color:T.sub}}><span style={{color:T.accent,fontWeight:700,marginRight:4}}>⚡</span>{g.join(" + ")}</div>
+                    <button onClick={async()=>{const updated=getSupersets().filter((_,i)=>i!==gi);setTodaySupersets([]);await saveSupersets(day,updated);}} style={{background:"none",border:"none",color:T.red,fontSize:13,cursor:"pointer",padding:"0 4px"}}>✕</button>
+                  </div>
+                ))
+              )}
+              {showSupersetCreator&&(
+                <div style={{marginTop:10,padding:"12px",background:T.accentLight,border:`1.5px solid ${T.accent}`,borderRadius:10}}>
+                  <div style={{fontSize:11,color:T.accent,fontWeight:600,marginBottom:8}}>Select 2–3 exercises to superset</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+                    {getAllExercises().map(e=>{
+                      const isSel=ssSelection.includes(e.name);
+                      return(<button key={e.name} onClick={()=>setSsSelection(prev=>isSel?prev.filter(n=>n!==e.name):(prev.length<3?[...prev,e.name]:prev))} style={{textAlign:"left",padding:"8px 12px",background:isSel?T.accentDim:T.surface,border:`1.5px solid ${isSel?T.accent:T.border}`,borderRadius:8,color:isSel?T.accent:T.sub,fontSize:12,cursor:"pointer",fontFamily:T.font}}>{isSel?"✓ ":""}{e.name}</button>);
+                    })}
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button disabled={ssSelection.length<2} onClick={async()=>{const updated=[...getSupersets(),ssSelection];setTodaySupersets([]);await saveSupersets(day,updated);setSsSelection([]);setShowSupersetCreator(false);}} style={{flex:1,padding:"9px",background:ssSelection.length<2?T.surface3:T.accent,color:ssSelection.length<2?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:ssSelection.length<2?"default":"pointer",fontFamily:T.font}}>Create Superset</button>
+                    <button onClick={()=>{setShowSupersetCreator(false);setSsSelection([]);}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>)}
             <div style={{marginTop:16,padding:"14px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:10}}>
               <div style={{fontSize:11,color:T.dim,fontWeight:600,marginBottom:10,letterSpacing:0.5}}>AI PROGRAM EDITOR</div>
               <div style={{fontSize:12,color:T.sub,marginBottom:12,lineHeight:1.5}}>Download today's template + history, upload to any AI (ChatGPT, Claude, etc.), then import the AI's response to update your targets.</div>
@@ -2011,7 +2059,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
               ):(
                 /* Read-only mode */
                 <div>
-                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6}}>{exName}</div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div></div>))}
+                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6}}>{exName}</div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div>{entry.notes&&entry.notes[exName]&&<div style={{marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {entry.notes[exName]}</div>}</div>))}
                   {entry.logText&&<div style={{marginTop:10,borderTop:`1px solid ${T.border}`,paddingTop:10}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:12,color:T.dim,fontWeight:500}}>Copy to Claude</span><button onClick={()=>{navigator.clipboard.writeText(entry.logText).then(()=>{setCopiedKey(entry.key);setTimeout(()=>setCopiedKey(null),2000);}).catch(()=>{});}} style={{padding:"4px 12px",background:copiedKey===entry.key?T.greenBg:"transparent",border:`1.5px solid ${copiedKey===entry.key?T.green:T.border}`,color:copiedKey===entry.key?T.green:T.sub,borderRadius:8,fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{copiedKey===entry.key?"Copied!":"Copy"}</button></div><pre style={{margin:0,background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"10px 12px",fontSize:11,color:T.dim,overflowX:"auto",whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:160,overflowY:"auto",fontFamily:T.mono}}>{entry.logText}</pre></div>}
                   <div style={{display:"flex",gap:8,marginTop:10}}>
                     <button onClick={()=>startEdit(entry)} style={{padding:"8px 16px",background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>✏️ Edit</button>
