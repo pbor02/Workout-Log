@@ -1092,7 +1092,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         {/* Row 1: App title centered, wake lock + profile absolute right */}
         <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",padding:"14px 16px 6px"}}>
-          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,lineHeight:1}}><span style={{color:T.accent}}>Workout</span><span style={{color:T.text}}> Log</span></div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:4,lineHeight:1}}><span style={{color:T.accent}}>Workout</span><span style={{color:T.text}}> Log</span></div>
           <div style={{position:"absolute",right:16,display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen lock on":"Screen lock off"} style={{background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.dim,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
             <button onClick={()=>setView("profile")} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>{profile.name.charAt(0).toUpperCase()}</button>
@@ -1515,21 +1515,33 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
 // ─── PROGRAM PICKER CARD ────────────────────────────────────────────────────
 function ProgramPickerCard({programs, onStart}) {
+  const [minimized, setMinimized] = useState(false);
   const visible = programs.filter(p => p.workouts && p.workouts.length > 0);
   if(!visible.length) return null;
+  if(minimized) return (
+    <div style={{margin:"12px 16px 4px"}}>
+      <button onClick={()=>setMinimized(false)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:T.surface,border:`1px solid ${T.border}`,borderRadius:10,padding:"9px 14px",cursor:"pointer",fontFamily:T.font}}>
+        <span style={{fontSize:12,color:T.dim,fontWeight:500}}>Programs</span>
+        <span style={{fontSize:11,color:T.accent,fontWeight:600}}>Show ▾</span>
+      </button>
+    </div>
+  );
   return (
-    <div style={{margin:"16px 16px 4px"}}>
+    <div style={{margin:"12px 16px 4px"}}>
       {visible.map(prog => {
         const nextIdx = prog.currentIdx % prog.workouts.length;
         return (
-          <div key={prog.id} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,marginBottom:10,overflow:"hidden"}}>
-            <div style={{padding:"12px 16px 8px",borderBottom:`1px solid ${T.border}`}}>
-              <div style={{fontSize:10,color:T.accent,fontWeight:600,letterSpacing:0.5}}>{prog.name.toUpperCase()}</div>
-              <div style={{fontSize:11,color:T.dim,marginTop:1}}>Tap a workout to start</div>
+          <div key={prog.id} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,marginBottom:8,overflow:"hidden"}}>
+            <div style={{padding:"10px 14px 8px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:10,color:T.accent,fontWeight:600,letterSpacing:0.5}}>{prog.name.toUpperCase()}</div>
+                <div style={{fontSize:11,color:T.dim,marginTop:1}}>Tap a workout to start</div>
+              </div>
+              <button onClick={()=>setMinimized(true)} style={{background:"none",border:`1px solid ${T.border}`,color:T.dim,padding:"4px 9px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>Hide ▴</button>
             </div>
-            <div style={{padding:"8px 12px 12px"}}>
+            <div style={{padding:"8px 12px 10px"}}>
               {prog.workouts.map((w,wi)=>(
-                <button key={wi} onClick={()=>onStart(prog.id,wi)} style={{display:"flex",width:"100%",justifyContent:"space-between",alignItems:"center",background:wi===nextIdx?T.accentLight:"transparent",border:`1.5px solid ${wi===nextIdx?T.accent:T.border}`,borderRadius:10,padding:"11px 14px",marginBottom:6,cursor:"pointer",fontFamily:T.font,textAlign:"left",boxSizing:"border-box"}}>
+                <button key={wi} onClick={()=>onStart(prog.id,wi)} style={{display:"flex",width:"100%",justifyContent:"space-between",alignItems:"center",background:wi===nextIdx?T.accentLight:"transparent",border:`1.5px solid ${wi===nextIdx?T.accent:T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:5,cursor:"pointer",fontFamily:T.font,textAlign:"left",boxSizing:"border-box"}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:14,fontWeight:700,color:wi===nextIdx?T.accent:T.text}}>{w.label}</div>
                     {w.sub&&<div style={{fontSize:11,color:T.dim,marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.sub}</div>}
@@ -1537,7 +1549,7 @@ function ProgramPickerCard({programs, onStart}) {
                   <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:10}}>
                     {wi===nextIdx&&<span style={{fontSize:9,color:T.accent,fontWeight:700,letterSpacing:0.5,background:T.accentDim,padding:"3px 7px",borderRadius:4}}>NEXT</span>}
                     <span style={{fontSize:11,color:T.dim}}>{(w.exercises||[]).length} ex</span>
-                    <span style={{fontSize:16,color:wi===nextIdx?T.accent:T.dim}}>▶</span>
+                    <span style={{fontSize:15,color:wi===nextIdx?T.accent:T.dim}}>▶</span>
                   </div>
                 </button>
               ))}
@@ -1545,9 +1557,6 @@ function ProgramPickerCard({programs, onStart}) {
           </div>
         );
       })}
-      <div style={{textAlign:"center",marginBottom:8}}>
-        <span style={{fontSize:11,color:T.dim}}>— or log by day as usual —</span>
-      </div>
     </div>
   );
 }
