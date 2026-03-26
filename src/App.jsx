@@ -1495,9 +1495,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ BOTTOM NAV ═══ */}
       <div className="bottom-nav" style={{position:"fixed",bottom:0,left:0,right:0,background:T.surface,borderTop:`1px solid ${T.border}`,boxShadow:"0 -2px 10px rgba(0,0,0,0.3)",display:"flex",zIndex:100,height:60,maxWidth:540,margin:"0 auto"}}>
-        {[{v:"log",icon:"🏋️",label:"Log"},{v:"history",icon:"📊",label:"History"},{v:"edit",icon:"⚙",label:"Edit"},{v:"profile",icon:"👤",label:"Profile"}].map(({v,icon,label})=>(
-          <button key={v} onClick={()=>{setView(v);if(v==="edit"){setReordering(false);setEditExIdx(null);setEditingMeta(false);}}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"none",border:"none",cursor:"pointer",fontFamily:T.font,gap:2,color:view===v?T.accent:T.dim,padding:"8px 0",position:"relative"}}>
-            <span style={{fontSize:19,lineHeight:1}}>{icon}</span>
+        {[
+          {v:"log",label:"Log",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4v16M18 4v16M3 8h3M18 8h3M3 16h3M18 16h3M6 12h12"/></svg>},
+          {v:"history",label:"History",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>},
+          {v:"edit",label:"Edit",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>},
+          {v:"profile",label:"Profile",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>},
+        ].map(({v,label,svg})=>(
+          <button key={v} onClick={()=>{setView(v);if(v==="edit"){setReordering(false);setEditExIdx(null);setEditingMeta(false);}}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"none",border:"none",cursor:"pointer",fontFamily:T.font,gap:3,color:view===v?T.accent:T.dim,padding:"8px 0",position:"relative"}}>
+            {svg}
             <span style={{fontSize:10,fontWeight:view===v?700:500,letterSpacing:0.2}}>{label}</span>
             {view===v&&<div style={{width:3,height:3,borderRadius:"50%",background:T.accent,marginTop:2}} />}
           </button>
