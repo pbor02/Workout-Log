@@ -1510,46 +1510,33 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
 // ─── PROGRAM PICKER CARD ────────────────────────────────────────────────────
 function ProgramPickerCard({programs, onStart}) {
-  const [expanded, setExpanded] = useState(null);
   const visible = programs.filter(p => p.workouts && p.workouts.length > 0);
   if(!visible.length) return null;
   return (
     <div style={{margin:"16px 16px 4px"}}>
       {visible.map(prog => {
         const nextIdx = prog.currentIdx % prog.workouts.length;
-        const nextW = prog.workouts[nextIdx];
-        const isExp = expanded === prog.id;
         return (
           <div key={prog.id} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,marginBottom:10,overflow:"hidden"}}>
-            <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:10,color:T.accent,fontWeight:600,letterSpacing:0.5,marginBottom:3}}>{prog.name.toUpperCase()}</div>
-                <div style={{fontSize:18,fontWeight:700,color:T.text,letterSpacing:-0.3}}>{nextW.label}</div>
-                {nextW.sub&&<div style={{fontSize:11,color:T.dim,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nextW.sub}</div>}
-                <div style={{fontSize:10,color:T.dim,marginTop:3}}>{(nextW.exercises||[]).length} exercises · {nextIdx+1} of {prog.workouts.length}</div>
-              </div>
-              <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,marginLeft:12}}>
-                <button onClick={()=>setExpanded(isExp?null:prog.id)} style={{background:"none",border:`1.5px solid ${T.border}`,color:T.sub,width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12}}>{isExp?"▲":"▾"}</button>
-                <button onClick={()=>onStart(prog.id,nextIdx)} style={{background:T.accent,border:"none",color:"#fff",padding:"9px 18px",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>Start</button>
-              </div>
+            <div style={{padding:"12px 16px 8px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,color:T.accent,fontWeight:600,letterSpacing:0.5}}>{prog.name.toUpperCase()}</div>
+              <div style={{fontSize:11,color:T.dim,marginTop:1}}>Tap a workout to start</div>
             </div>
-            {isExp&&(
-              <div style={{borderTop:`1px solid ${T.border}`,padding:"8px 12px 12px"}}>
-                <div style={{fontSize:10,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:6,paddingLeft:4}}>PICK DIFFERENT WORKOUT</div>
-                {prog.workouts.map((w,wi)=>(
-                  <button key={wi} onClick={()=>{onStart(prog.id,wi);setExpanded(null);}} style={{display:"flex",width:"100%",justifyContent:"space-between",alignItems:"center",background:wi===nextIdx?T.accentLight:"transparent",border:`1px solid ${wi===nextIdx?T.accent:T.border}`,borderRadius:8,padding:"10px 12px",marginBottom:4,cursor:"pointer",fontFamily:T.font,textAlign:"left",boxSizing:"border-box"}}>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:600,color:wi===nextIdx?T.accent:T.text}}>{w.label}</div>
-                      {w.sub&&<div style={{fontSize:11,color:T.dim}}>{w.sub}</div>}
-                    </div>
-                    <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                      {wi===nextIdx&&<span style={{fontSize:9,color:T.accent,fontWeight:700,letterSpacing:0.5,background:T.accentDim,padding:"2px 6px",borderRadius:4}}>NEXT</span>}
-                      <span style={{fontSize:11,color:T.dim}}>{(w.exercises||[]).length} ex</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+            <div style={{padding:"8px 12px 12px"}}>
+              {prog.workouts.map((w,wi)=>(
+                <button key={wi} onClick={()=>onStart(prog.id,wi)} style={{display:"flex",width:"100%",justifyContent:"space-between",alignItems:"center",background:wi===nextIdx?T.accentLight:"transparent",border:`1.5px solid ${wi===nextIdx?T.accent:T.border}`,borderRadius:10,padding:"11px 14px",marginBottom:6,cursor:"pointer",fontFamily:T.font,textAlign:"left",boxSizing:"border-box"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:700,color:wi===nextIdx?T.accent:T.text}}>{w.label}</div>
+                    {w.sub&&<div style={{fontSize:11,color:T.dim,marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.sub}</div>}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:10}}>
+                    {wi===nextIdx&&<span style={{fontSize:9,color:T.accent,fontWeight:700,letterSpacing:0.5,background:T.accentDim,padding:"3px 7px",borderRadius:4}}>NEXT</span>}
+                    <span style={{fontSize:11,color:T.dim}}>{(w.exercises||[]).length} ex</span>
+                    <span style={{fontSize:16,color:wi===nextIdx?T.accent:T.dim}}>▶</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         );
       })}
