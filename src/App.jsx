@@ -228,7 +228,7 @@ const css = `
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
-  .bottom-nav{padding-bottom:max(env(safe-area-inset-bottom,0px),16px)}
+  .bottom-nav{height:calc(60px + max(env(safe-area-inset-bottom,0px),16px))}
   input:focus{border-color:#dc2626!important;box-shadow:0 0 0 3px #dc262618!important}
   button:active{transform:scale(0.97)}
 `;
@@ -1542,7 +1542,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       </div>
 
       {/* ═══ BOTTOM NAV ═══ */}
-      <div className="bottom-nav" style={{position:"fixed",bottom:0,left:0,right:0,background:T.surface,borderTop:`1px solid ${T.border}`,boxShadow:"0 -2px 10px rgba(0,0,0,0.3)",display:"flex",zIndex:100,height:60,maxWidth:540,margin:"0 auto"}}>
+      <div className="bottom-nav" style={{position:"fixed",bottom:0,left:0,right:0,background:T.surface,borderTop:`1px solid ${T.border}`,boxShadow:"0 -2px 10px rgba(0,0,0,0.3)",display:"flex",alignItems:"flex-start",zIndex:100,maxWidth:540,margin:"0 auto"}}>
         {[
           {v:"log",label:"Log",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1.5" y="8.5" width="5" height="7" rx="1.5"/><rect x="17.5" y="8.5" width="5" height="7" rx="1.5"/><line x1="6.5" y1="12" x2="17.5" y2="12" strokeWidth="2.5"/></svg>},
           {v:"history",label:"History",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>},
