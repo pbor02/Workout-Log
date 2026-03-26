@@ -228,7 +228,7 @@ const css = `
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
-  .bottom-nav{padding-bottom:env(safe-area-inset-bottom,0px)}
+  .bottom-nav{padding-bottom:max(env(safe-area-inset-bottom,0px),16px)}
   input:focus{border-color:#dc2626!important;box-shadow:0 0 0 3px #dc262618!important}
   button:active{transform:scale(0.97)}
 `;
@@ -1143,7 +1143,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       </div>
 
       {/* ═══ CONTENT ═══ */}
-      <div style={{flex:1,overflowY:"auto",paddingBottom:70}}>
+      <div style={{flex:1,overflowY:"auto",paddingBottom:90}}>
         {view==="log"&&(<>
           {/* Program picker — outside isRest check so it shows on rest days too */}
           {programs.length>0&&!activeSessionProgram&&totalSets===0&&(!todayCompleted||ignoreTodayCompletion)&&<ProgramPickerCard programs={programs} onStart={(programId,workoutIdx)=>setActiveSessionProgram({programId,workoutIdx})} />}
