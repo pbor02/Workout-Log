@@ -1919,6 +1919,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
   const histEntries = Object.entries(history).map(([key, val]) => ({key, ...val})).sort((a,b) => new Date(b.date)-new Date(a.date));
   const [expanded,setExpanded]=useState(null);
   const [hv,setHv]=useState("sessions");
+  const [selectedExercise,setSelectedExercise]=useState(null);
   const [confirmClear,setConfirmClear]=useState(false);
   const [copiedKey,setCopiedKey]=useState(null);
   const [editingEntry,setEditingEntry]=useState(null);
@@ -1963,6 +1964,8 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
   function getWeekly(){const w={};histEntries.forEach(e=>{if(!e.date)return;const parts=e.date.split('-');const d=parts.length===3?new Date(Number(parts[0]),Number(parts[1])-1,Number(parts[2])):new Date(e.date);if(isNaN(d))return;const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());if(isNaN(sun))return;const k=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;if(!w[k])w[k]={sessions:0,volume:0,sets:0,days:{}};w[k].sessions++;w[k].sets+=Object.values(e.sets||{}).reduce((a,b)=>a+b.length,0);const dayVol=Object.values(e.sets||{}).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);w[k].volume+=dayVol;const di=d.getDay();w[k].days[di]=(w[k].days[di]||0)+dayVol;});return Object.entries(w).sort(([a],[b])=>b.localeCompare(a)).map(([k,v])=>{const[sy,sm,sd]=k.split('-').map(Number);const s=new Date(sy,sm-1,sd);if(isNaN(s))return null;const en=new Date(s);en.setDate(s.getDate()+6);const f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});return{key:k,label:`${f(s)} – ${f(en)}`,...v};}).filter(Boolean);}
   const weekly=getWeekly();
   if(!histEntries.length) return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 24px",textAlign:"center"}}><div style={{fontSize:40,opacity:0.6,marginBottom:12}}>📋</div><div style={{fontSize:20,fontWeight:700,color:T.dim}}>No history yet</div><div style={{fontSize:13,color:T.dim,marginTop:8}}>Finish a workout to see it here</div></div>;
+  if(selectedExercise) return <ExerciseDetailOverlay exName={selectedExercise} history={history} onClose={()=>setSelectedExercise(null)}/>;
+
   return (
     <div style={{padding:"12px 0"}}>
       <div style={{display:"flex",margin:"0 16px 14px",border:`1px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
@@ -2068,7 +2071,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
               ):(
                 /* Read-only mode */
                 <div>
-                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6}}>{exName}</div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div>{entry.notes&&entry.notes[exName]&&<div style={{marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {entry.notes[exName]}</div>}</div>))}
+                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div onClick={()=>setSelectedExercise(exName)} style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{exName}<span style={{fontSize:10,color:T.accent,opacity:0.7}}>›</span></div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div>{entry.notes&&entry.notes[exName]&&<div style={{marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {entry.notes[exName]}</div>}</div>))}
                   {entry.logText&&<div style={{marginTop:10,borderTop:`1px solid ${T.border}`,paddingTop:10}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:12,color:T.dim,fontWeight:500}}>Copy to Claude</span><button onClick={()=>{navigator.clipboard.writeText(entry.logText).then(()=>{setCopiedKey(entry.key);setTimeout(()=>setCopiedKey(null),2000);}).catch(()=>{});}} style={{padding:"4px 12px",background:copiedKey===entry.key?T.greenBg:"transparent",border:`1.5px solid ${copiedKey===entry.key?T.green:T.border}`,color:copiedKey===entry.key?T.green:T.sub,borderRadius:8,fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{copiedKey===entry.key?"Copied!":"Copy"}</button></div><pre style={{margin:0,background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"10px 12px",fontSize:11,color:T.dim,overflowX:"auto",whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:160,overflowY:"auto",fontFamily:T.mono}}>{entry.logText}</pre></div>}
                   <div style={{display:"flex",gap:8,marginTop:10}}>
                     <button onClick={()=>startEdit(entry)} style={{padding:"8px 16px",background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>✏️ Edit</button>
@@ -2092,6 +2095,114 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
           )}
         </div>
       </>)}
+    </div>
+  );
+}
+
+
+// ─── EXERCISE DETAIL OVERLAY ──────────────────────────────────────────────────
+function ExerciseDetailOverlay({exName, history, onClose}) {
+  const sessions = useMemo(()=>
+    Object.values(history)
+      .filter(e=>e.sets&&e.sets[exName]&&e.sets[exName].length>0)
+      .map(e=>({date:e.date,dateLabel:e.dateLabel,day:e.day,label:e.label,sets:e.sets[exName],note:e.notes?.[exName]}))
+      .sort((a,b)=>new Date(b.date)-new Date(a.date))
+  ,[history,exName]);
+
+  const allSets = sessions.flatMap(s=>s.sets);
+  const pr = allSets.reduce((best,s)=>{
+    const w=parseFloat(s.weight)||0;
+    if(!best||w>best.weight||(w===best.weight&&parseInt(s.reps)>parseInt(best.reps)))return{weight:w,reps:s.reps};
+    return best;
+  },null);
+
+  const chartData = useMemo(()=>
+    sessions.slice().reverse().map(s=>({
+      date:s.date,
+      dateLabel:s.dateLabel,
+      weight:Math.max(...s.sets.map(x=>parseFloat(x.weight)||0)),
+      reps:Math.max(...s.sets.map(x=>parseInt(x.reps)||0)),
+    })).filter(d=>d.weight>0)
+  ,[sessions]);
+
+  const firstMax=chartData.length?chartData[0].weight:0;
+  const latestMax=chartData.length?chartData[chartData.length-1].weight:0;
+  const diff=latestMax-firstMax;
+  const pct=firstMax>0?Math.round((diff/firstMax)*100):0;
+  const totalSetsLogged=allSets.length;
+  const avgSetsPerSession=sessions.length?Math.round(totalSetsLogged/sessions.length*10)/10:0;
+  const col=diff>0?T.green:diff<0?T.red:T.dim;
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:300,background:T.bg,display:"flex",flexDirection:"column",maxWidth:540,margin:"0 auto"}}>
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={onClose} style={{background:"none",border:"none",color:T.accent,fontSize:22,cursor:"pointer",padding:0,lineHeight:1,fontFamily:T.font}}>←</button>
+          <div style={{fontSize:17,fontWeight:700,color:T.text,lineHeight:1.2}}>{exName}</div>
+        </div>
+        <button onClick={onClose} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:"12px 16px"}}>
+        {/* Stats row */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
+          <div style={{background:T.surface,borderRadius:10,padding:"12px",border:`1px solid ${T.border}`,textAlign:"center"}}>
+            <div style={{fontSize:9,color:T.dim,marginBottom:4,letterSpacing:0.5,fontWeight:600,textTransform:"uppercase"}}>PR</div>
+            <div style={{fontSize:17,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{pr?`${pr.weight}`:"—"}</div>
+            {pr&&<div style={{fontSize:10,color:T.dim,marginTop:2}}>× {pr.reps} reps</div>}
+          </div>
+          <div style={{background:T.surface,borderRadius:10,padding:"12px",border:`1px solid ${T.border}`,textAlign:"center"}}>
+            <div style={{fontSize:9,color:T.dim,marginBottom:4,letterSpacing:0.5,fontWeight:600,textTransform:"uppercase"}}>Sessions</div>
+            <div style={{fontSize:17,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{sessions.length}</div>
+            <div style={{fontSize:10,color:T.dim,marginTop:2}}>{avgSetsPerSession} sets avg</div>
+          </div>
+          <div style={{background:T.surface,borderRadius:10,padding:"12px",border:`1px solid ${T.border}`,textAlign:"center"}}>
+            <div style={{fontSize:9,color:T.dim,marginBottom:4,letterSpacing:0.5,fontWeight:600,textTransform:"uppercase"}}>Progress</div>
+            <div style={{fontSize:17,fontWeight:700,color:col,fontFamily:T.mono,lineHeight:1}}>{diff>0?"+":""}{pct}%</div>
+            <div style={{fontSize:10,color:col,marginTop:2}}>{diff>0?"+":""}{diff.toFixed(diff%1===0?0:1)}lb</div>
+          </div>
+        </div>
+
+        {/* Weight progression chart */}
+        {chartData.length>=2&&(
+          <div style={{background:T.surface,borderRadius:10,padding:"12px 12px 4px",border:`1px solid ${T.border}`,marginBottom:14}}>
+            <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:2}}>MAX WEIGHT PER SESSION</div>
+            <MiniWeightChart dataPoints={chartData}/>
+          </div>
+        )}
+
+        {/* Session list */}
+        <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:8}}>ALL SESSIONS</div>
+        {sessions.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:T.dim,fontSize:13}}>No sessions logged yet</div>}
+        {sessions.map((s,i)=>{
+          const maxW=Math.max(...s.sets.map(x=>parseFloat(x.weight)||0));
+          const vol=s.sets.reduce((a,x)=>a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0);
+          const isPR=pr&&maxW===pr.weight;
+          return(
+            <div key={s.date+i} style={{background:T.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPR?T.accent+"44":T.border}`,marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:T.text}}>{s.dateLabel||s.date}</div>
+                  <div style={{fontSize:11,color:T.dim}}>{s.day} · {s.label}{isPR&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:T.accent}}>PR</span>}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:T.text,fontFamily:T.mono}}>{maxW}lb</div>
+                  <div style={{fontSize:10,color:T.dim,fontFamily:T.mono}}>{vol>=1000?`${(vol/1000).toFixed(1)}k`:`${vol}`} vol</div>
+                </div>
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                {s.sets.map((set,si)=>{const df=set.diff?DIFF[set.diff]:null;return(
+                  <span key={si} style={{background:df?df.bg:T.surface2,border:`1px solid ${df?df.color+"33":T.border2}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>
+                    {set.weight}×{set.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}
+                  </span>
+                );})}
+              </div>
+              {s.note&&<div style={{marginTop:6,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {s.note}</div>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -2144,6 +2255,7 @@ function AnalyticsView({history, exerciseCatalog}) {
   const [showAllEx, setShowAllEx] = useState(false);
   const [expandedEx, setExpandedEx] = useState(null);
   const [exFilter, setExFilter] = useState("All");
+  const [selectedExercise, setSelectedExercise] = useState(null);
 
   const entries = useMemo(()=>Object.values(history).sort((a,b)=>new Date(a.date)-new Date(b.date)),[history]);
 
@@ -2226,6 +2338,8 @@ function AnalyticsView({history, exerciseCatalog}) {
   const thisWeekKey=weekKeys[0];
   const thisWeekSessions=thisWeekKey?weekMap[thisWeekKey]||0:0;
 
+  if(selectedExercise) return <ExerciseDetailOverlay exName={selectedExercise} history={history} onClose={()=>setSelectedExercise(null)}/>;
+
   return (
     <div style={{paddingBottom:16}}>
 
@@ -2247,21 +2361,17 @@ function AnalyticsView({history, exerciseCatalog}) {
           const isPos=diff>0,isNeg=diff<0;
           const col=isPos?T.green:isNeg?T.red:T.dim;
           const arrow=isPos?"↑":isNeg?"↓":"→";
-          const isExpanded=expandedEx===name;
           return(
-            <div key={name} style={{borderTop:`1px solid ${T.border}`,paddingTop:12,marginTop:12}}>
-              <div onClick={()=>setExpandedEx(isExpanded?null:name)} style={{cursor:"pointer"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
-                  <span style={{fontSize:13,fontWeight:600,color:T.text,flex:1,marginRight:8}}>{name}</span>
-                  <span style={{fontSize:13,fontWeight:700,color:col,fontFamily:T.mono,flexShrink:0,display:"flex",alignItems:"center",gap:4}}>{isPos?"+":""}{Math.abs(pct)}% {arrow}</span>
-                </div>
-                <div style={{display:"flex",gap:16}}>
-                  <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>First · {first.dateLabel||first.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{first.weight}lb × {first.reps}</div></div>
-                  <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Latest · {last.dateLabel||last.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{last.weight}lb × {last.reps}</div></div>
-                  <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Δ weight</div><div style={{fontSize:12,fontWeight:600,color:col,fontFamily:T.mono}}>{isPos?"+":""}{diff.toFixed(diff%1===0?0:1)}lb</div></div>
-                </div>
+            <div key={name} onClick={()=>setSelectedExercise(name)} style={{borderTop:`1px solid ${T.border}`,paddingTop:12,marginTop:12,cursor:"pointer"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
+                <span style={{fontSize:13,fontWeight:600,color:T.text,flex:1,marginRight:8}}>{name}</span>
+                <span style={{fontSize:13,fontWeight:700,color:col,fontFamily:T.mono,flexShrink:0,display:"flex",alignItems:"center",gap:4}}>{isPos?"+":""}{Math.abs(pct)}% {arrow}</span>
               </div>
-              {isExpanded&&pts.length>=2&&<MiniWeightChart dataPoints={pts}/>}
+              <div style={{display:"flex",gap:16}}>
+                <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>First · {first.dateLabel||first.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{first.weight}lb × {first.reps}</div></div>
+                <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Latest · {last.dateLabel||last.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{last.weight}lb × {last.reps}</div></div>
+                <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Δ weight</div><div style={{fontSize:12,fontWeight:600,color:col,fontFamily:T.mono}}>{isPos?"+":""}{diff.toFixed(diff%1===0?0:1)}lb</div></div>
+              </div>
             </div>
           );
         })}
@@ -2273,7 +2383,7 @@ function AnalyticsView({history, exerciseCatalog}) {
         )}
 
         {filteredSingle.map(({name,pts})=>(
-          <div key={name} style={{borderTop:`1px solid ${T.border}`,paddingTop:10,marginTop:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div key={name} onClick={()=>setSelectedExercise(name)} style={{borderTop:`1px solid ${T.border}`,paddingTop:10,marginTop:10,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
             <div>
               <span style={{fontSize:13,fontWeight:600,color:T.text}}>{name}</span>
               <div style={{fontSize:11,color:T.dim,marginTop:2}}>{pts[0].weight}lb × {pts[0].reps} · {pts[0].dateLabel||pts[0].date.slice(5)}</div>
