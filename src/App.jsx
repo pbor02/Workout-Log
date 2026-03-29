@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DEFAULT_WORKOUTS = {
@@ -1111,7 +1111,6 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:4,lineHeight:1}}><span style={{color:T.accent}}>Workout</span><span style={{color:T.text}}> Log</span></div>
           <div style={{position:"absolute",right:16,display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen lock on":"Screen lock off"} style={{background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.dim,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
-            <button onClick={()=>setView("profile")} title="Profile" style={{background:T.accentDim,border:"1.5px solid "+T.accent,color:T.accent,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>{profile.name.charAt(0).toUpperCase()}</button>
           </div>
         </div>
         {/* Row 2: Workout identity centered */}
@@ -1212,7 +1211,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 </div>
               );
               return (
-                <div key={ex.name+exIdx} ref={el=>{exRefs.current[ex.name]=el;}} onClick={e=>{if(reordering||e.target.closest("[data-no-row-click]"))return;openExercise(ex.name);}} style={{background:T.surface,borderRadius:12,margin:isSSMember?"2px 16px":"6px 16px",padding:"16px",border:isActive?`1.5px solid ${T.accent}33`:`1px solid ${isCustom?T.yellow+"44":T.border}`,borderLeft:isSSMember?`3px solid ${T.accent}`:undefined,boxShadow:isActive?`0 0 20px ${T.accentGlow}`:"0 1px 3px rgba(0,0,0,0.3)",opacity:isDone&&!reordering?0.4:1,cursor:reordering?"default":"pointer"}}>
+                <div key={ex.name+exIdx} ref={el=>{exRefs.current[ex.name]=el;}} onClick={e=>{if(reordering||e.target.closest("[data-no-row-click]"))return;openExercise(ex.name);}} style={{background:T.surface,borderRadius:12,margin:isSSMember?"2px 16px":"6px 16px",padding:"16px",border:isActive?`1.5px solid ${T.accent}33`:`1px solid ${isCustom?T.yellow+"44":T.border}`,borderLeft:isSSMember?`2px solid ${T.accent}`:undefined,boxShadow:isActive?`0 0 12px ${T.accent}15`:"0 1px 3px rgba(0,0,0,0.3)",opacity:isDone&&!reordering?0.4:1,cursor:reordering?"default":"pointer"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
                     <div style={{flex:1}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
@@ -1252,7 +1251,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     </div>
                     {!reordering&&<div style={{display:"flex",gap:4,flexShrink:0}}>
                       {isCustom&&<button data-no-row-click onClick={e=>{e.stopPropagation();removeCustomExercise(customExercises.findIndex(c=>c.name===ex.name));}} style={{background:"none",border:`1.5px solid ${T.red}22`,color:T.red,padding:"6px 10px",borderRadius:8,fontSize:11,cursor:"pointer",fontFamily:T.font,opacity:0.7}}>✕</button>}
-                      <button data-no-row-click onClick={e=>{e.stopPropagation();openExercise(ex.name);}} style={{background:isActive?T.accentDim:"transparent",border:`1.5px solid ${isActive?T.accent:T.border2}`,color:isActive?T.accent:T.sub,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{isActive?"Close":"+ Set"}</button>
+                      <button data-no-row-click onClick={e=>{e.stopPropagation();openExercise(ex.name);}} style={isActive?{background:"transparent",border:"none",color:T.dim,fontSize:12,fontWeight:500,padding:"6px 12px",cursor:"pointer",fontFamily:T.font}:{background:"transparent",border:`1.5px solid ${T.border2}`,color:T.sub,padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{isActive?"Close":"+ Set"}</button>
                     </div>}
                   </div>
 
@@ -1504,10 +1503,12 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
         {view==="profile"&&(
           <div style={{padding:"24px 20px"}}>
-            <div style={{fontSize:22,fontWeight:800,color:T.text,marginBottom:4}}>{profile.name}</div>
-            <div style={{fontSize:13,color:T.dim,marginBottom:28}}>Profile</div>
-            {/* Rest timer */}
-            <div style={{marginBottom:24}}>
+            <div style={{fontSize:22,fontWeight:800,color:T.text,marginBottom:2}}>{profile.name}</div>
+            <div style={{fontSize:13,color:T.dim,marginBottom:0}}>Profile</div>
+
+            {/* ── SETTINGS ── */}
+            <div style={{fontSize:11,fontWeight:600,color:T.dim,letterSpacing:1,textTransform:"uppercase",marginTop:24,marginBottom:12}}>Settings</div>
+            <div style={{borderTop:`1px solid ${T.border}`,paddingTop:16}}>
               <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:10}}>REST TIMER</div>
               <div style={{display:"flex",gap:8}}>
                 {[60,90,120].map(s=>(
@@ -1516,27 +1517,35 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 <button onClick={()=>{const v=prompt("Custom rest time (seconds):",(profile.restTime||90).toString());const n=parseInt(v);if(n&&n>0){const u={...profile,restTime:n};onProfileUpdated(u);}}} style={{flex:1,padding:"12px 0",background:![60,90,120].includes(profile.restTime||90)?T.accentDim:"none",border:`1.5px solid ${![60,90,120].includes(profile.restTime||90)?T.accent:T.border}`,color:![60,90,120].includes(profile.restTime||90)?T.accent:T.sub,borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{![60,90,120].includes(profile.restTime||90)?`${profile.restTime}s`:"Custom"}</button>
               </div>
             </div>
-            {/* Sync — peter only */}
-            {activeProfileId==="peter"&&(
-              <button onClick={()=>manualSync()} style={{width:"100%",background:syncing?T.accentDim:"none",border:`1.5px solid ${syncing?T.accent:T.border}`,color:syncing?T.accent:T.sub,padding:"14px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>↻ {syncing?"Syncing…":"Sync from Sheets"}</button>
-            )}
-            {/* Backup / Restore */}
-            <div style={{display:"flex",gap:8,marginBottom:10}}>
-              <button onClick={backupProfile} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⬇ Backup</button>
-              <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>
-                ⬆ Restore<input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])restoreFromBackup(e.target.files[0]);e.target.value="";}} />
-              </label>
-            </div>
-            <button onClick={openPlanEditor} style={{width:"100%",background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>Edit Workout Plan (JSON)</button>
-            <button onClick={()=>{onLogout();}} style={{width:"100%",background:"none",border:`1.5px solid ${T.border}`,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>Switch Profile</button>
-            {confirmDeleteProfile ? (
+
+            {/* ── DATA ── */}
+            <div style={{fontSize:11,fontWeight:600,color:T.dim,letterSpacing:1,textTransform:"uppercase",marginTop:24,marginBottom:12}}>Data</div>
+            <div style={{borderTop:`1px solid ${T.border}`,paddingTop:16,display:"flex",flexDirection:"column",gap:10}}>
+              {activeProfileId==="peter"&&(
+                <button onClick={()=>manualSync()} style={{width:"100%",background:syncing?T.accentDim:"none",border:`1.5px solid ${syncing?T.accent:T.border}`,color:syncing?T.accent:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>↻ {syncing?"Syncing…":"Sync from Sheets"}</button>
+              )}
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>setConfirmDeleteProfile(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
-                <button onClick={async()=>{const profiles=(getShared("profiles")||[]).filter(p=>p.id!==activeProfileId);setShared("profiles",profiles);setShared("active-profile",null);setConfirmDeleteProfile(false);onLogout();}} style={{flex:1,background:"#dc2626",border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Delete</button>
+                <button onClick={backupProfile} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>⬇ Backup</button>
+                <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>
+                  ⬆ Restore<input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])restoreFromBackup(e.target.files[0]);e.target.value="";}} />
+                </label>
               </div>
-            ) : (
-              <button onClick={()=>setConfirmDeleteProfile(true)} style={{width:"100%",background:"none",border:"1.5px solid #dc2626",color:"#dc2626",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete Profile…</button>
-            )}
+              <button onClick={openPlanEditor} style={{width:"100%",background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Edit Workout Plan (JSON)</button>
+            </div>
+
+            {/* ── ACCOUNT ── */}
+            <div style={{fontSize:11,fontWeight:600,color:T.dim,letterSpacing:1,textTransform:"uppercase",marginTop:24,marginBottom:12}}>Account</div>
+            <div style={{borderTop:`1px solid ${T.border}`,paddingTop:16,display:"flex",flexDirection:"column",gap:10}}>
+              <button onClick={()=>{onLogout();}} style={{width:"100%",background:"none",border:`1.5px solid ${T.border}`,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Switch Profile</button>
+              {confirmDeleteProfile ? (
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>setConfirmDeleteProfile(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
+                  <button onClick={async()=>{const profiles=(getShared("profiles")||[]).filter(p=>p.id!==activeProfileId);setShared("profiles",profiles);setShared("active-profile",null);setConfirmDeleteProfile(false);onLogout();}} style={{flex:1,background:"#dc2626",border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Delete</button>
+                </div>
+              ) : (
+                <button onClick={()=>setConfirmDeleteProfile(true)} style={{width:"100%",background:"none",border:"1.5px solid #dc2626",color:"#dc2626",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete Profile…</button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -1992,7 +2001,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
           </div>
         );
       })}</div>}
-      {hv==="analytics"&&<AnalyticsView history={history} />}
+      {hv==="analytics"&&<AnalyticsView history={history} exerciseCatalog={exerciseCatalog} />}
       {hv==="sessions"&&(<>
         {histEntries.map((entry,idx)=>{
           const isOpen=expanded===idx;
@@ -2089,116 +2098,251 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
 
 
 // ─── ANALYTICS VIEW ──────────────────────────────────────────────────────────
-function AnalyticsView({history}) {
+function MiniWeightChart({dataPoints}) {
+  const maxW = Math.max(...dataPoints.map(d=>d.weight));
+  const minW = Math.min(...dataPoints.map(d=>d.weight));
+  const range = maxW - minW || 1;
+  return (
+    <div style={{display:"flex",alignItems:"flex-end",gap:3,height:100,padding:"12px 0 0"}}>
+      {dataPoints.map((d,i)=>(
+        <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+          <div style={{width:"100%",maxWidth:28,height:`${20+((d.weight-minW)/range)*70}%`,background:T.accent,borderRadius:"3px 3px 0 0",minHeight:4}} />
+          <span style={{fontSize:9,color:T.dim,fontFamily:T.mono,whiteSpace:"nowrap"}}>{d.weight}</span>
+          <span style={{fontSize:8,color:T.dim,whiteSpace:"nowrap"}}>{(d.dateLabel||d.date||"").slice(-5)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BodyweightChart({data}) {
+  if(data.length<2) return null;
+  const maxW=Math.max(...data.map(d=>d.weight));
+  const minW=Math.min(...data.map(d=>d.weight));
+  const range=maxW-minW||1;
+  const pad=20,w=300,h=120;
+  const pts=data.map((d,i)=>({
+    x:pad+(i/(data.length-1))*(w-pad*2),
+    y:pad+(1-(d.weight-minW)/range)*(h-pad*2),
+    weight:d.weight,date:d.date
+  }));
+  const linePath=pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.y}`).join(' ');
+  return (
+    <div style={{width:"100%",overflow:"hidden"}}>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{width:"100%",height:h}}>
+        <path d={linePath} fill="none" stroke={T.accent} strokeWidth="2"/>
+        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill={T.accent} stroke={T.bg} strokeWidth="2"/>)}
+      </svg>
+      <div style={{display:"flex",justifyContent:"space-between",padding:"4px 8px",fontSize:10,color:T.dim}}>
+        <span>{data[0].date.slice(5)}</span><span>{data[data.length-1].date.slice(5)}</span>
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsView({history, exerciseCatalog}) {
   const [showAllEx, setShowAllEx] = useState(false);
   const [expandedEx, setExpandedEx] = useState(null);
+  const [exFilter, setExFilter] = useState("All");
 
-  const entries = Object.values(history).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const entries = useMemo(()=>Object.values(history).sort((a,b)=>new Date(a.date)-new Date(b.date)),[history]);
 
   // ── Summary stats ──
-  const totalSessions = entries.length;
-  const totalVol = entries.reduce((a,e)=>a+Object.values(e.sets||{}).flat().reduce((s,x)=>s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0),0);
-  const durEntries = entries.filter(e=>e.duration>0);
-  const avgDur = durEntries.length ? Math.round(durEntries.reduce((a,e)=>a+e.duration,0)/durEntries.length/60) : null;
+  const {totalSessions,totalVol,avgDur,streak,weekKeys,weekMap} = useMemo(()=>{
+    const totalSessions=entries.length;
+    const totalVol=entries.reduce((a,e)=>a+Object.values(e.sets||{}).flat().reduce((s,x)=>s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0),0);
+    const durEntries=entries.filter(e=>e.duration>0);
+    const avgDur=durEntries.length?Math.round(durEntries.reduce((a,e)=>a+e.duration,0)/durEntries.length/60):null;
+    const weekMap={};
+    entries.forEach(e=>{
+      if(!e.date) return;
+      const p=e.date.split('-');const d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));if(isNaN(d))return;
+      const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());
+      const k=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;
+      weekMap[k]=(weekMap[k]||0)+1;
+    });
+    const weekKeys=Object.keys(weekMap).sort((a,b)=>b.localeCompare(a));
+    let streak=0;for(const k of weekKeys){if(weekMap[k]>=4){streak++;}else break;}
+    return {totalSessions,totalVol,avgDur,streak,weekKeys,weekMap};
+  },[entries]);
 
-  // ── Weekly streak (consecutive weeks ≥4 sessions, going back from most recent) ──
-  const weekMap = {};
-  entries.forEach(e=>{
-    if(!e.date) return;
-    const p=e.date.split('-');
-    const d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
-    if(isNaN(d)) return;
-    const sun=new Date(d); sun.setDate(d.getDate()-d.getDay());
-    const k=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;
-    weekMap[k]=(weekMap[k]||0)+1;
-  });
-  const weekKeys=Object.keys(weekMap).sort((a,b)=>b.localeCompare(a));
-  let streak=0;
-  for(const k of weekKeys){ if(weekMap[k]>=4){streak++;}else break; }
-
-  // ── Weekly volumes (last 8 weeks for trend) ──
-  const weekVols = weekKeys.slice(0,8).map((k,i)=>{
-    const vol = entries.filter(e=>{
-      if(!e.date) return false;
-      const p=e.date.split('-');
-      const d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
-      const sun=new Date(d); sun.setDate(d.getDate()-d.getDay());
-      const wk=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;
-      return wk===k;
-    }).reduce((a,e)=>a+Object.values(e.sets||{}).flat().reduce((s,x)=>s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0),0);
-    const [sy,sm,sd]=k.split('-').map(Number);
-    const sun=new Date(sy,sm-1,sd);
-    const en=new Date(sun); en.setDate(sun.getDate()+6);
-    const f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
-    return {key:k, label:`${f(sun)}–${f(en)}`, vol, sessions:weekMap[k]||0};
-  });
-  const maxWeekVol = Math.max(...weekVols.map(w=>w.vol),1);
+  // ── Weekly volumes ──
+  const weekVols = useMemo(()=>{
+    return weekKeys.slice(0,8).map(k=>{
+      const vol=entries.filter(e=>{
+        if(!e.date)return false;
+        const p=e.date.split('-');const d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
+        const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());
+        const wk=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;
+        return wk===k;
+      }).reduce((a,e)=>a+Object.values(e.sets||{}).flat().reduce((s,x)=>s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0),0);
+      const [sy,sm,sd]=k.split('-').map(Number);const sun=new Date(sy,sm-1,sd);const en=new Date(sun);en.setDate(sun.getDate()+6);
+      const f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+      return {key:k,label:`${f(sun)}–${f(en)}`,vol,sessions:weekMap[k]||0};
+    });
+  },[entries,weekKeys,weekMap]);
+  const maxWeekVol=Math.max(...weekVols.map(w=>w.vol),1);
 
   // ── Exercise progression ──
-  const exProg = {};
-  entries.forEach(entry=>{
-    Object.entries(entry.sets||{}).forEach(([exName,sets])=>{
-      if(!sets.length) return;
-      const maxW=Math.max(...sets.map(s=>parseFloat(s.weight)||0));
-      const maxR=Math.max(...sets.map(s=>parseInt(s.reps)||0));
-      if(!exProg[exName]) exProg[exName]=[];
-      exProg[exName].push({date:entry.date,dateLabel:entry.dateLabel,weight:maxW,reps:maxR});
+  const {exList,singleSessions,allCategories} = useMemo(()=>{
+    const exProg={};
+    entries.forEach(entry=>{
+      Object.entries(entry.sets||{}).forEach(([exName,sets])=>{
+        if(!sets.length)return;
+        const maxW=Math.max(...sets.map(s=>parseFloat(s.weight)||0));
+        const maxR=Math.max(...sets.map(s=>parseInt(s.reps)||0));
+        if(!exProg[exName])exProg[exName]=[];
+        exProg[exName].push({date:entry.date,dateLabel:entry.dateLabel,weight:maxW,reps:maxR});
+      });
     });
-  });
-  const exList = Object.entries(exProg)
-    .filter(([,pts])=>pts.length>=2&&pts[pts.length-1].weight>0&&pts[0].weight>0)
-    .map(([name,pts])=>{
-      const first=pts[0], last=pts[pts.length-1];
-      const diff=last.weight-first.weight;
-      const pct=first.weight>0?Math.round((diff/first.weight)*100):0;
-      return {name,first,last,diff,pct,pts};
-    })
-    .sort((a,b)=>b.diff-a.diff);
-  const displayEx = showAllEx ? exList : exList.slice(0,10);
+    const catMap={};(exerciseCatalog||[]).forEach(e=>{catMap[e.name.toLowerCase()]=e.category||"Other";});
+    const getCategory=name=>catMap[name.toLowerCase()]||"Other";
+    const exList=Object.entries(exProg)
+      .filter(([,pts])=>pts.length>=2&&pts[pts.length-1].weight>0&&pts[0].weight>0)
+      .map(([name,pts])=>{
+        const first=pts[0],last=pts[pts.length-1];
+        const diff=last.weight-first.weight;
+        const pct=first.weight>0?Math.round((diff/first.weight)*100):0;
+        return {name,first,last,diff,pct,pts,category:getCategory(name)};
+      })
+      .sort((a,b)=>Math.abs(b.pct)-Math.abs(a.pct)||b.pct-a.pct);
+    const singleSessions=Object.entries(exProg)
+      .filter(([,pts])=>pts.length===1&&pts[0].weight>0)
+      .map(([name,pts])=>({name,pts,category:getCategory(name)}));
+    const allCategories=["All",...Array.from(new Set([...exList,...singleSessions].map(e=>e.category))).sort()];
+    return {exList,singleSessions,allCategories};
+  },[entries,exerciseCatalog]);
 
-  const card = {background:T.surface,borderRadius:12,padding:16,margin:"8px 16px",border:`1px solid ${T.border}`};
+  const filteredEx=exFilter==="All"?exList:exList.filter(e=>e.category===exFilter);
+  const filteredSingle=exFilter==="All"?singleSessions:singleSessions.filter(e=>e.category===exFilter);
+  const displayEx=showAllEx?filteredEx:filteredEx.slice(0,10);
+
+  // ── Bodyweight ──
+  const bwData=useMemo(()=>Object.values(history).filter(e=>e.checkIn?.bodyweight).map(e=>({date:e.date,weight:parseFloat(e.checkIn.bodyweight)})).sort((a,b)=>new Date(a.date)-new Date(b.date)),[history]);
+
+  const card={background:T.surface,borderRadius:12,padding:16,margin:"8px 16px",border:`1px solid ${T.border}`};
+  const sectionHdr={fontSize:11,fontWeight:600,color:T.dim,letterSpacing:1,textTransform:"uppercase",marginTop:24,marginBottom:12};
+
+  const thisWeekKey=weekKeys[0];
+  const thisWeekSessions=thisWeekKey?weekMap[thisWeekKey]||0:0;
 
   return (
-    <div style={{paddingBottom:8}}>
-      {/* Summary stats */}
+    <div style={{paddingBottom:16}}>
+
+      {/* ── Exercise Progression (TOP) ── */}
+      <div style={{...card}}>
+        <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:4}}>Exercise Progression</div>
+        <div style={{fontSize:11,color:T.dim,marginBottom:12}}>Max weight per session · tap to expand</div>
+
+        {/* Category filter pills */}
+        {allCategories.length>1&&(
+          <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:8,marginBottom:8,scrollbarWidth:"none"}}>
+            {allCategories.map(cat=>(
+              <button key={cat} onClick={()=>setExFilter(cat)} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:exFilter===cat?600:400,background:exFilter===cat?T.accent:T.surface2,color:exFilter===cat?"#fff":T.dim,border:"none",cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>{cat}</button>
+            ))}
+          </div>
+        )}
+
+        {displayEx.map(({name,first,last,diff,pct,pts})=>{
+          const isPos=diff>0,isNeg=diff<0;
+          const col=isPos?T.green:isNeg?T.red:T.dim;
+          const arrow=isPos?"↑":isNeg?"↓":"→";
+          const isExpanded=expandedEx===name;
+          return(
+            <div key={name} style={{borderTop:`1px solid ${T.border}`,paddingTop:12,marginTop:12}}>
+              <div onClick={()=>setExpandedEx(isExpanded?null:name)} style={{cursor:"pointer"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
+                  <span style={{fontSize:13,fontWeight:600,color:T.text,flex:1,marginRight:8}}>{name}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:col,fontFamily:T.mono,flexShrink:0,display:"flex",alignItems:"center",gap:4}}>{isPos?"+":""}{Math.abs(pct)}% {arrow}</span>
+                </div>
+                <div style={{display:"flex",gap:16}}>
+                  <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>First · {first.dateLabel||first.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{first.weight}lb × {first.reps}</div></div>
+                  <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Latest · {last.dateLabel||last.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{last.weight}lb × {last.reps}</div></div>
+                  <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Δ weight</div><div style={{fontSize:12,fontWeight:600,color:col,fontFamily:T.mono}}>{isPos?"+":""}{diff.toFixed(diff%1===0?0:1)}lb</div></div>
+                </div>
+              </div>
+              {isExpanded&&pts.length>=2&&<MiniWeightChart dataPoints={pts}/>}
+            </div>
+          );
+        })}
+
+        {filteredEx.length>10&&(
+          <button onClick={()=>setShowAllEx(v=>!v)} style={{width:"100%",marginTop:14,padding:"9px",background:"transparent",border:`1px solid ${T.border}`,color:T.sub,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>
+            {showAllEx?`Show Less ▲`:`Show All ${filteredEx.length} ▼`}
+          </button>
+        )}
+
+        {filteredSingle.map(({name,pts})=>(
+          <div key={name} style={{borderTop:`1px solid ${T.border}`,paddingTop:10,marginTop:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <span style={{fontSize:13,fontWeight:600,color:T.text}}>{name}</span>
+              <div style={{fontSize:11,color:T.dim,marginTop:2}}>{pts[0].weight}lb × {pts[0].reps} · {pts[0].dateLabel||pts[0].date.slice(5)}</div>
+            </div>
+            <span style={{fontSize:10,fontWeight:700,color:T.accent,background:T.accentDim,border:`1px solid ${T.accent}33`,borderRadius:4,padding:"2px 6px",flexShrink:0}}>New</span>
+          </div>
+        ))}
+
+        {filteredEx.length===0&&filteredSingle.length===0&&(
+          <div style={{textAlign:"center",padding:"24px 0",color:T.dim,fontSize:13}}>No exercises in this category yet</div>
+        )}
+      </div>
+
+      {/* ── Overview Stats ── */}
       <div style={{...card}}>
         <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:14}}>Overview</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          {[
-            {icon:"🔥",label:"Weekly Streak",val:`${streak} wk${streak!==1?"s":""}`,sub:streak>0?`${weekMap[weekKeys[0]]||0} sessions this week`:"No 4-session weeks lately"},
-            {icon:"📊",label:"Total Sessions",val:totalSessions,sub:"all time"},
-            {icon:"💪",label:"Total Volume",val:totalVol>=1000?`${(totalVol/1000).toFixed(0)}k lb`:`${totalVol} lb`,sub:"all time"},
-            {icon:"⏱",label:"Avg Duration",val:avgDur?`${avgDur} min`:"N/A",sub:avgDur?"per session":"not enough data"},
-          ].map(({icon,label,val,sub})=>(
-            <div key={label} style={{background:T.surface2,borderRadius:10,padding:"12px 14px"}}>
-              <div style={{fontSize:18,marginBottom:4}}>{icon}</div>
-              <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{val}</div>
-              <div style={{fontSize:11,color:T.dim,marginTop:4}}>{label}</div>
-              <div style={{fontSize:10,color:T.dim,opacity:0.7}}>{sub}</div>
-            </div>
-          ))}
+          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)",border:streak>0?`1.5px solid ${T.accent}33`:`1px solid ${T.border}`}}>
+            <div style={{fontSize:streak>0?20:18,marginBottom:4}}>{streak>0?"🔥":"⬜"}</div>
+            <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{streak} wk{streak!==1?"s":""}</div>
+            <div style={{fontSize:11,color:T.dim,marginTop:4}}>Weekly Streak</div>
+            <div style={{fontSize:10,color:T.dim,opacity:0.7}}>{streak>0?`${thisWeekSessions} sess this week`:"No 4-session weeks lately"}</div>
+          </div>
+          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
+            <div style={{fontSize:18,marginBottom:4}}>📊</div>
+            <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{totalSessions}</div>
+            <div style={{fontSize:11,color:T.dim,marginTop:4}}>Total Sessions</div>
+            <div style={{fontSize:10,color:T.dim,opacity:0.7}}>all time</div>
+          </div>
+          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
+            <div style={{fontSize:18,marginBottom:4}}>💪</div>
+            <div style={{fontSize:28,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{totalVol>=1000?`${(totalVol/1000).toFixed(0)}k`:`${totalVol}`}<span style={{fontSize:14,fontWeight:500,color:T.dim,marginLeft:3}}>lb</span></div>
+            <div style={{fontSize:11,color:T.dim,marginTop:4}}>Total Volume</div>
+            <div style={{fontSize:10,color:T.dim,opacity:0.7}}>all time</div>
+          </div>
+          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
+            <div style={{fontSize:18,marginBottom:4}}>⏱</div>
+            <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{avgDur?`${avgDur}`:"—"}<span style={{fontSize:14,fontWeight:500,color:T.dim,marginLeft:3}}>{avgDur?"min":""}</span></div>
+            <div style={{fontSize:11,color:T.dim,marginTop:4}}>Avg Duration</div>
+            <div style={{fontSize:10,color:T.dim,opacity:0.7}}>{avgDur?"per session":"not enough data"}</div>
+          </div>
         </div>
       </div>
 
-      {/* Volume trend */}
+      {/* ── Weekly Volume ── */}
       {weekVols.length>0&&(
         <div style={{...card}}>
-          <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:14}}>Weekly Volume — Last {weekVols.length} Weeks</div>
+          <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:14}}>
+            {weekVols.length===1?"This Week":`Last ${weekVols.length} Weeks`} — Volume
+          </div>
           {weekVols.map((wk,i)=>{
             const prev=weekVols[i+1];
-            const barColor=!prev?T.accent:wk.vol>prev.vol?T.green:wk.vol<prev.vol?T.red:T.accent;
-            const pct=Math.max(6,Math.round((wk.vol/maxWeekVol)*100));
+            const pctChange=prev&&prev.vol>0?Math.round(((wk.vol-prev.vol)/prev.vol)*100):null;
+            const isUp=pctChange!==null&&pctChange>5;
+            const isDown=pctChange!==null&&pctChange<-5;
+            const barBg=isUp?`linear-gradient(90deg,${T.green}40,${T.green}20)`:isDown?`linear-gradient(90deg,${T.red}40,${T.red}20)`:T.accent;
+            const barW=Math.max(4,Math.round((wk.vol/maxWeekVol)*100));
+            const isThisWeek=i===0;
             return(
-              <div key={wk.key} style={{marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                  <span style={{fontSize:11,color:T.sub,fontFamily:T.mono,flexShrink:0,width:130}}>{wk.label}</span>
-                  <span style={{fontSize:11,color:T.dim,fontFamily:T.mono,flexShrink:0,marginLeft:8}}>{wk.sessions} sess</span>
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{flex:1,height:20,background:T.surface3,borderRadius:4,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${pct}%`,background:barColor,borderRadius:4,transition:"width .4s ease"}} />
+              <div key={wk.key} style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                  <span style={{fontSize:12,color:isThisWeek?T.text:T.sub,fontWeight:isThisWeek?600:400,flexShrink:0,minWidth:110}}>{isThisWeek?"This Week":wk.label}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                    <span style={{fontSize:13,fontWeight:600,color:T.text,fontFamily:T.mono}}>{wk.vol>=1000?`${(wk.vol/1000).toFixed(1)}k`:`${wk.vol}`}</span>
+                    {pctChange!==null&&<span style={{fontSize:11,fontWeight:600,color:isUp?T.green:isDown?T.red:T.dim,fontFamily:T.mono,minWidth:40,textAlign:"right"}}>{isUp?"+":""}{pctChange}%</span>}
                   </div>
-                  <span style={{fontSize:11,fontWeight:600,color:barColor,fontFamily:T.mono,flexShrink:0,width:52,textAlign:"right"}}>{wk.vol>=1000?`${(wk.vol/1000).toFixed(1)}k`:`${wk.vol}`}</span>
+                </div>
+                <div style={{height:18,background:T.surface3,borderRadius:4,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${barW}%`,background:barBg,borderRadius:4,transition:"width .4s ease"}} />
                 </div>
               </div>
             );
@@ -2206,55 +2350,18 @@ function AnalyticsView({history}) {
         </div>
       )}
 
-      {/* Exercise progression */}
-      {exList.length>0&&(
+      {/* ── Bodyweight Trend ── */}
+      {bwData.length>0&&(
         <div style={{...card}}>
-          <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:4}}>Exercise Progression</div>
-          <div style={{fontSize:11,color:T.dim,marginBottom:14}}>Max weight, first vs latest session</div>
-          {displayEx.map(({name,first,last,diff,pct,pts})=>{
-            const isPos=diff>0, isNeg=diff<0;
-            const col=isPos?T.green:isNeg?T.red:T.dim;
-            const arrow=isPos?"↑":isNeg?"↓":"→";
-            const isExpanded=expandedEx===name;
-            return(
-              <div key={name} style={{borderTop:`1px solid ${T.border}`,paddingTop:12,marginTop:12}}>
-                <div onClick={()=>setExpandedEx(isExpanded?null:name)} style={{cursor:"pointer"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                    <span style={{fontSize:13,fontWeight:600,color:T.text,flex:1,marginRight:8}}>{name}</span>
-                    <span style={{fontSize:13,fontWeight:700,color:col,fontFamily:T.mono,flexShrink:0}}>{isPos?"+":""}{diff.toFixed(diff%1===0?0:1)}lb {arrow}</span>
-                  </div>
-                  <div style={{display:"flex",gap:16}}>
-                    <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>First ({first.dateLabel||first.date})</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{first.weight}lb × {first.reps}</div></div>
-                    <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Latest ({last.dateLabel||last.date})</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{last.weight}lb × {last.reps}</div></div>
-                    {diff!==0&&<div style={{marginLeft:"auto"}}><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Change</div><div style={{fontSize:12,fontWeight:600,color:col,fontFamily:T.mono}}>{isPos?"+":""}{pct}%</div></div>}
-                  </div>
-                </div>
-                {isExpanded&&(
-                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.border}`}}>
-                    <div style={{fontSize:10,color:T.dim,marginBottom:8,fontWeight:600,letterSpacing:0.5}}>HISTORY</div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                      {pts.map((p,i)=>(
-                        <div key={i} style={{background:T.surface2,border:`1px solid ${T.border2}`,borderRadius:8,padding:"5px 10px",fontSize:11}}>
-                          <div style={{color:T.dim,marginBottom:2}}>{p.dateLabel||p.date}</div>
-                          <div style={{color:T.text,fontFamily:T.mono,fontWeight:600}}>{p.weight}lb × {p.reps}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {exList.length>10&&(
-            <button onClick={()=>setShowAllEx(v=>!v)} style={{width:"100%",marginTop:14,padding:"9px",background:"transparent",border:`1px solid ${T.border}`,color:T.sub,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>
-              {showAllEx?`Show Less ▲`:`Show All ${exList.length} Exercises ▼`}
-            </button>
-          )}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+            <div style={{fontSize:14,fontWeight:700,color:T.text}}>Bodyweight Trend</div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:16,fontWeight:700,color:T.text,fontFamily:T.mono}}>{bwData[bwData.length-1].weight} <span style={{fontSize:12,fontWeight:400,color:T.dim}}>lb</span></div>
+              {bwData.length>=2&&(()=>{const delta=bwData[bwData.length-1].weight-bwData[0].weight;const col=delta<0?T.green:delta>0?T.red:T.dim;return <div style={{fontSize:12,fontWeight:600,color:col,fontFamily:T.mono}}>{delta>0?"+":""}{delta.toFixed(1)} lb</div>;})()}
+            </div>
+          </div>
+          {bwData.length>=2?<BodyweightChart data={bwData}/>:<div style={{fontSize:12,color:T.dim,textAlign:"center",padding:"12px 0"}}>Log your bodyweight in post-workout check-in to see trends here</div>}
         </div>
-      )}
-
-      {entries.length>0&&exList.length===0&&(
-        <div style={{textAlign:"center",padding:"24px",color:T.dim,fontSize:13}}>Log at least 2 sessions of an exercise to see progression</div>
       )}
     </div>
   );
