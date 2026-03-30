@@ -2214,10 +2214,10 @@ function MiniWeightChart({dataPoints}) {
   const minW = Math.min(...dataPoints.map(d=>d.weight));
   const range = maxW - minW || 1;
   return (
-    <div style={{display:"flex",alignItems:"flex-end",gap:3,height:100,padding:"12px 0 0"}}>
+    <div style={{display:"flex",alignItems:"flex-end",gap:3,paddingTop:8}}>
       {dataPoints.map((d,i)=>(
         <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-          <div style={{width:"100%",maxWidth:28,height:`${20+((d.weight-minW)/range)*70}%`,background:T.accent,borderRadius:"3px 3px 0 0",minHeight:4}} />
+          <div style={{width:"100%",maxWidth:28,height:Math.max(4,Math.round(8+((d.weight-minW)/range)*56)),background:T.accent,borderRadius:"3px 3px 0 0"}} />
           <span style={{fontSize:9,color:T.dim,fontFamily:T.mono,whiteSpace:"nowrap"}}>{d.weight}</span>
           <span style={{fontSize:8,color:T.dim,whiteSpace:"nowrap"}}>{(d.dateLabel||d.date||"").slice(-5)}</span>
         </div>
@@ -2274,8 +2274,12 @@ function AnalyticsView({history, exerciseCatalog}) {
       weekMap[k]=(weekMap[k]||0)+1;
     });
     const weekKeys=Object.keys(weekMap).sort((a,b)=>b.localeCompare(a));
-    let streak=0;for(const k of weekKeys){if(weekMap[k]>=4){streak++;}else break;}
-    return {totalSessions,totalVol,avgDur,streak,weekKeys,weekMap};
+    // Determine current week key — skip it for streak (it's incomplete)
+    const now=new Date();const curSun=new Date(now);curSun.setDate(now.getDate()-now.getDay());
+    const curWeekKey=`${curSun.getFullYear()}-${String(curSun.getMonth()+1).padStart(2,'0')}-${String(curSun.getDate()).padStart(2,'0')}`;
+    let streak=0;
+    for(const k of weekKeys){if(k===curWeekKey)continue;if(weekMap[k]>=4){streak++;}else break;}
+    return {totalSessions,totalVol,avgDur,streak,weekKeys,weekMap,curWeekKey};
   },[entries]);
 
   // ── Weekly volumes ──
@@ -2335,8 +2339,7 @@ function AnalyticsView({history, exerciseCatalog}) {
   const card={background:T.surface,borderRadius:12,padding:16,margin:"8px 16px",border:`1px solid ${T.border}`};
   const sectionHdr={fontSize:11,fontWeight:600,color:T.dim,letterSpacing:1,textTransform:"uppercase",marginTop:24,marginBottom:12};
 
-  const thisWeekKey=weekKeys[0];
-  const thisWeekSessions=thisWeekKey?weekMap[thisWeekKey]||0:0;
+  const thisWeekSessions=weekMap[curWeekKey]||0;
 
   if(selectedExercise) return <ExerciseDetailOverlay exName={selectedExercise} history={history} onClose={()=>setSelectedExercise(null)}/>;
 
