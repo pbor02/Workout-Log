@@ -2260,7 +2260,7 @@ function AnalyticsView({history, exerciseCatalog}) {
   const entries = useMemo(()=>Object.values(history).sort((a,b)=>new Date(a.date)-new Date(b.date)),[history]);
 
   // ── Summary stats ──
-  const {totalSessions,totalVol,avgDur,streak,weekKeys,weekMap} = useMemo(()=>{
+  const {totalSessions,totalVol,avgDur,streak,weekKeys,weekMap,curWeekKey} = useMemo(()=>{
     const totalSessions=entries.length;
     const totalVol=entries.reduce((a,e)=>a+Object.values(e.sets||{}).flat().reduce((s,x)=>s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0),0);
     const durEntries=entries.filter(e=>e.duration>0);
