@@ -205,12 +205,14 @@ const T = {
   border:"#1f1f27", border2:"#2a2a33",
   text:"#f5f5f5", sub:"#9ca3af", dim:"#4b5563",
   accent:"#dc2626", accentDim:"#dc262618", accentLight:"#dc262608", accentGlow:"#dc262640",
+  accentGradient:"linear-gradient(135deg,#dc2626,#9333ea)",
+  spaceBg:"radial-gradient(ellipse 120% 45% at 50% -5%, #1e0533 0%, #0d0a1a 40%, #09090b 70%)",
   green:"#22c55e", greenBg:"#22c55e12", yellow:"#eab308", yellowBg:"#eab30812",
   red:"#ef4444", redBg:"#ef444412",
   font:"'Geist','SF Pro Display',-apple-system,sans-serif",
   display:"'Geist','SF Pro Display',-apple-system,sans-serif",
   mono:"'Geist Mono','SF Mono','Menlo',monospace",
-  timerBg:"rgba(9,9,11,0.97)",
+  timerBg:"rgba(8,4,18,0.97)",
 };
 
 const DIFF = { easy:{label:"Easy",color:"#22c55e",bg:"#22c55e0c",btnBg:"#22c55e18",icon:"\u2191"}, just_right:{label:"Just Right",color:"#eab308",bg:"#eab3080c",btnBg:"#eab30818",icon:"\u2022"}, hard:{label:"Hard",color:"#ef4444",bg:"#ef44440c",btnBg:"#ef444418",icon:"\u2193"} };
@@ -227,10 +229,13 @@ const css = `
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+  @keyframes cosmicPulse{0%,100%{box-shadow:0 0 0 0 #9333ea00}50%{box-shadow:0 0 18px 4px #9333ea28}}
+  @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
   .bottom-nav{height:calc(60px + max(env(safe-area-inset-bottom,0px),16px))}
   input:focus{border-color:#dc2626!important;box-shadow:0 0 0 3px #dc262618!important}
   button:active{transform:scale(0.97)}
+  .cta-btn{background-size:200% 200%!important;animation:gradientShift 4s ease infinite}
 `;
 
 function migrateIfNeeded() {
@@ -704,6 +709,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   useEffect(() => {
     if (timerDone && timerStart) {
+      playRestBeep();
       showToast("REST DONE — GO");
       setTimerStart(null);
       setTimerMinimized(false);
@@ -714,6 +720,25 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   }, [timerDone]);
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(null), 2400); }
+
+  function playRestBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const beep = (freq, start, dur) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = "sine"; osc.frequency.value = freq;
+        g.gain.setValueAtTime(0, ctx.currentTime + start);
+        g.gain.linearRampToValueAtTime(0.35, ctx.currentTime + start + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur + 0.05);
+      };
+      beep(880, 0, 0.12);
+      beep(1046, 0.16, 0.20);
+    } catch(e) {}
+  }
   function getWorkout(d) { if(!d&&activeSessionProgram){const prog=programs.find(p=>p.id===activeSessionProgram.programId);if(prog&&prog.workouts[activeSessionProgram.workoutIdx])return prog.workouts[activeSessionProgram.workoutIdx];} var dd=d||day; var cw=customWorkouts||{}; return cw[dd]||DEFAULT_WORKOUTS[dd]||{label:'REST',sub:'',exercises:[]}; }
   async function savePrograms(updated){setPrograms(updated);await store.set('custom-programs',updated);}
   function getSupersets(){const base=(getWorkout().supersets)||[];const merged=[...base];todaySupersets.forEach(g=>{if(!merged.some(b=>b.length===g.length&&b.every((n,i)=>n===g[i])))merged.push(g);});return merged;}
@@ -1039,7 +1064,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   return (
     <>
     <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
-    <div className="app-wrap" style={{height:"100dvh",maxWidth:540,margin:"0 auto",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <div className="app-wrap" style={{height:"100dvh",maxWidth:540,margin:"0 auto",background:T.spaceBg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <style>{css}</style>
       {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.surface,color:T.text,border:`1px solid ${T.border2}`,padding:"10px 24px",borderRadius:100,fontSize:13,fontWeight:600,zIndex:200,animation:"slideIn .25s",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",fontFamily:T.font,whiteSpace:"nowrap"}}>{toast}</div>}
 
@@ -1074,15 +1099,15 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ TIMER — FULL or MINIMIZED ═══ */}
       {timerActive && !timerMinimized && (
-        <div style={{position:"fixed",inset:0,zIndex:150,background:T.timerBg,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s"}}>
+        <div style={{position:"fixed",inset:0,zIndex:150,background:T.timerBg,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s",backgroundImage:"radial-gradient(ellipse 80% 50% at 50% 0%, #2d0a5020 0%, transparent 70%)"}}>
           <div style={{textAlign:"center",width:"100%",maxWidth:400,padding:"0 24px"}}>
-            <div style={{marginBottom:20}}><div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden",maxWidth:300,margin:"0 auto"}}><div style={{height:"100%",width:`${100-timerPct}%`,background:`linear-gradient(90deg, ${T.accent}, ${T.yellow})`,transition:"width 1s linear",borderRadius:3}} /></div></div>
-            <div style={{fontSize:12,color:T.dim,letterSpacing:6,marginBottom:16,fontWeight:600}}>REST</div>
-            <div style={{fontSize:96,fontWeight:800,letterSpacing:2,color:timerRemaining<=10?T.accent:T.text,lineHeight:1,animation:timerRemaining<=10?"timerPulse 1s infinite":"none",fontFamily:T.mono}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</div>
+            <div style={{marginBottom:20}}><div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden",maxWidth:300,margin:"0 auto"}}><div style={{height:"100%",width:`${100-timerPct}%`,background:`linear-gradient(90deg, ${T.accent}, #9333ea, ${T.yellow})`,backgroundSize:"200% 100%",animation:"gradientShift 3s ease infinite",transition:"width 1s linear",borderRadius:3}} /></div></div>
+            <div style={{fontSize:12,letterSpacing:8,marginBottom:16,fontWeight:700,background:T.accentGradient,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>REST</div>
+            <div style={{fontSize:96,fontWeight:800,letterSpacing:2,color:timerRemaining<=10?T.accent:T.text,lineHeight:1,animation:timerRemaining<=10?"timerPulse 1s infinite":"none",fontFamily:T.mono,textShadow:timerRemaining<=10?"0 0 40px #dc262660":"0 0 40px #9333ea30"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</div>
             <div style={{fontSize:13,color:T.dim,marginTop:16,marginBottom:36,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:300,margin:"16px auto 36px"}}>{activeEx||""}</div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
               <button onClick={()=>setTimerDuration(p=>Math.max(5,p-15))} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>−15s</button>
-              <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} style={{background:T.accent,border:"none",color:"#fff",padding:"14px 36px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Skip — Go</button>
+              <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} className="cta-btn" style={{background:T.accentGradient,border:"none",color:"#fff",padding:"14px 36px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 20px #9333ea40"}}>Skip — Go</button>
               <button onClick={()=>setTimerDuration(p=>p+15)} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>+15s</button>
             </div>
             <div style={{display:"flex",justifyContent:"center",marginTop:16}}>
@@ -1271,7 +1296,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                             <button key={k} onClick={()=>setSelectedDiff(k)} style={{padding:"8px 14px",fontSize:12,fontWeight:selectedDiff===k?600:400,cursor:"pointer",fontFamily:T.font,background:selectedDiff===k?v.btnBg:"transparent",color:selectedDiff===k?v.color:T.dim,border:"none",borderRight:`1px solid ${T.border2}`}}>{v.label==="Just Right"?"👌 Right":v.label==="Easy"?"🟢 Easy":"🔴 Hard"}</button>
                           ))}
                         </div>}
-                        <button onClick={addOrUpdateSet} disabled={!reps||((!exCardio)&&!weight)} style={{background:(!reps||((!exCardio)&&!weight))?T.surface3:T.accent,color:(!reps||((!exCardio)&&!weight))?T.dim:"#fff",border:"none",padding:"10px 24px",borderRadius:10,fontSize:14,fontWeight:700,cursor:(!reps||((!exCardio)&&!weight))?"default":"pointer",fontFamily:T.font,marginLeft:"auto",boxShadow:(!reps||((!exCardio)&&!weight))?"none":`0 2px 12px ${T.accentGlow}`}}>{editIdx!==null?"Update":"Log"}</button>
+                        <button onClick={addOrUpdateSet} disabled={!reps||((!exCardio)&&!weight)} className={(!reps||((!exCardio)&&!weight))?"":"cta-btn"} style={{background:(!reps||((!exCardio)&&!weight))?T.surface3:T.accentGradient,color:(!reps||((!exCardio)&&!weight))?T.dim:"#fff",border:"none",padding:"10px 24px",borderRadius:10,fontSize:14,fontWeight:700,cursor:(!reps||((!exCardio)&&!weight))?"default":"pointer",fontFamily:T.font,marginLeft:"auto",boxShadow:(!reps||((!exCardio)&&!weight))?"none":"0 2px 16px #9333ea40"}}>{editIdx!==null?"Update":"Log"}</button>
                       </div>
                       <input type="text" placeholder="Note (optional)" value={exerciseNotes[ex.name]||""} onChange={async e=>{const v=e.target.value;const u={...exerciseNotes,[ex.name]:v};setExerciseNotes(u);await store.set(`notes-${day}-${todayKey()}`,u);}} style={{marginTop:8,width:"100%",background:T.bg,border:`1px solid ${T.border}`,color:T.sub,padding:"8px 12px",borderRadius:8,fontSize:12,fontFamily:T.font,outline:"none",boxSizing:"border-box"}} />
                     </div>
@@ -1335,7 +1360,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     </div>
                   </div>
                 )}
-                <button onClick={()=>{setShowFinishModal(true);setFinishEnergy(0);setFinishSleep(0);setFinishWeight("");setFinishNotes("");}} style={{width:"100%",padding:16,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:14,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:`0 4px 20px ${T.accentGlow}`,letterSpacing:0.3}}>Finish & Analyze</button>
+                <button onClick={()=>{setShowFinishModal(true);setFinishEnergy(0);setFinishSleep(0);setFinishWeight("");setFinishNotes("");}} className="cta-btn" style={{width:"100%",padding:16,background:T.accentGradient,color:"#fff",border:"none",borderRadius:14,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #9333ea40",letterSpacing:0.3}}>Finish & Analyze</button>
                 <div style={{display:"flex",justifyContent:"center",marginTop:10}}>
                   {clearConfirm===0&&<button onClick={()=>{setClearConfirm(1);setTimeout(()=>setClearConfirm(0),3000);}} style={{background:"none",border:"none",color:T.dim,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Clear all</button>}
                   {clearConfirm===1&&<button onClick={()=>{setClearConfirm(2);setTimeout(()=>setClearConfirm(0),3000);}} style={{background:"none",border:`1px solid ${T.red}`,color:T.red,fontSize:12,cursor:"pointer",fontFamily:T.font,borderRadius:6,padding:"4px 12px"}}>Are you sure?</button>}
