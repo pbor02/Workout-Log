@@ -1852,7 +1852,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
                       </div>
                       <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0,marginLeft:8}}>
                         <button onClick={()=>{setEditingExKey({progId:prog.id,wi});setShowAddEx(false);}} style={{background:"none",border:`1.5px solid ${T.border}`,color:T.sub,padding:"5px 9px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>Exercises</button>
-                        <button onClick={()=>setNext(prog.id,wi)} title="Set as next" style={{background:wi===nextIdx?T.accent:"none",border:`1.5px solid ${wi===nextIdx?T.accent:T.border}`,color:wi===nextIdx?"#fff":T.dim,width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:10}}>▶</button>
+                        <button onClick={()=>setNext(prog.id,wi)} title="Set as next" style={{background:wi===nextIdx?T.accentGradient:"none",border:`1.5px solid ${wi===nextIdx?T.accent:T.border}`,color:wi===nextIdx?"#fff":T.dim,width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:10}}>▶</button>
                         <button onClick={()=>moveWorkout(prog.id,wi,-1)} disabled={wi===0} style={{background:"none",border:`1px solid ${T.border}`,color:wi===0?T.dim:T.sub,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:wi===0?"default":"pointer",fontFamily:T.font}}>↑</button>
                         <button onClick={()=>moveWorkout(prog.id,wi,1)} disabled={wi===prog.workouts.length-1} style={{background:"none",border:`1px solid ${T.border}`,color:wi===prog.workouts.length-1?T.dim:T.sub,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:wi===prog.workouts.length-1?"default":"pointer",fontFamily:T.font}}>↓</button>
                         <button onClick={()=>removeWorkout(prog.id,wi)} style={{background:"none",border:`1px solid ${T.red}33`,color:T.red,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button>
@@ -1995,7 +1995,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
   return (
     <div style={{padding:"12px 0"}}>
       <div style={{display:"flex",margin:"0 16px 14px",border:`1px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
-        {[["sessions","Sessions"],["weekly","Weekly"],["analytics","Analytics"]].map(([v,l])=>(<button key={v} onClick={()=>setHv(v)} style={{flex:1,padding:"9px 0",background:hv===v?T.accent:T.surface,color:hv===v?"#fff":T.sub,border:"none",fontSize:12,fontWeight:hv===v?600:400,cursor:"pointer",fontFamily:T.font}}>{l}</button>))}
+        {[["sessions","Sessions"],["weekly","Weekly"],["analytics","Analytics"]].map(([v,l])=>(<button key={v} onClick={()=>setHv(v)} style={{flex:1,padding:"9px 0",background:hv===v?T.accentGradient:T.surface,color:hv===v?"#fff":T.sub,border:"none",fontSize:12,fontWeight:hv===v?600:400,cursor:"pointer",fontFamily:T.font}}>{l}</button>))}
       </div>
       {hv==="weekly"&&<div>{weekly.map((wk)=>{
         const dayVols=[0,1,2,3,4,5,6].map(d=>wk.days?wk.days[d]||0:0);
@@ -2015,7 +2015,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                 return(
                   <div key={d} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,width:BAR_W}}>
                     {v>0?(
-                      <div style={{width:BAR_W,height:barH,background:`linear-gradient(to top,${T.accent},${T.accent}cc)`,borderRadius:"4px 4px 0 0",flexShrink:0}} />
+                      <div style={{width:BAR_W,height:barH,background:`linear-gradient(to top,#dc2626,#9333ea)`,borderRadius:"4px 4px 0 0",flexShrink:0}} />
                     ):(
                       <div style={{width:BAR_W,height:MAX_H,display:"flex",alignItems:"flex-end"}}>
                         <div style={{width:"100%",height:2,background:T.border,borderRadius:2}} />
@@ -2069,7 +2069,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                           const isEditingSet=editingHistSet?.exName===exName&&editingHistSet?.setIdx===i;
                           const df=s.diff?DIFF[s.diff]:null;
                           if(isEditingSet) return (
-                            <div key={i} style={{width:"100%",background:T.surface2,border:`1.5px solid ${T.accent}`,borderRadius:8,padding:"8px 10px",marginBottom:4}}>
+                            <div key={i} style={{width:"100%",background:T.surface2,border:"1.5px solid #9333ea",borderRadius:8,padding:"8px 10px",marginBottom:4}}>
                               <div style={{display:"flex",gap:6,marginBottom:6}}>
                                 <div style={{flex:1}}><div style={{fontSize:9,color:T.dim,marginBottom:2}}>Weight</div><input type="number" inputMode="decimal" value={editHistSetVals.weight} onChange={e=>setEditHistSetVals(v=>({...v,weight:e.target.value}))} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"6px",borderRadius:6,fontSize:14,fontFamily:T.mono,outline:"none",textAlign:"center"}} /></div>
                                 <div style={{flex:1}}><div style={{fontSize:9,color:T.dim,marginBottom:2}}>Reps</div><input type="number" inputMode="numeric" value={editHistSetVals.reps} onChange={e=>setEditHistSetVals(v=>({...v,reps:e.target.value}))} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"6px",borderRadius:6,fontSize:14,fontFamily:T.mono,outline:"none",textAlign:"center"}} /></div>
@@ -2097,7 +2097,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
               ):(
                 /* Read-only mode */
                 <div>
-                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div onClick={()=>setSelectedExercise(exName)} style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{exName}<span style={{fontSize:10,color:T.accent,opacity:0.7}}>›</span></div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div>{entry.notes&&entry.notes[exName]&&<div style={{marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {entry.notes[exName]}</div>}</div>))}
+                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div onClick={()=>setSelectedExercise(exName)} style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{exName}<span style={{fontSize:10,color:"#9333ea",opacity:0.8}}>›</span></div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div>{entry.notes&&entry.notes[exName]&&<div style={{marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {entry.notes[exName]}</div>}</div>))}
                   {entry.logText&&<div style={{marginTop:10,borderTop:`1px solid ${T.border}`,paddingTop:10}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:12,color:T.dim,fontWeight:500}}>Copy to Claude</span><button onClick={()=>{navigator.clipboard.writeText(entry.logText).then(()=>{setCopiedKey(entry.key);setTimeout(()=>setCopiedKey(null),2000);}).catch(()=>{});}} style={{padding:"4px 12px",background:copiedKey===entry.key?T.greenBg:"transparent",border:`1.5px solid ${copiedKey===entry.key?T.green:T.border}`,color:copiedKey===entry.key?T.green:T.sub,borderRadius:8,fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{copiedKey===entry.key?"Copied!":"Copy"}</button></div><pre style={{margin:0,background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"10px 12px",fontSize:11,color:T.dim,overflowX:"auto",whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:160,overflowY:"auto",fontFamily:T.mono}}>{entry.logText}</pre></div>}
                   <div style={{display:"flex",gap:8,marginTop:10}}>
                     <button onClick={()=>startEdit(entry)} style={{padding:"8px 16px",background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>✏️ Edit</button>
@@ -2164,7 +2164,7 @@ function ExerciseDetailOverlay({exName, history, onClose}) {
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <button onClick={onClose} style={{background:"none",border:"none",color:T.accent,fontSize:22,cursor:"pointer",padding:0,lineHeight:1,fontFamily:T.font}}>←</button>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#9333ea",fontSize:22,cursor:"pointer",padding:0,lineHeight:1,fontFamily:T.font}}>←</button>
           <div style={{fontSize:17,fontWeight:700,color:T.text,lineHeight:1.2}}>{exName}</div>
         </div>
         <button onClick={onClose} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
@@ -2206,11 +2206,11 @@ function ExerciseDetailOverlay({exName, history, onClose}) {
           const vol=s.sets.reduce((a,x)=>a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0);
           const isPR=pr&&maxW===pr.weight;
           return(
-            <div key={s.date+i} style={{background:T.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPR?T.accent+"44":T.border}`,marginBottom:8}}>
+            <div key={s.date+i} style={{background:T.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPR?"#9333ea44":T.border}`,marginBottom:8}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:T.text}}>{s.dateLabel||s.date}</div>
-                  <div style={{fontSize:11,color:T.dim}}>{s.day} · {s.label}{isPR&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:T.accent}}>PR</span>}</div>
+                  <div style={{fontSize:11,color:T.dim}}>{s.day} · {s.label}{isPR&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:"#9333ea"}}>PR</span>}</div>
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:13,fontWeight:700,color:T.text,fontFamily:T.mono}}>{maxW}lb</div>
@@ -2382,7 +2382,7 @@ function AnalyticsView({history, exerciseCatalog}) {
         {allCategories.length>1&&(
           <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:8,marginBottom:8,scrollbarWidth:"none"}}>
             {allCategories.map(cat=>(
-              <button key={cat} onClick={()=>setExFilter(cat)} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:exFilter===cat?600:400,background:exFilter===cat?T.accent:T.surface2,color:exFilter===cat?"#fff":T.dim,border:"none",cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>{cat}</button>
+              <button key={cat} onClick={()=>setExFilter(cat)} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:exFilter===cat?600:400,background:exFilter===cat?T.accentGradient:T.surface2,color:exFilter===cat?"#fff":T.dim,border:"none",cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>{cat}</button>
             ))}
           </div>
         )}
@@ -2431,7 +2431,7 @@ function AnalyticsView({history, exerciseCatalog}) {
       <div style={{...card}}>
         <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:14}}>Overview</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)",border:streak>0?`1.5px solid ${T.accent}33`:`1px solid ${T.border}`}}>
+          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)",border:streak>0?"1.5px solid #9333ea44":`1px solid ${T.border}`}}>
             <div style={{fontSize:streak>0?20:18,marginBottom:4}}>{streak>0?"🔥":"⬜"}</div>
             <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{streak} wk{streak!==1?"s":""}</div>
             <div style={{fontSize:11,color:T.dim,marginTop:4}}>Weekly Streak</div>
