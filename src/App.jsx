@@ -312,7 +312,7 @@ export default function App() {
               <div><div style={{fontSize:14,fontWeight:600,marginBottom:2}}>Tap Add</div><div style={{fontSize:12,color:T.sub}}>Confirm and the app icon will appear on your Home Screen.</div></div>
             </div>
           </div>
-          <button onClick={()=>dismissInstallGuide(true)} style={{width:"100%",padding:"15px",background:`linear-gradient(135deg,${T.accent},#991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>Got it</button>
+          <button onClick={()=>dismissInstallGuide(true)} style={{width:"100%",padding:"15px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>Got it</button>
           <button onClick={()=>dismissInstallGuide(false)} style={{width:"100%",padding:"12px",background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Remind me later</button>
         </div>
       </div>
@@ -375,7 +375,7 @@ function ProfileScreen({onSelect}) {
   }
 
   const inp = (extra) => ({width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"14px 16px",borderRadius:10,fontSize:16,fontFamily:T.font,outline:"none",...extra});
-  const btnPrimary = (disabled) => ({width:"100%",padding:"16px",background:disabled?T.surface3:`linear-gradient(135deg,${T.accent},#991b1b)`,color:disabled?T.dim:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:disabled?"default":"pointer",fontFamily:T.font,boxShadow:disabled?"none":"0 4px 24px #dc262640",marginTop:28});
+  const btnPrimary = (disabled) => ({width:"100%",padding:"16px",background:disabled?T.surface3:T.accentGradient,color:disabled?T.dim:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:disabled?"default":"pointer",fontFamily:T.font,boxShadow:disabled?"none":"0 4px 24px #9333ea40",marginTop:28});
   const wrap = {minHeight:"100vh",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"48px 24px 48px"};
   const inner = {width:"100%",maxWidth:420};
 
@@ -412,7 +412,7 @@ function ProfileScreen({onSelect}) {
       <style>{css}</style>
       <div style={inner}>
         <div style={{display:"flex",gap:6,marginBottom:40}}>
-          {[1,2,3].map(s=><div key={s} style={{height:3,flex:1,background:s<=step?T.accent:T.surface2,borderRadius:2,transition:"background .3s"}} />)}
+          {[1,2,3].map(s=><div key={s} style={{height:3,flex:1,background:s<=step?T.accentGradient:T.surface2,borderRadius:2,transition:"background .3s"}} />)}
         </div>
 
         {step===1&&(<>
@@ -456,7 +456,7 @@ function ProfileScreen({onSelect}) {
           })}
           <div style={{display:"flex",gap:10,marginTop:24}}>
             <button onClick={()=>setStep(1)} style={{flex:1,padding:"14px",background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:T.font}}>← Back</button>
-            <button onClick={()=>setStep(3)} style={{flex:2,padding:"14px",background:`linear-gradient(135deg,${T.accent},#991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Next →</button>
+            <button onClick={()=>setStep(3)} style={{flex:2,padding:"14px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Next →</button>
           </div>
         </>)}
 
@@ -488,7 +488,7 @@ function ProfileScreen({onSelect}) {
                       <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                     </div>
                     <div style={{display:"flex",gap:8}}>
-                      <button onClick={()=>addWizardExercise(d)} disabled={!newExName.trim()} style={{flex:1,padding:"9px",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                      <button onClick={()=>addWizardExercise(d)} disabled={!newExName.trim()} style={{flex:1,padding:"9px",background:!newExName.trim()?T.surface3:T.accentGradient,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                       <button onClick={()=>{setAddingExForDay(null);setNewExName("");setNewExSets("3");setNewExReps("10-12");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                     </div>
                   </div>
@@ -500,7 +500,7 @@ function ProfileScreen({onSelect}) {
           })}
           <div style={{display:"flex",gap:10,marginTop:8}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"14px",background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:T.font}}>← Back</button>
-            <button onClick={finishWizard} style={{flex:2,padding:"14px",background:`linear-gradient(135deg,${T.accent},#991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish ✓</button>
+            <button onClick={finishWizard} style={{flex:2,padding:"14px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish ✓</button>
           </div>
         </>)}
       </div>
@@ -517,7 +517,7 @@ function ProfileRestEdit({profile, onSave, T}) {
   return (
     <div style={{display:"flex",gap:8}}>
       <input type="number" value={val} onChange={e=>setVal(e.target.value)} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"10px 14px",borderRadius:10,fontSize:15,fontFamily:T.font,outline:"none"}} />
-      <button onClick={()=>{const t=Math.max(10,parseInt(val)||90);const updated={...profile,restTime:t};const profiles=(getShared("profiles")||[]).map(p=>p.id===profile.id?updated:p);setShared("profiles",profiles);onSave(updated);setEditing(false);}} style={{background:T.accent,border:"none",color:"#fff",padding:"10px 18px",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save</button>
+      <button onClick={()=>{const t=Math.max(10,parseInt(val)||90);const updated={...profile,restTime:t};const profiles=(getShared("profiles")||[]).map(p=>p.id===profile.id?updated:p);setShared("profiles",profiles);onSave(updated);setEditing(false);}} style={{background:T.accentGradient,border:"none",color:"#fff",padding:"10px 18px",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save</button>
     </div>
   );
 }
@@ -1090,7 +1090,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           />
           <div style={{display:"flex",gap:10,padding:"12px 16px 32px",flexShrink:0,borderTop:"1px solid "+T.border}}>
             <button onClick={()=>setShowPlanEditor(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
-            <button onClick={savePlanJson} style={{flex:2,background:T.accent,border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save Plan</button>
+            <button onClick={savePlanJson} style={{flex:2,background:T.accentGradient,border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save Plan</button>
           </div>
         </div>
       )}
@@ -1159,7 +1159,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
         {dayPickerOpen&&(
           <div style={{display:"flex",alignItems:"center",gap:5,padding:"0 16px 10px",overflowX:"auto"}}>
             {DAYS.map(d=>{const sel=d===day,tod=d===today,rest=(getWorkout(d).exercises||[]).length===0; return (
-              <button key={d} onClick={()=>{if(sel){setDayPickerOpen(false);}else{switchDay(d);}}} style={{background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:tod?T.green:T.border}`,color:sel?"#fff":tod?T.green:rest?T.dim:T.sub,padding:"6px 11px",borderRadius:8,fontSize:12,fontWeight:sel||tod?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",flexShrink:0,position:"relative"}}>
+              <button key={d} onClick={()=>{if(sel){setDayPickerOpen(false);}else{switchDay(d);}}} style={{background:sel?T.accentGradient:"transparent",border:`1.5px solid ${sel?"#9333ea":tod?T.green:T.border}`,color:sel?"#fff":tod?T.green:rest?T.dim:T.sub,padding:"6px 11px",borderRadius:8,fontSize:12,fontWeight:sel||tod?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",flexShrink:0,position:"relative"}}>
                 {d.slice(0,3)}{tod&&!sel&&<span style={{position:"absolute",top:2,right:3,width:4,height:4,borderRadius:"50%",background:T.green,display:"block"}} />}
               </button>);
             })}
@@ -1192,7 +1192,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                   </div>
                 )}
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                  <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accentGradient,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                   <button onClick={()=>{setShowAddEx(false);setNewExName("");}} style={{flex:1,padding:"11px 0",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                 </div>
               </div>
@@ -1243,7 +1243,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
                         {!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();toggleDone(ex.name);}} style={{width:20,height:20,borderRadius:6,border:`1.5px solid ${isDone?T.green:T.border2}`,background:isDone?T.green:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>{isDone&&<span style={{fontSize:12,color:"#fff",lineHeight:1}}>✓</span>}</button>}
                         {reordering&&<div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}><button onClick={()=>moveExercise(exIdx,-1)} disabled={exIdx===0} style={{background:"none",border:"none",color:exIdx===0?T.border:T.sub,fontSize:13,cursor:exIdx===0?"default":"pointer",padding:0,lineHeight:1}}>▲</button><button onClick={()=>moveExercise(exIdx,1)} disabled={exIdx===allExercises.length-1} style={{background:"none",border:"none",color:exIdx===allExercises.length-1?T.border:T.sub,fontSize:13,cursor:exIdx===allExercises.length-1?"default":"pointer",padding:0,lineHeight:1}}>▼</button></div>}
-                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accent,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isSSFirst&&<span style={{fontSize:10,fontWeight:700,color:T.accent,background:T.accentDim,border:`1px solid ${T.accent}44`,borderRadius:4,padding:"1px 5px",marginLeft:6,letterSpacing:0.5}}>⚡ SS</span>}{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
+                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accentGradient,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isSSFirst&&<span style={{fontSize:10,fontWeight:700,color:T.accent,background:T.accentDim,border:`1px solid ${T.accent}44`,borderRadius:4,padding:"1px 5px",marginLeft:6,letterSpacing:0.5}}>⚡ SS</span>}{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
                       </div>
                       {!reordering&&<>
                         <div style={{paddingLeft:30,display:"flex",alignItems:"center",gap:8,marginBottom:exSets.length>0?10:0,flexWrap:"wrap"}}>
@@ -1252,7 +1252,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                               {!exCardio&&<input type="number" inputMode="numeric" value={editTargetSets} onChange={e=>setEditTargetSets(e.target.value)} placeholder="sets" style={{width:44,background:T.surface2,border:`1.5px solid ${T.accent}`,color:T.text,padding:"3px 6px",borderRadius:6,fontSize:12,fontFamily:T.mono,outline:"none",textAlign:"center"}} />}
                               {!exCardio&&<span style={{fontSize:11,color:T.dim}}>×</span>}
                               <input type="text" value={editTargetReps} onChange={e=>setEditTargetReps(e.target.value)} placeholder={exCardio?"min":"reps"} style={{width:exCardio?50:56,background:T.surface2,border:`1.5px solid ${T.accent}`,color:T.text,padding:"3px 6px",borderRadius:6,fontSize:12,fontFamily:T.mono,outline:"none",textAlign:"center"}} />
-                              <button onClick={()=>saveExerciseTarget(ex.name,editTargetSets,editTargetReps)} style={{background:T.accent,color:"#fff",border:"none",padding:"3px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font,fontWeight:600}}>✓</button>
+                              <button onClick={()=>saveExerciseTarget(ex.name,editTargetSets,editTargetReps)} style={{background:T.accentGradient,color:"#fff",border:"none",padding:"3px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font,fontWeight:600}}>✓</button>
                               <button onClick={()=>setEditingTarget(null)} style={{background:"none",border:`1px solid ${T.border}`,color:T.dim,padding:"3px 8px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button>
                             </div>
                           ):(
@@ -1341,7 +1341,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     </div>
                   </div>}
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                    <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accentGradient,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                     <button onClick={()=>{setShowAddEx(false);setNewExName("");setNewExCategory("Other");}} style={{flex:1,padding:"11px 0",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
@@ -1357,7 +1357,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                       <span style={{fontSize:11,color:doneCount===allExercises.length?T.accent:T.dim,fontWeight:600}}>{doneCount}/{allExercises.length}</span>
                     </div>
                     <div style={{height:3,background:T.surface3,borderRadius:2,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${doneCount/allExercises.length*100}%`,background:T.accent,transition:"width .4s ease",borderRadius:2,boxShadow:`0 0 6px ${T.accentGlow}`}} />
+                      <div style={{height:"100%",width:`${doneCount/allExercises.length*100}%`,background:T.accentGradient,transition:"width .4s ease",borderRadius:2,boxShadow:`0 0 6px ${T.accentGlow}`}} />
                     </div>
                   </div>
                 )}
@@ -1380,7 +1380,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 const sel=d===day,isToday=d===today;
                 const hasExercises=(getWorkout(d).exercises||[]).length>0;
                 return(
-                  <button key={d} onClick={()=>switchDay(d)} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,fontSize:12,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:isToday?T.green:T.border}`,color:sel?"#fff":isToday?T.green:hasExercises?T.sub:T.dim,position:"relative"}}>
+                  <button key={d} onClick={()=>switchDay(d)} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,fontSize:12,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?T.accentGradient:"transparent",border:`1.5px solid ${sel?"#9333ea":isToday?T.green:T.border}`,color:sel?"#fff":isToday?T.green:hasExercises?T.sub:T.dim,position:"relative"}}>
                     {d.slice(0,3)}{isToday&&!sel&&<span style={{position:"absolute",top:2,right:3,width:4,height:4,borderRadius:"50%",background:T.green,display:"block"}} />}
                   </button>
                 );
@@ -1410,7 +1410,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 <div style={{marginBottom:6}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Label</div><input type="text" value={editLabel} onChange={function(e){setEditLabel(e.target.value);}} placeholder="e.g. PUSH A" style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"9px 12px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none"}} /></div>
                 <div style={{marginBottom:10}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Description</div><input type="text" value={editSub} onChange={function(e){setEditSub(e.target.value);}} placeholder="e.g. Chest, Shoulders, Triceps" style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"9px 12px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none"}} /></div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={function(){saveDayMeta(day,editLabel,editSub);}} style={{flex:1,padding:"9px",background:T.accent,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                  <button onClick={function(){saveDayMeta(day,editLabel,editSub);}} style={{flex:1,padding:"9px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                   <button onClick={function(){setEditingMeta(false);}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                 </div>
               </div>
@@ -1431,7 +1431,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={editExReps} onChange={function(e){setEditExReps(e.target.value);}} style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    <button onClick={function(){updateTemplateExercise(day,i,editExName,editExSets,editExReps);}} style={{flex:1,padding:"9px",background:T.accent,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                    <button onClick={function(){updateTemplateExercise(day,i,editExName,editExSets,editExReps);}} style={{flex:1,padding:"9px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                     <button onClick={function(){setEditExIdx(null);}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
@@ -1465,7 +1465,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                   </div>
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={function(){if(!newTemplateName.trim())return;addTemplateExercise(day,newTemplateName,newTemplateSets,newTemplateReps);addToCatalog(newTemplateName,newTemplateCategory);setShowAddTemplate(false);setNewTemplateName("");setNewTemplateSets("3");setNewTemplateReps("10-12");setNewTemplateCategory("Other");}} disabled={!newTemplateName.trim()} style={{flex:1,padding:"9px",background:!newTemplateName.trim()?T.surface3:T.accent,color:!newTemplateName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newTemplateName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                  <button onClick={function(){if(!newTemplateName.trim())return;addTemplateExercise(day,newTemplateName,newTemplateSets,newTemplateReps);addToCatalog(newTemplateName,newTemplateCategory);setShowAddTemplate(false);setNewTemplateName("");setNewTemplateSets("3");setNewTemplateReps("10-12");setNewTemplateCategory("Other");}} disabled={!newTemplateName.trim()} style={{flex:1,padding:"9px",background:!newTemplateName.trim()?T.surface3:T.accentGradient,color:!newTemplateName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newTemplateName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                   <button onClick={function(){setShowAddTemplate(false);setNewTemplateCategory("Other");}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                 </div>
               </div>
@@ -1475,7 +1475,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             {(getWorkout().exercises||[]).length>0&&(<div style={{marginTop:10,padding:"14px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5}}>SUPERSETS</div>
-                <button onClick={()=>setShowSupersetCreator(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ Create</button>
+                <button onClick={()=>setShowSupersetCreator(true)} style={{background:T.accentGradient,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ Create</button>
               </div>
               {getSupersets().length===0?(<div style={{fontSize:12,color:T.dim}}>Group exercises into supersets — no rest between them.</div>):(
                 getSupersets().map((g,gi)=>(
@@ -1495,7 +1495,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     })}
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    <button disabled={ssSelection.length<2} onClick={async()=>{const updated=[...getSupersets(),ssSelection];setTodaySupersets([]);await saveSupersets(day,updated);setSsSelection([]);setShowSupersetCreator(false);}} style={{flex:1,padding:"9px",background:ssSelection.length<2?T.surface3:T.accent,color:ssSelection.length<2?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:ssSelection.length<2?"default":"pointer",fontFamily:T.font}}>Create Superset</button>
+                    <button disabled={ssSelection.length<2} onClick={async()=>{const updated=[...getSupersets(),ssSelection];setTodaySupersets([]);await saveSupersets(day,updated);setSsSelection([]);setShowSupersetCreator(false);}} style={{flex:1,padding:"9px",background:ssSelection.length<2?T.surface3:T.accentGradient,color:ssSelection.length<2?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:ssSelection.length<2?"default":"pointer",fontFamily:T.font}}>Create Superset</button>
                     <button onClick={()=>{setShowSupersetCreator(false);setSsSelection([]);}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
@@ -1506,14 +1506,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               <div style={{fontSize:12,color:T.sub,marginBottom:12,lineHeight:1.5}}>Download today's template + history, upload to any AI (ChatGPT, Claude, etc.), then import the AI's response to update your targets.</div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={downloadTemplateForAI} style={{flex:1,padding:"10px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>⬇ Download</button>
-                <button onClick={()=>aiImportRef.current?.click()} style={{flex:1,padding:"10px",background:T.accent,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>⬆ Upload Response</button>
+                <button onClick={()=>aiImportRef.current?.click()} style={{flex:1,padding:"10px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>⬆ Upload Response</button>
               </div>
               <input ref={aiImportRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])importAITemplate(e.target.files[0]);e.target.value="";}} />
             </div>
             <div style={{marginTop:12,padding:"14px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5}}>PROGRAMS</div>
-                <button onClick={()=>setShowProgramManager(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Manage</button>
+                <button onClick={()=>setShowProgramManager(true)} style={{background:T.accentGradient,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Manage</button>
               </div>
               {programs.length===0?(
                 <div style={{fontSize:12,color:T.dim,lineHeight:1.5}}>Create a program (e.g. Push / Pull / Legs) to rotate workouts independent of the day of the week.</div>
@@ -1587,7 +1587,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           <button key={v} onClick={()=>{setView(v);if(v==="edit"){setReordering(false);setEditExIdx(null);setEditingMeta(false);}}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"none",border:"none",cursor:"pointer",fontFamily:T.font,gap:3,color:view===v?T.accent:T.dim,padding:"8px 0",position:"relative"}}>
             {svg}
             <span style={{fontSize:10,fontWeight:view===v?700:500,letterSpacing:0.2}}>{label}</span>
-            {view===v&&<div style={{width:3,height:3,borderRadius:"50%",background:T.accent,marginTop:2}} />}
+            {view===v&&<div style={{width:3,height:3,borderRadius:"50%",background:"#9333ea",marginTop:2}} />}
           </button>
         ))}
       </div>
@@ -1785,7 +1785,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
                 <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={addExReps} onChange={e=>setAddExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:15,fontFamily:T.mono,outline:"none",textAlign:"center",boxSizing:"border-box"}} /></div>
               </div>
               <div style={{display:"flex",gap:6}}>
-                <button onClick={addExToWorkout} disabled={!addExName.trim()} style={{flex:2,padding:"11px",background:!addExName.trim()?T.surface3:T.accent,color:!addExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Add</button>
+                <button onClick={addExToWorkout} disabled={!addExName.trim()} style={{flex:2,padding:"11px",background:!addExName.trim()?T.surface3:T.accentGradient,color:!addExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Add</button>
                 <button onClick={()=>{setShowAddEx(false);setAddExName("");setAddExSets("3");setAddExReps("10-12");}} style={{flex:1,padding:"11px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Done</button>
               </div>
             </div>
@@ -1803,7 +1803,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         <div style={{fontSize:17,fontWeight:700,color:T.text}}>Programs</div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setShowNewProg(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ New</button>
+          <button onClick={()=>setShowNewProg(true)} style={{background:T.accentGradient,border:"none",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ New</button>
           <button onClick={onClose} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
         </div>
       </div>
@@ -1813,7 +1813,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
             <div style={{fontSize:11,color:T.accent,fontWeight:600,marginBottom:8}}>New Program</div>
             <input type="text" value={newProgName} onChange={e=>setNewProgName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addProgram();}} placeholder="e.g. Push / Pull / Legs" autoFocus style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"10px 12px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",boxSizing:"border-box",marginBottom:8}} />
             <div style={{display:"flex",gap:6}}>
-              <button onClick={addProgram} disabled={!newProgName.trim()} style={{flex:1,padding:"9px",background:!newProgName.trim()?T.surface3:T.accent,color:!newProgName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Create</button>
+              <button onClick={addProgram} disabled={!newProgName.trim()} style={{flex:1,padding:"9px",background:!newProgName.trim()?T.surface3:T.accentGradient,color:!newProgName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Create</button>
               <button onClick={()=>{setShowNewProg(false);setNewProgName("");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
             </div>
           </div>
@@ -1878,7 +1878,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
                         </div>
                       </div>
                       <div style={{display:"flex",gap:6}}>
-                        <button onClick={()=>addWorkout(prog.id)} disabled={!wLabel.trim()} style={{flex:2,padding:"9px",background:!wLabel.trim()?T.surface3:T.accent,color:!wLabel.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Next: Add Exercises →</button>
+                        <button onClick={()=>addWorkout(prog.id)} disabled={!wLabel.trim()} style={{flex:2,padding:"9px",background:!wLabel.trim()?T.surface3:T.accentGradient,color:!wLabel.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Next: Add Exercises →</button>
                         <button onClick={()=>{setAddingWorkoutTo(null);setWLabel("");setWSub("");setWTemplate("");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                       </div>
                     </div>
@@ -2053,7 +2053,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                         <div style={{marginBottom:8}}>
                           <ExercisePicker value={renameHistValue} onChange={setRenameHistValue} onSelect={n=>setRenameHistValue(n)} catalog={exerciseCatalog||[]} placeholder="Exercise name" />
                           <div style={{display:"flex",gap:6,marginTop:6}}>
-                            <button onClick={()=>renameHistEx(exName,renameHistValue)} style={{flex:1,padding:"7px",background:T.accent,color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>✓ Rename</button>
+                            <button onClick={()=>renameHistEx(exName,renameHistValue)} style={{flex:1,padding:"7px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>✓ Rename</button>
                             <button onClick={()=>setRenamingHistEx(null)} style={{flex:1,padding:"7px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:7,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                           </div>
                         </div>
@@ -2078,7 +2078,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                                 {Object.entries(DIFF).map(([k,v])=><button key={k} onClick={()=>setEditHistSetVals(sv=>({...sv,diff:k}))} style={{flex:1,padding:"5px 0",fontSize:11,background:editHistSetVals.diff===k?v.bg:T.surface,color:editHistSetVals.diff===k?v.color:T.dim,border:"none",borderRight:`1px solid ${T.border}`,cursor:"pointer",fontFamily:T.font,fontWeight:editHistSetVals.diff===k?700:400}}>{v.label==="Just Right"?"👌":v.label==="Easy"?"🟢":"🔴"}</button>)}
                               </div>
                               <div style={{display:"flex",gap:6}}>
-                                <button onClick={()=>{editHistSet(exName,i,"weight",editHistSetVals.weight);editHistSet(exName,i,"reps",editHistSetVals.reps);editHistSet(exName,i,"diff",editHistSetVals.diff);setEditingHistSet(null);}} style={{flex:1,padding:"6px",background:T.accent,color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                                <button onClick={()=>{editHistSet(exName,i,"weight",editHistSetVals.weight);editHistSet(exName,i,"reps",editHistSetVals.reps);editHistSet(exName,i,"diff",editHistSetVals.diff);setEditingHistSet(null);}} style={{flex:1,padding:"6px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                                 <button onClick={()=>setEditingHistSet(null)} style={{flex:1,padding:"6px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                                 <button onClick={()=>{removeHistSet(exName,i);setEditingHistSet(null);}} style={{padding:"6px 10px",background:"transparent",border:`1.5px solid ${T.red}33`,color:T.red,borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:T.font}}>✕</button>
                               </div>
@@ -2090,7 +2090,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                     </div>
                   ))}
                   <div style={{display:"flex",gap:8,marginTop:14}}>
-                    <button onClick={saveEdit} style={{flex:1,padding:"10px",background:T.accent,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save Changes</button>
+                    <button onClick={saveEdit} style={{flex:1,padding:"10px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save Changes</button>
                     <button onClick={cancelEdit} style={{flex:1,padding:"10px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:9,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
@@ -2243,7 +2243,7 @@ function MiniWeightChart({dataPoints}) {
     <div style={{display:"flex",alignItems:"flex-end",gap:3,paddingTop:8}}>
       {dataPoints.map((d,i)=>(
         <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-          <div style={{width:"100%",maxWidth:28,height:Math.max(4,Math.round(8+((d.weight-minW)/range)*56)),background:T.accent,borderRadius:"3px 3px 0 0"}} />
+          <div style={{width:"100%",maxWidth:28,height:Math.max(4,Math.round(8+((d.weight-minW)/range)*56)),background:T.accentGradient,borderRadius:"3px 3px 0 0"}} />
           <span style={{fontSize:9,color:T.dim,fontFamily:T.mono,whiteSpace:"nowrap"}}>{d.weight}</span>
           <span style={{fontSize:8,color:T.dim,whiteSpace:"nowrap"}}>{(d.dateLabel||d.date||"").slice(-5)}</span>
         </div>
@@ -2267,8 +2267,9 @@ function BodyweightChart({data}) {
   return (
     <div style={{width:"100%",overflow:"hidden"}}>
       <svg viewBox={`0 0 ${w} ${h}`} style={{width:"100%",height:h}}>
-        <path d={linePath} fill="none" stroke={T.accent} strokeWidth="2"/>
-        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill={T.accent} stroke={T.bg} strokeWidth="2"/>)}
+        <defs><linearGradient id="bwGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#dc2626"/><stop offset="100%" stopColor="#9333ea"/></linearGradient></defs>
+        <path d={linePath} fill="none" stroke="url(#bwGrad)" strokeWidth="2"/>
+        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill="#9333ea" stroke={T.bg} strokeWidth="2"/>)}
       </svg>
       <div style={{display:"flex",justifyContent:"space-between",padding:"4px 8px",fontSize:10,color:T.dim}}>
         <span>{data[0].date.slice(5)}</span><span>{data[data.length-1].date.slice(5)}</span>
@@ -2468,7 +2469,7 @@ function AnalyticsView({history, exerciseCatalog}) {
             const pctChange=prev&&prev.vol>0?Math.round(((wk.vol-prev.vol)/prev.vol)*100):null;
             const isUp=pctChange!==null&&pctChange>5;
             const isDown=pctChange!==null&&pctChange<-5;
-            const barBg=isUp?`linear-gradient(90deg,${T.green}40,${T.green}20)`:isDown?`linear-gradient(90deg,${T.red}40,${T.red}20)`:T.accent;
+            const barBg=isUp?`linear-gradient(90deg,${T.green}60,${T.green}30)`:isDown?`linear-gradient(90deg,${T.red}60,${T.red}30)`:T.accentGradient;
             const barW=Math.max(4,Math.round((wk.vol/maxWeekVol)*100));
             const isThisWeek=i===0;
             return(
@@ -2519,7 +2520,7 @@ function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,n
         <div style={{marginBottom:22}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><span style={{fontSize:12,color:T.sub,fontWeight:500}}>Sleep Quality</span>{sleep>0&&<span style={{fontSize:12,color:T.green,fontWeight:600}}>{labels[sleep]}</span>}</div><div style={{display:"flex",gap:8}}>{[1,2,3,4,5].map(v=>rb(v,sleep,setSleep,T.green))}</div></div>
         <div style={{marginBottom:16}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Bodyweight (lb) — optional</div><input type="number" inputMode="decimal" step="0.1" value={bodyweight} onChange={e=>setBodyweight(e.target.value)} placeholder="e.g. 210" style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:16,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
         <div style={{marginBottom:24}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Notes — optional</div><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Felt strong, shoulder tight, etc." rows={2} style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:14,fontFamily:T.font,outline:"none",resize:"vertical"}} /></div>
-        <button onClick={onConfirm} style={{width:"100%",padding:14,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:8}}>Save Workout</button>
+        <button onClick={onConfirm} className="cta-btn" style={{width:"100%",padding:14,background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:8}}>Save Workout</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={onSkip} style={{flex:1,padding:12,background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:10,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Skip check-in</button>
           <button onClick={onCancel} style={{flex:1,padding:12,background:"transparent",border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
