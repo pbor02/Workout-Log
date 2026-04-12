@@ -201,9 +201,9 @@ function getShared(k) { try { var v = localStorage.getItem("wl_" + k); return v 
 function setShared(k, v) { try { localStorage.setItem("wl_" + k, JSON.stringify(v)); } catch(e) {} }
 
 const T = {
-  bg:"#09090b", surface:"#111113", surface2:"#1a1a1f", surface3:"#232329",
-  border:"#1f1f27", border2:"#2a2a33",
-  text:"#f5f5f5", sub:"#9ca3af", dim:"#4b5563",
+  bg:"rgba(7,4,16,0.94)", surface:"rgba(13,9,23,0.88)", surface2:"rgba(19,13,33,0.86)", surface3:"rgba(27,19,43,0.83)",
+  border:"#1e1230", border2:"#281843",
+  text:"#f0eaff", sub:"#a08cc0", dim:"#5a4878",
   accent:"#dc2626", accentDim:"#dc262618", accentLight:"#dc262608", accentGlow:"#dc262640",
   accentGradient:"linear-gradient(135deg,#dc2626,#9333ea)",
   spaceBg:"transparent",
@@ -2554,11 +2554,11 @@ function StarField() {
     ];
 
     function initStars(W, H) {
-      const n = Math.min(Math.floor(W * H / 2800), 280);
+      const n = Math.min(Math.floor(W * H / 2200), 320);
       return Array.from({length:n}, () => {
-        const big = Math.random() < 0.06;
-        const med = !big && Math.random() < 0.18;
-        const sz = big ? 1.6+Math.random()*1.4 : med ? 0.9+Math.random()*0.7 : 0.25+Math.random()*0.55;
+        const big = Math.random() < 0.025;
+        const med = !big && Math.random() < 0.10;
+        const sz = big ? 0.9+Math.random()*0.7 : med ? 0.5+Math.random()*0.4 : 0.12+Math.random()*0.28;
         return {
           x: Math.random()*W, y: Math.random()*H,
           sz,
@@ -2637,11 +2637,11 @@ function StarField() {
         const alpha = s.op*tw;
         const [r,g,b] = s.col;
 
-        // Glow halo for larger stars
-        if (s.sz > 0.85) {
-          const gr2 = s.sz*(s.sz>1.5 ? 14 : 7);
+        // Glow halo for the rare bright stars only
+        if (s.sz > 0.8) {
+          const gr2 = s.sz * 5;
           const grd = ctx.createRadialGradient(px,py,0,px,py,gr2);
-          grd.addColorStop(0, `rgba(${r},${g},${b},${alpha*0.55})`);
+          grd.addColorStop(0, `rgba(${r},${g},${b},${alpha*0.35})`);
           grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
           ctx.fillStyle = grd;
           ctx.fillRect(px-gr2, py-gr2, gr2*2, gr2*2);
