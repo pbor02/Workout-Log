@@ -219,7 +219,7 @@ const DIFF = { easy:{label:"Easy",color:"#22c55e",bg:"#22c55e0c",btnBg:"#22c55e1
 const CATEGORIES = ["Chest","Back","Shoulders","Biceps","Triceps","Legs","Calves","Core","Cardio","Other"];
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Orbitron:wght@700;800;900&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:${T.border2};border-radius:2px}
   input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -231,7 +231,7 @@ const css = `
   @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
   @keyframes cosmicPulse{0%,100%{box-shadow:0 0 0 0 #9333ea00}50%{box-shadow:0 0 18px 4px #9333ea28}}
   @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-  @keyframes digitAppear{0%{opacity:0;filter:blur(22px);transform:scale(1.14)}60%{opacity:1;filter:blur(2px)}100%{opacity:1;filter:blur(0);transform:scale(1)}}
+  @keyframes digitAppear{0%{opacity:0;filter:blur(8px)}100%{opacity:1;filter:blur(0)}}
   @keyframes urgentPulse{0%,100%{opacity:1;filter:drop-shadow(0 0 20px #dc262680)}50%{opacity:0.85;filter:drop-shadow(0 0 55px #ff440090)}}
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
   .bottom-nav{height:calc(60px + max(env(safe-area-inset-bottom,0px),16px))}
@@ -1116,10 +1116,11 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             <div
               key={`${Math.floor(timerRemaining/60)}:${String(timerRemaining%60).padStart(2,"0")}`}
               style={{
-                fontSize:108,fontWeight:800,letterSpacing:2,lineHeight:1,fontFamily:T.mono,
+                fontSize:100,fontWeight:800,letterSpacing:-2,lineHeight:1,
+                fontFamily:"'Orbitron',sans-serif",
                 background:timerRemaining<=10?"linear-gradient(135deg,#ff6060,#ffaa00)":"linear-gradient(135deg,#ffffff,#c4b5fd,#818cf8)",
                 WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
-                animation:timerRemaining<=10?"digitAppear 0.4s cubic-bezier(0.2,0,0.3,1), urgentPulse 1s ease-in-out infinite":"digitAppear 0.4s cubic-bezier(0.2,0,0.3,1)",
+                animation:timerRemaining<=10?"digitAppear 0.65s ease-out, urgentPulse 1s ease-in-out infinite":"digitAppear 0.65s ease-out",
               }}
             >{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</div>
             <div style={{fontSize:13,color:"rgba(160,140,192,0.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:280,margin:"18px auto 44px"}}>{activeEx||""}</div>
