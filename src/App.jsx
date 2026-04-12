@@ -235,7 +235,7 @@ const css = `
   @keyframes urgentPulse{0%,100%{opacity:1;filter:drop-shadow(0 0 20px #dc262680)}50%{opacity:0.85;filter:drop-shadow(0 0 55px #ff440090)}}
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
   .bottom-nav{height:calc(60px + max(env(safe-area-inset-bottom,0px),16px))}
-  input:focus{border-color:#dc2626!important;box-shadow:0 0 0 3px #dc262618!important}
+  input:focus{border-color:#9333ea!important;box-shadow:0 0 0 3px rgba(147,51,234,0.15)!important}
   button:active{transform:scale(0.97)}
   .cta-btn{background-size:200% 200%!important;animation:gradientShift 4s ease infinite}
 `;
@@ -1313,10 +1313,11 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                       </div>
                       {/* Difficulty + Log in one row */}
                       <div style={{marginTop:10,display:"flex",alignItems:"center",gap:6}}>
-                        {!exCardio&&<div style={{display:"flex",borderRadius:10,overflow:"hidden",border:`1px solid ${T.border2}`,background:T.bg}}>
-                          {Object.entries(DIFF).map(([k,v])=>(
-                            <button key={k} onClick={()=>setSelectedDiff(k)} style={{padding:"8px 14px",fontSize:12,fontWeight:selectedDiff===k?600:400,cursor:"pointer",fontFamily:T.font,background:selectedDiff===k?v.btnBg:"transparent",color:selectedDiff===k?v.color:T.dim,border:"none",borderRight:`1px solid ${T.border2}`}}>{v.label==="Just Right"?"👌 Right":v.label==="Easy"?"🟢 Easy":"🔴 Hard"}</button>
-                          ))}
+                        {!exCardio&&<div style={{display:"flex",gap:5,flex:1}}>
+                          {Object.entries(DIFF).map(([k,v])=>{
+                            const sel=selectedDiff===k;
+                            return <button key={k} onClick={()=>setSelectedDiff(k)} style={{flex:1,padding:"9px 6px",fontSize:11,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?v.btnBg:"rgba(255,255,255,0.03)",color:sel?v.color:"rgba(255,255,255,0.3)",border:sel?`1.5px solid ${v.color}55`:"1.5px solid rgba(255,255,255,0.07)",borderRadius:10,transition:"all .15s",boxShadow:sel?`0 0 10px ${v.color}30`:"none",letterSpacing:0.2}}>{k==="just_right"?"👌 Right":k==="easy"?"↑ Easy":"↓ Hard"}</button>;
+                          })}
                         </div>}
                         <button onClick={addOrUpdateSet} disabled={!reps||((!exCardio)&&!weight)} className={(!reps||((!exCardio)&&!weight))?"":"cta-btn"} style={{background:(!reps||((!exCardio)&&!weight))?T.surface3:T.accentGradient,color:(!reps||((!exCardio)&&!weight))?T.dim:"#fff",border:"none",padding:"10px 24px",borderRadius:10,fontSize:14,fontWeight:700,cursor:(!reps||((!exCardio)&&!weight))?"default":"pointer",fontFamily:T.font,marginLeft:"auto",boxShadow:(!reps||((!exCardio)&&!weight))?"none":"0 2px 16px #9333ea40"}}>{editIdx!==null?"Update":"Log"}</button>
                       </div>
