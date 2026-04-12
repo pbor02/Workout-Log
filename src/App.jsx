@@ -228,9 +228,11 @@ const css = `
   @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+  @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
   @keyframes cosmicPulse{0%,100%{box-shadow:0 0 0 0 #9333ea00}50%{box-shadow:0 0 18px 4px #9333ea28}}
   @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  @keyframes digitAppear{0%{opacity:0;filter:blur(22px);transform:scale(1.14)}60%{opacity:1;filter:blur(2px)}100%{opacity:1;filter:blur(0);transform:scale(1)}}
+  @keyframes urgentPulse{0%,100%{opacity:1;filter:drop-shadow(0 0 20px #dc262680)}50%{opacity:0.85;filter:drop-shadow(0 0 55px #ff440090)}}
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
   .bottom-nav{height:calc(60px + max(env(safe-area-inset-bottom,0px),16px))}
   input:focus{border-color:#dc2626!important;box-shadow:0 0 0 3px #dc262618!important}
@@ -1100,19 +1102,46 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ TIMER — FULL or MINIMIZED ═══ */}
       {timerActive && !timerMinimized && (
-        <div style={{position:"fixed",inset:0,zIndex:150,background:T.timerBg,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s",backgroundImage:"radial-gradient(ellipse 80% 50% at 50% 0%, #2d0a5020 0%, transparent 70%)"}}>
-          <div style={{textAlign:"center",width:"100%",maxWidth:400,padding:"0 24px"}}>
-            <div style={{marginBottom:20}}><div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden",maxWidth:300,margin:"0 auto"}}><div style={{height:"100%",width:`${100-timerPct}%`,background:`linear-gradient(90deg, ${T.accent}, #9333ea, ${T.yellow})`,backgroundSize:"200% 100%",animation:"gradientShift 3s ease infinite",transition:"width 1s linear",borderRadius:3}} /></div></div>
-            <div style={{fontSize:12,letterSpacing:8,marginBottom:16,fontWeight:700,background:T.accentGradient,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>REST</div>
-            <div style={{fontSize:96,fontWeight:800,letterSpacing:2,color:timerRemaining<=10?T.accent:T.text,lineHeight:1,animation:timerRemaining<=10?"timerPulse 1s infinite":"none",fontFamily:T.mono,textShadow:timerRemaining<=10?"0 0 40px #dc262660":"0 0 40px #9333ea30"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</div>
-            <div style={{fontSize:13,color:T.dim,marginTop:16,marginBottom:36,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:300,margin:"16px auto 36px"}}>{activeEx||""}</div>
+        <div style={{position:"fixed",inset:0,zIndex:150,background:"rgba(4,1,12,0.97)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .3s"}}>
+          {/* Nebula atmosphere */}
+          <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 90% 70% at 50% 45%, rgba(147,51,234,0.13) 0%, rgba(56,189,248,0.05) 55%, transparent 80%)",pointerEvents:"none"}} />
+          {/* Particle dust canvas */}
+          <TimerParticles remaining={timerRemaining} />
+          {/* Circular progress arc */}
+          <svg style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:320,height:320,pointerEvents:"none"}} viewBox="0 0 320 320">
+            <defs>
+              <linearGradient id="arcGrad" gradientUnits="userSpaceOnUse" x1="160" y1="10" x2="160" y2="310">
+                <stop offset="0%" stopColor={timerRemaining<=10?"#ff4040":"#9333ea"} />
+                <stop offset="100%" stopColor={timerRemaining<=10?"#ff9900":"#38bdf8"} />
+              </linearGradient>
+            </defs>
+            <circle cx="160" cy="160" r="145" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="2"/>
+            <circle cx="160" cy="160" r="145" fill="none" stroke="url(#arcGrad)" strokeWidth="3" strokeLinecap="round"
+              strokeDasharray={`${2*Math.PI*145}`}
+              strokeDashoffset={`${(timerPct/100)*2*Math.PI*145}`}
+              transform="rotate(-90 160 160)"
+              style={{transition:"stroke-dashoffset 1s linear,stroke .5s"}}
+            />
+          </svg>
+          <div style={{textAlign:"center",width:"100%",maxWidth:400,padding:"0 24px",position:"relative",zIndex:1}}>
+            <div style={{fontSize:11,letterSpacing:10,fontWeight:700,marginBottom:24,background:"linear-gradient(90deg,#dc2626,#c026d3,#38bdf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>REST</div>
+            <div
+              key={`${Math.floor(timerRemaining/60)}:${String(timerRemaining%60).padStart(2,"0")}`}
+              style={{
+                fontSize:108,fontWeight:800,letterSpacing:2,lineHeight:1,fontFamily:T.mono,
+                background:timerRemaining<=10?"linear-gradient(135deg,#ff6060,#ffaa00)":"linear-gradient(135deg,#ffffff,#c4b5fd,#818cf8)",
+                WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
+                animation:timerRemaining<=10?"digitAppear 0.4s cubic-bezier(0.2,0,0.3,1), urgentPulse 1s ease-in-out infinite":"digitAppear 0.4s cubic-bezier(0.2,0,0.3,1)",
+              }}
+            >{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</div>
+            <div style={{fontSize:13,color:"rgba(160,140,192,0.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:280,margin:"18px auto 44px"}}>{activeEx||""}</div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-              <button onClick={()=>setTimerDuration(p=>Math.max(5,p-15))} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>−15s</button>
-              <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} className="cta-btn" style={{background:T.accentGradient,border:"none",color:"#fff",padding:"14px 36px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 20px #9333ea40"}}>Skip — Go</button>
-              <button onClick={()=>setTimerDuration(p=>p+15)} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>+15s</button>
+              <button onClick={()=>setTimerDuration(p=>Math.max(5,p-15))} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.10)",color:"rgba(200,180,240,0.7)",padding:"14px 18px",borderRadius:12,fontSize:13,cursor:"pointer",fontFamily:T.font,backdropFilter:"blur(8px)"}}>−15s</button>
+              <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} className="cta-btn" style={{background:T.accentGradient,border:"none",color:"#fff",padding:"14px 40px",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 28px rgba(147,51,234,0.55)"}}>Skip — Go</button>
+              <button onClick={()=>setTimerDuration(p=>p+15)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.10)",color:"rgba(200,180,240,0.7)",padding:"14px 18px",borderRadius:12,fontSize:13,cursor:"pointer",fontFamily:T.font,backdropFilter:"blur(8px)"}}>+15s</button>
             </div>
             <div style={{display:"flex",justifyContent:"center",marginTop:16}}>
-              <button onClick={()=>setTimerMinimized(true)} style={{background:"transparent",border:`1px solid ${T.border}`,color:T.dim,padding:"10px 28px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Minimize</button>
+              <button onClick={()=>setTimerMinimized(true)} style={{background:"transparent",border:"1px solid rgba(255,255,255,0.08)",color:"rgba(160,140,192,0.5)",padding:"10px 28px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Minimize</button>
             </div>
           </div>
         </div>
@@ -2725,6 +2754,82 @@ function StarField() {
       window.removeEventListener('touchend',   onUp);
       window.removeEventListener('resize',     resize);
     };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",display:"block"}} />;
+}
+
+// ─── TIMER PARTICLES ─────────────────────────────────────────────────────────
+function TimerParticles({remaining}) {
+  const canvasRef = useRef(null);
+  const rafRef = useRef(null);
+  const stateRef = useRef({particles:[], lastSec:-1});
+  const remRef = useRef(remaining);
+  useEffect(() => { remRef.current = remaining; }, [remaining]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const setSize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    setSize();
+    window.addEventListener('resize', setSize);
+
+    function spawnBurst() {
+      const W = canvas.width, H = canvas.height;
+      const cx = W * 0.5, cy = H * 0.44;
+      const rem = remRef.current;
+      const urgent = rem <= 10;
+      const count = urgent ? 70 : 45;
+      const COLS = urgent
+        ? [[255,80,60],[255,160,20],[220,38,38],[255,220,80]]
+        : [[147,51,234],[56,189,248],[200,170,255],[255,255,255],[192,132,252]];
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.5 + Math.random() * (urgent ? 4.5 : 3);
+        const col = COLS[Math.floor(Math.random() * COLS.length)];
+        stateRef.current.particles.push({
+          x: cx + (Math.random()-0.5)*(urgent?280:240),
+          y: cy + (Math.random()-0.5)*(urgent?120:90),
+          vx: Math.cos(angle)*speed,
+          vy: Math.sin(angle)*speed - 0.8,
+          sz: 0.4 + Math.random()*(urgent?3.2:2.2),
+          life: 0.65 + Math.random()*0.35,
+          decay: 0.009 + Math.random()*0.014,
+          col,
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const sec = Math.floor(remRef.current);
+      if (sec !== stateRef.current.lastSec && remRef.current > 0) {
+        stateRef.current.lastSec = sec;
+        spawnBurst();
+      }
+      const S = stateRef.current;
+      S.particles = S.particles.filter(p => p.life > 0);
+      for (const p of S.particles) {
+        p.x += p.vx; p.y += p.vy;
+        p.vx *= 0.97; p.vy = p.vy * 0.97 - 0.025;
+        p.life -= p.decay;
+        if (p.life <= 0) continue;
+        const [r,g,b] = p.col;
+        if (p.sz > 1.2) {
+          const gr = p.sz * 4;
+          const grd = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,gr);
+          grd.addColorStop(0, `rgba(${r},${g},${b},${p.life*0.45})`);
+          grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
+          ctx.fillStyle = grd; ctx.fillRect(p.x-gr, p.y-gr, gr*2, gr*2);
+        }
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.sz, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(${r},${g},${b},${p.life})`; ctx.fill();
+      }
+      rafRef.current = requestAnimationFrame(draw);
+    }
+
+    draw();
+    return () => { cancelAnimationFrame(rafRef.current); window.removeEventListener('resize', setSize); };
   }, []);
 
   return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",display:"block"}} />;
