@@ -1102,29 +1102,17 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ TIMER — FULL or MINIMIZED ═══ */}
       {timerActive && !timerMinimized && (
-        <div style={{position:"fixed",inset:0,zIndex:150,background:"rgba(4,1,12,0.97)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .3s"}}>
-          {/* Nebula atmosphere */}
-          <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 90% 70% at 50% 45%, rgba(147,51,234,0.13) 0%, rgba(56,189,248,0.05) 55%, transparent 80%)",pointerEvents:"none"}} />
-          {/* Particle dust canvas */}
+        <div style={{position:"fixed",inset:0,zIndex:150,background:"#05020f",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .3s"}}>
+          {/* Subtle nebula bleed */}
+          <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 70% 55% at 50% 45%, rgba(147,51,234,0.10) 0%, transparent 70%)",pointerEvents:"none"}} />
+          {/* Particle dust */}
           <TimerParticles remaining={timerRemaining} />
-          {/* Circular progress arc */}
-          <svg style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:320,height:320,pointerEvents:"none"}} viewBox="0 0 320 320">
-            <defs>
-              <linearGradient id="arcGrad" gradientUnits="userSpaceOnUse" x1="160" y1="10" x2="160" y2="310">
-                <stop offset="0%" stopColor={timerRemaining<=10?"#ff4040":"#9333ea"} />
-                <stop offset="100%" stopColor={timerRemaining<=10?"#ff9900":"#38bdf8"} />
-              </linearGradient>
-            </defs>
-            <circle cx="160" cy="160" r="145" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="2"/>
-            <circle cx="160" cy="160" r="145" fill="none" stroke="url(#arcGrad)" strokeWidth="3" strokeLinecap="round"
-              strokeDasharray={`${2*Math.PI*145}`}
-              strokeDashoffset={`${(timerPct/100)*2*Math.PI*145}`}
-              transform="rotate(-90 160 160)"
-              style={{transition:"stroke-dashoffset 1s linear,stroke .5s"}}
-            />
-          </svg>
-          <div style={{textAlign:"center",width:"100%",maxWidth:400,padding:"0 24px",position:"relative",zIndex:1}}>
-            <div style={{fontSize:11,letterSpacing:10,fontWeight:700,marginBottom:24,background:"linear-gradient(90deg,#dc2626,#c026d3,#38bdf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>REST</div>
+          <div style={{textAlign:"center",width:"100%",maxWidth:400,padding:"0 32px",position:"relative",zIndex:1}}>
+            {/* Thin progress bar — minimal, at top of content */}
+            <div style={{height:2,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden",maxWidth:200,margin:"0 auto 40px"}}>
+              <div style={{height:"100%",width:`${100-timerPct}%`,background:timerRemaining<=10?"linear-gradient(90deg,#ff4040,#ff9900)":"linear-gradient(90deg,#9333ea,#38bdf8)",transition:"width 1s linear",borderRadius:2}} />
+            </div>
+            <div style={{fontSize:11,letterSpacing:10,fontWeight:700,marginBottom:20,background:"linear-gradient(90deg,#9333ea,#38bdf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>REST</div>
             <div
               key={`${Math.floor(timerRemaining/60)}:${String(timerRemaining%60).padStart(2,"0")}`}
               style={{
@@ -2779,7 +2767,7 @@ function TimerParticles({remaining}) {
       const cx = W * 0.5, cy = H * 0.44;
       const rem = remRef.current;
       const urgent = rem <= 10;
-      const count = urgent ? 70 : 45;
+      const count = urgent ? 40 : 25;
       const COLS = urgent
         ? [[255,80,60],[255,160,20],[220,38,38],[255,220,80]]
         : [[147,51,234],[56,189,248],[200,170,255],[255,255,255],[192,132,252]];
