@@ -1136,12 +1136,15 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
         </div>
       )}
       {timerActive && timerMinimized && (
-        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:timerRemaining<=10?T.accent:T.surface2,borderBottom:`1.5px solid ${timerRemaining<=10?"#0003":T.accent}`,padding:"8px 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",animation:"slideIn .2s ease",maxWidth:540,margin:"0 auto"}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:timerRemaining<=10?"#000":T.accent,animation:"pulse 1s infinite",flexShrink:0}} />
-          <span style={{color:timerRemaining<=10?"#000":T.text,fontSize:13,fontWeight:600,fontFamily:T.font,whiteSpace:"nowrap"}}>REST</span>
-          {activeEx&&<span style={{color:timerRemaining<=10?"#000a":T.dim,fontSize:12,fontFamily:T.font,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{activeEx}</span>}
-          <span style={{color:timerRemaining<=10?"#000":T.accent,fontSize:18,fontWeight:800,fontFamily:T.mono,whiteSpace:"nowrap",marginLeft:"auto"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</span>
-          <span style={{color:timerRemaining<=10?"#000":T.dim,fontSize:11}}>▼</span>
+        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(5,2,15,0.92)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",padding:"0 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",animation:"slideIn .2s ease",maxWidth:540,margin:"0 auto",overflow:"hidden"}}>
+          {/* Progress fill behind everything */}
+          <div style={{position:"absolute",inset:0,width:`${100-timerPct}%`,background:timerRemaining<=10?"linear-gradient(90deg,rgba(220,38,38,0.18),rgba(255,100,0,0.10))":"linear-gradient(90deg,rgba(147,51,234,0.18),rgba(56,189,248,0.08))",transition:"width 1s linear",pointerEvents:"none"}} />
+          {/* Pulse dot */}
+          <div style={{width:6,height:6,borderRadius:"50%",background:timerRemaining<=10?"#ff4040":"#9333ea",boxShadow:timerRemaining<=10?"0 0 8px #ff4040":"0 0 8px #9333ea",animation:"pulse 1s infinite",flexShrink:0,position:"relative"}} />
+          <span style={{fontSize:11,fontWeight:700,letterSpacing:4,color:"rgba(200,170,255,0.8)",whiteSpace:"nowrap",position:"relative"}}>REST</span>
+          {activeEx&&<span style={{fontSize:12,color:"rgba(160,130,210,0.55)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",position:"relative"}}>{activeEx}</span>}
+          <span style={{fontSize:17,fontWeight:800,fontFamily:"'Orbitron',sans-serif",whiteSpace:"nowrap",marginLeft:"auto",position:"relative",background:timerRemaining<=10?"linear-gradient(135deg,#ff6060,#ffaa00)":"linear-gradient(135deg,#fff,#c4b5fd)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",padding:"10px 0"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</span>
+          <span style={{fontSize:10,color:"rgba(147,51,234,0.6)",position:"relative"}}>▼</span>
         </div>
       )}
 
