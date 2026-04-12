@@ -206,13 +206,13 @@ const T = {
   text:"#f5f5f5", sub:"#9ca3af", dim:"#4b5563",
   accent:"#dc2626", accentDim:"#dc262618", accentLight:"#dc262608", accentGlow:"#dc262640",
   accentGradient:"linear-gradient(135deg,#dc2626,#9333ea)",
-  spaceBg:"radial-gradient(ellipse 120% 45% at 50% -5%, #1e0533 0%, #0d0a1a 40%, #09090b 70%)",
+  spaceBg:"transparent",
   green:"#22c55e", greenBg:"#22c55e12", yellow:"#eab308", yellowBg:"#eab30812",
   red:"#ef4444", redBg:"#ef444412",
   font:"'Geist','SF Pro Display',-apple-system,sans-serif",
   display:"'Geist','SF Pro Display',-apple-system,sans-serif",
   mono:"'Geist Mono','SF Mono','Menlo',monospace",
-  timerBg:"rgba(8,4,18,0.97)",
+  timerBg:"rgba(5,2,14,0.96)",
 };
 
 const DIFF = { easy:{label:"Easy",color:"#22c55e",bg:"#22c55e0c",btnBg:"#22c55e18",icon:"\u2191"}, just_right:{label:"Just Right",color:"#eab308",bg:"#eab3080c",btnBg:"#eab30818",icon:"\u2022"}, hard:{label:"Hard",color:"#ef4444",bg:"#ef44440c",btnBg:"#ef444418",icon:"\u2193"} };
@@ -1063,8 +1063,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   return (
     <>
-    <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
-    <div className="app-wrap" style={{height:"100dvh",maxWidth:540,margin:"0 auto",background:T.spaceBg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <StarField />
+    <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:"#05020f",alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
+    <div className="app-wrap" style={{height:"100dvh",maxWidth:540,margin:"0 auto",background:T.spaceBg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",zIndex:1}}>
       <style>{css}</style>
       {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.surface,color:T.text,border:`1px solid ${T.border2}`,padding:"10px 24px",borderRadius:100,fontSize:13,fontWeight:600,zIndex:200,animation:"slideIn .25s",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",fontFamily:T.font,whiteSpace:"nowrap"}}>{toast}</div>}
 
@@ -2526,4 +2527,204 @@ function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,n
       </div>
     </div>
   );
+}
+
+// ─── STAR FIELD ───────────────────────────────────────────────────────────────
+function StarField() {
+  const canvasRef = React.useRef(null);
+  const stateRef = React.useRef({stars:[], shoots:[], ripples:[], mouse:{x:-9999,y:-9999,on:false}});
+  const rafRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    const STAR_COLORS = [
+      [255,255,255],[210,225,255],[255,240,210],[255,200,170],[190,210,255]
+    ];
+
+    const NEBULAS = [
+      {x:0.18,y:0.12,rx:0.65,ry:0.45,color:[130,30,220],a:0.28},
+      {x:0.80,y:0.22,rx:0.55,ry:0.40,color:[220,38,38], a:0.22},
+      {x:0.50,y:0.70,rx:0.60,ry:0.50,color:[40,80,230],  a:0.22},
+      {x:0.12,y:0.78,rx:0.45,ry:0.38,color:[236,60,150], a:0.18},
+      {x:0.88,y:0.65,rx:0.40,ry:0.35,color:[0,190,220],  a:0.16},
+      {x:0.55,y:0.38,rx:0.35,ry:0.30,color:[170,100,255],a:0.14},
+      {x:0.30,y:0.50,rx:0.30,ry:0.25,color:[255,120,50], a:0.10},
+    ];
+
+    function initStars(W, H) {
+      const n = Math.min(Math.floor(W * H / 2800), 280);
+      return Array.from({length:n}, () => {
+        const big = Math.random() < 0.06;
+        const med = !big && Math.random() < 0.18;
+        const sz = big ? 1.6+Math.random()*1.4 : med ? 0.9+Math.random()*0.7 : 0.25+Math.random()*0.55;
+        return {
+          x: Math.random()*W, y: Math.random()*H,
+          sz,
+          op: 0.35+Math.random()*0.65,
+          col: STAR_COLORS[Math.floor(Math.random()*STAR_COLORS.length)],
+          vx: (Math.random()-0.5)*0.10,
+          vy: (Math.random()-0.5)*0.10,
+          tw: Math.random()*Math.PI*2,
+          twS: 0.008+Math.random()*0.035,
+          ox:0, oy:0, ovx:0, ovy:0,
+        };
+      });
+    }
+
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      stateRef.current.stars = initStars(canvas.width, canvas.height);
+    }
+
+    function draw() {
+      const W = canvas.width, H = canvas.height;
+      const S = stateRef.current;
+
+      // Deep space base
+      ctx.fillStyle = '#05020f';
+      ctx.fillRect(0, 0, W, H);
+
+      // Nebula clouds — screen blending for luminous additive colour
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (const n of NEBULAS) {
+        const cx = n.x*W, cy = n.y*H;
+        const rx = n.rx*Math.max(W,H), ry = n.ry*Math.max(W,H);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(1, ry/rx);
+        const g = ctx.createRadialGradient(0,0,0, 0,0,rx);
+        const [r,gr,b] = n.color;
+        g.addColorStop(0,   `rgba(${r},${gr},${b},${n.a})`);
+        g.addColorStop(0.35,`rgba(${r},${gr},${b},${n.a*0.55})`);
+        g.addColorStop(0.70,`rgba(${r},${gr},${b},${n.a*0.18})`);
+        g.addColorStop(1,   `rgba(${r},${gr},${b},0)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(-rx, -rx, rx*2, rx*2);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Stars
+      const m = S.mouse;
+      for (const s of S.stars) {
+        s.tw += s.twS;
+        const tw = 0.60+0.40*Math.sin(s.tw);
+
+        s.x += s.vx; s.y += s.vy;
+        if (s.x < -4) s.x = W+4;
+        if (s.x > W+4) s.x = -4;
+        if (s.y < -4) s.y = H+4;
+        if (s.y > H+4) s.y = -4;
+
+        if (m.on) {
+          const dx = s.x - m.x, dy = s.y - m.y;
+          const d2 = dx*dx + dy*dy, R = 110;
+          if (d2 < R*R && d2 > 0.01) {
+            const d = Math.sqrt(d2);
+            const f = (1-d/R)*1.8;
+            s.ovx += (dx/d)*f; s.ovy += (dy/d)*f;
+          }
+        }
+        s.ovx *= 0.86; s.ovy *= 0.86;
+        s.ox = (s.ox + s.ovx)*0.90;
+        s.oy = (s.oy + s.ovy)*0.90;
+
+        const px = s.x+s.ox, py = s.y+s.oy;
+        const alpha = s.op*tw;
+        const [r,g,b] = s.col;
+
+        // Glow halo for larger stars
+        if (s.sz > 0.85) {
+          const gr2 = s.sz*(s.sz>1.5 ? 14 : 7);
+          const grd = ctx.createRadialGradient(px,py,0,px,py,gr2);
+          grd.addColorStop(0, `rgba(${r},${g},${b},${alpha*0.55})`);
+          grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
+          ctx.fillStyle = grd;
+          ctx.fillRect(px-gr2, py-gr2, gr2*2, gr2*2);
+        }
+
+        ctx.beginPath();
+        ctx.arc(px, py, s.sz, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+        ctx.fill();
+      }
+
+      // Shooting stars
+      if (Math.random() < 0.004) {
+        S.shoots.push({
+          x: Math.random()*W*0.8, y: Math.random()*H*0.4,
+          vx: 7+Math.random()*8, vy: 3+Math.random()*5,
+          life:1, trail:[]
+        });
+      }
+      S.shoots = S.shoots.filter(s => s.life > 0);
+      for (const s of S.shoots) {
+        s.trail.push({x:s.x, y:s.y});
+        if (s.trail.length > 14) s.trail.shift();
+        s.x += s.vx; s.y += s.vy;
+        s.life -= 0.045;
+        if (s.x > W+60 || s.y > H+60) s.life = 0;
+        for (let i=0; i<s.trail.length; i++) {
+          const p = s.trail[i];
+          const a = (i/s.trail.length)*s.life*0.9;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 1.2*(i/s.trail.length), 0, Math.PI*2);
+          ctx.fillStyle = `rgba(255,255,255,${a})`;
+          ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 2, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,255,255,${s.life})`;
+        ctx.fill();
+      }
+
+      // Touch ripples
+      S.ripples = S.ripples.filter(r => r.life > 0);
+      for (const r of S.ripples) {
+        r.radius += 2.8; r.life -= 0.032;
+        const a = r.life*0.55;
+        ctx.beginPath(); ctx.arc(r.x, r.y, r.radius, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(180,80,255,${a})`; ctx.lineWidth = 1.5; ctx.stroke();
+        if (r.radius > 18) {
+          ctx.beginPath(); ctx.arc(r.x, r.y, r.radius-16, 0, Math.PI*2);
+          ctx.strokeStyle = `rgba(220,60,60,${a*0.55})`; ctx.lineWidth = 1; ctx.stroke();
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
+    }
+
+    const pos = e => e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY};
+    const onMove  = e => { const p=pos(e); stateRef.current.mouse={...p, on:true}; };
+    const onDown  = e => { const p=pos(e); stateRef.current.mouse={...p, on:true}; stateRef.current.ripples.push({x:p.x,y:p.y,radius:4,life:1}); };
+    const onUp    = () => { stateRef.current.mouse.on=false; };
+
+    window.addEventListener('mousemove',  onMove);
+    window.addEventListener('mousedown',  onDown);
+    window.addEventListener('mouseup',    onUp);
+    window.addEventListener('touchmove',  onMove, {passive:true});
+    window.addEventListener('touchstart', onDown, {passive:true});
+    window.addEventListener('touchend',   onUp);
+    window.addEventListener('resize',     resize);
+
+    resize();
+    draw();
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('mousemove',  onMove);
+      window.removeEventListener('mousedown',  onDown);
+      window.removeEventListener('mouseup',    onUp);
+      window.removeEventListener('touchmove',  onMove);
+      window.removeEventListener('touchstart', onDown);
+      window.removeEventListener('touchend',   onUp);
+      window.removeEventListener('resize',     resize);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",display:"block"}} />;
 }
