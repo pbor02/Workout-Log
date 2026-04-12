@@ -2531,11 +2531,11 @@ function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,n
 
 // ─── STAR FIELD ───────────────────────────────────────────────────────────────
 function StarField() {
-  const canvasRef = React.useRef(null);
-  const stateRef = React.useRef({stars:[], shoots:[], ripples:[], mouse:{x:-9999,y:-9999,on:false}});
-  const rafRef = React.useRef(null);
+  const canvasRef = useRef(null);
+  const stateRef = useRef({stars:[], shoots:[], ripples:[], mouse:{x:-9999,y:-9999,on:false}});
+  const rafRef = useRef(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
