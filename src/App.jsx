@@ -201,25 +201,25 @@ function getShared(k) { try { var v = localStorage.getItem("wl_" + k); return v 
 function setShared(k, v) { try { localStorage.setItem("wl_" + k, JSON.stringify(v)); } catch(e) {} }
 
 const T = {
-  bg:"#09090b", surface:"#111113", surface2:"#1a1a1f", surface3:"#232329",
-  border:"#1f1f27", border2:"#2a2a33",
-  text:"#f5f5f5", sub:"#9ca3af", dim:"#4b5563",
+  bg:"rgba(7,4,16,0.94)", surface:"rgba(13,9,23,0.88)", surface2:"rgba(19,13,33,0.86)", surface3:"rgba(27,19,43,0.83)",
+  border:"#1e1230", border2:"#281843",
+  text:"#f0eaff", sub:"#a08cc0", dim:"#5a4878",
   accent:"#dc2626", accentDim:"#dc262618", accentLight:"#dc262608", accentGlow:"#dc262640",
   accentGradient:"linear-gradient(135deg,#dc2626,#9333ea)",
-  spaceBg:"radial-gradient(ellipse 120% 45% at 50% -5%, #1e0533 0%, #0d0a1a 40%, #09090b 70%)",
+  spaceBg:"transparent",
   green:"#22c55e", greenBg:"#22c55e12", yellow:"#eab308", yellowBg:"#eab30812",
   red:"#ef4444", redBg:"#ef444412",
   font:"'Geist','SF Pro Display',-apple-system,sans-serif",
   display:"'Geist','SF Pro Display',-apple-system,sans-serif",
   mono:"'Geist Mono','SF Mono','Menlo',monospace",
-  timerBg:"rgba(8,4,18,0.97)",
+  timerBg:"rgba(5,2,14,0.96)",
 };
 
 const DIFF = { easy:{label:"Easy",color:"#22c55e",bg:"#22c55e0c",btnBg:"#22c55e18",icon:"\u2191"}, just_right:{label:"Just Right",color:"#eab308",bg:"#eab3080c",btnBg:"#eab30818",icon:"\u2022"}, hard:{label:"Hard",color:"#ef4444",bg:"#ef44440c",btnBg:"#ef444418",icon:"\u2193"} };
 const CATEGORIES = ["Chest","Back","Shoulders","Biceps","Triceps","Legs","Calves","Core","Cardio","Other"];
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Orbitron:wght@700;800;900&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:${T.border2};border-radius:2px}
   input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -228,9 +228,11 @@ const css = `
   @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+  @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
   @keyframes cosmicPulse{0%,100%{box-shadow:0 0 0 0 #9333ea00}50%{box-shadow:0 0 18px 4px #9333ea28}}
   @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  @keyframes digitAppear{0%{opacity:0;filter:blur(8px)}100%{opacity:1;filter:blur(0)}}
+  @keyframes urgentPulse{0%,100%{opacity:1;filter:drop-shadow(0 0 20px #dc262680)}50%{opacity:0.85;filter:drop-shadow(0 0 55px #ff440090)}}
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
   .bottom-nav{height:calc(60px + max(env(safe-area-inset-bottom,0px),16px))}
   input:focus{border-color:#dc2626!important;box-shadow:0 0 0 3px #dc262618!important}
@@ -312,7 +314,7 @@ export default function App() {
               <div><div style={{fontSize:14,fontWeight:600,marginBottom:2}}>Tap Add</div><div style={{fontSize:12,color:T.sub}}>Confirm and the app icon will appear on your Home Screen.</div></div>
             </div>
           </div>
-          <button onClick={()=>dismissInstallGuide(true)} style={{width:"100%",padding:"15px",background:`linear-gradient(135deg,${T.accent},#991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>Got it</button>
+          <button onClick={()=>dismissInstallGuide(true)} style={{width:"100%",padding:"15px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:10}}>Got it</button>
           <button onClick={()=>dismissInstallGuide(false)} style={{width:"100%",padding:"12px",background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Remind me later</button>
         </div>
       </div>
@@ -375,7 +377,7 @@ function ProfileScreen({onSelect}) {
   }
 
   const inp = (extra) => ({width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"14px 16px",borderRadius:10,fontSize:16,fontFamily:T.font,outline:"none",...extra});
-  const btnPrimary = (disabled) => ({width:"100%",padding:"16px",background:disabled?T.surface3:`linear-gradient(135deg,${T.accent},#991b1b)`,color:disabled?T.dim:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:disabled?"default":"pointer",fontFamily:T.font,boxShadow:disabled?"none":"0 4px 24px #dc262640",marginTop:28});
+  const btnPrimary = (disabled) => ({width:"100%",padding:"16px",background:disabled?T.surface3:T.accentGradient,color:disabled?T.dim:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:disabled?"default":"pointer",fontFamily:T.font,boxShadow:disabled?"none":"0 4px 24px #9333ea40",marginTop:28});
   const wrap = {minHeight:"100vh",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"48px 24px 48px"};
   const inner = {width:"100%",maxWidth:420};
 
@@ -383,7 +385,7 @@ function ProfileScreen({onSelect}) {
     <div style={wrap}>
       <style>{css}</style>
       <div style={inner}>
-        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:40,letterSpacing:2,lineHeight:1,marginBottom:4}}><span style={{color:T.accent}}>Workout</span><span style={{color:T.text}}> Log</span></div>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:40,letterSpacing:2,lineHeight:1,marginBottom:4,background:"linear-gradient(100deg,#dc2626,#c026d3,#818cf8,#38bdf8,#9333ea,#dc2626)",backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"gradientShift 6s ease infinite"}}>Workout Log</div>
         <div style={{fontSize:13,color:T.dim,marginBottom:40}}>Choose your profile</div>
         {profiles.map(p=>(
           <div key={p.id} style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:14,padding:"20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -412,7 +414,7 @@ function ProfileScreen({onSelect}) {
       <style>{css}</style>
       <div style={inner}>
         <div style={{display:"flex",gap:6,marginBottom:40}}>
-          {[1,2,3].map(s=><div key={s} style={{height:3,flex:1,background:s<=step?T.accent:T.surface2,borderRadius:2,transition:"background .3s"}} />)}
+          {[1,2,3].map(s=><div key={s} style={{height:3,flex:1,background:s<=step?T.accentGradient:T.surface2,borderRadius:2,transition:"background .3s"}} />)}
         </div>
 
         {step===1&&(<>
@@ -456,7 +458,7 @@ function ProfileScreen({onSelect}) {
           })}
           <div style={{display:"flex",gap:10,marginTop:24}}>
             <button onClick={()=>setStep(1)} style={{flex:1,padding:"14px",background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:T.font}}>← Back</button>
-            <button onClick={()=>setStep(3)} style={{flex:2,padding:"14px",background:`linear-gradient(135deg,${T.accent},#991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Next →</button>
+            <button onClick={()=>setStep(3)} style={{flex:2,padding:"14px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Next →</button>
           </div>
         </>)}
 
@@ -488,7 +490,7 @@ function ProfileScreen({onSelect}) {
                       <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={newExReps} onChange={e=>setNewExReps(e.target.value)} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                     </div>
                     <div style={{display:"flex",gap:8}}>
-                      <button onClick={()=>addWizardExercise(d)} disabled={!newExName.trim()} style={{flex:1,padding:"9px",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                      <button onClick={()=>addWizardExercise(d)} disabled={!newExName.trim()} style={{flex:1,padding:"9px",background:!newExName.trim()?T.surface3:T.accentGradient,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                       <button onClick={()=>{setAddingExForDay(null);setNewExName("");setNewExSets("3");setNewExReps("10-12");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                     </div>
                   </div>
@@ -500,7 +502,7 @@ function ProfileScreen({onSelect}) {
           })}
           <div style={{display:"flex",gap:10,marginTop:8}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"14px",background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:T.font}}>← Back</button>
-            <button onClick={finishWizard} style={{flex:2,padding:"14px",background:`linear-gradient(135deg,${T.accent},#991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish ✓</button>
+            <button onClick={finishWizard} style={{flex:2,padding:"14px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish ✓</button>
           </div>
         </>)}
       </div>
@@ -517,7 +519,7 @@ function ProfileRestEdit({profile, onSave, T}) {
   return (
     <div style={{display:"flex",gap:8}}>
       <input type="number" value={val} onChange={e=>setVal(e.target.value)} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"10px 14px",borderRadius:10,fontSize:15,fontFamily:T.font,outline:"none"}} />
-      <button onClick={()=>{const t=Math.max(10,parseInt(val)||90);const updated={...profile,restTime:t};const profiles=(getShared("profiles")||[]).map(p=>p.id===profile.id?updated:p);setShared("profiles",profiles);onSave(updated);setEditing(false);}} style={{background:T.accent,border:"none",color:"#fff",padding:"10px 18px",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save</button>
+      <button onClick={()=>{const t=Math.max(10,parseInt(val)||90);const updated={...profile,restTime:t};const profiles=(getShared("profiles")||[]).map(p=>p.id===profile.id?updated:p);setShared("profiles",profiles);onSave(updated);setEditing(false);}} style={{background:T.accentGradient,border:"none",color:"#fff",padding:"10px 18px",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save</button>
     </div>
   );
 }
@@ -1063,8 +1065,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   return (
     <>
-    <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
-    <div className="app-wrap" style={{height:"100dvh",maxWidth:540,margin:"0 auto",background:T.spaceBg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <StarField />
+    <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:"#05020f",alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
+    <div className="app-wrap" style={{height:"100dvh",maxWidth:540,margin:"0 auto",background:T.spaceBg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",zIndex:1}}>
       <style>{css}</style>
       {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.surface,color:T.text,border:`1px solid ${T.border2}`,padding:"10px 24px",borderRadius:100,fontSize:13,fontWeight:600,zIndex:200,animation:"slideIn .25s",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",fontFamily:T.font,whiteSpace:"nowrap"}}>{toast}</div>}
 
@@ -1089,7 +1092,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           />
           <div style={{display:"flex",gap:10,padding:"12px 16px 32px",flexShrink:0,borderTop:"1px solid "+T.border}}>
             <button onClick={()=>setShowPlanEditor(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
-            <button onClick={savePlanJson} style={{flex:2,background:T.accent,border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save Plan</button>
+            <button onClick={savePlanJson} style={{flex:2,background:T.accentGradient,border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save Plan</button>
           </div>
         </div>
       )}
@@ -1099,30 +1102,49 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ TIMER — FULL or MINIMIZED ═══ */}
       {timerActive && !timerMinimized && (
-        <div style={{position:"fixed",inset:0,zIndex:150,background:T.timerBg,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .2s",backgroundImage:"radial-gradient(ellipse 80% 50% at 50% 0%, #2d0a5020 0%, transparent 70%)"}}>
-          <div style={{textAlign:"center",width:"100%",maxWidth:400,padding:"0 24px"}}>
-            <div style={{marginBottom:20}}><div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden",maxWidth:300,margin:"0 auto"}}><div style={{height:"100%",width:`${100-timerPct}%`,background:`linear-gradient(90deg, ${T.accent}, #9333ea, ${T.yellow})`,backgroundSize:"200% 100%",animation:"gradientShift 3s ease infinite",transition:"width 1s linear",borderRadius:3}} /></div></div>
-            <div style={{fontSize:12,letterSpacing:8,marginBottom:16,fontWeight:700,background:T.accentGradient,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>REST</div>
-            <div style={{fontSize:96,fontWeight:800,letterSpacing:2,color:timerRemaining<=10?T.accent:T.text,lineHeight:1,animation:timerRemaining<=10?"timerPulse 1s infinite":"none",fontFamily:T.mono,textShadow:timerRemaining<=10?"0 0 40px #dc262660":"0 0 40px #9333ea30"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</div>
-            <div style={{fontSize:13,color:T.dim,marginTop:16,marginBottom:36,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:300,margin:"16px auto 36px"}}>{activeEx||""}</div>
+        <div style={{position:"fixed",inset:0,zIndex:150,background:"#05020f",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .3s"}}>
+          {/* Subtle nebula bleed */}
+          <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 70% 55% at 50% 45%, rgba(147,51,234,0.10) 0%, transparent 70%)",pointerEvents:"none"}} />
+          {/* Particle dust */}
+          <TimerParticles remaining={timerRemaining} />
+          <div style={{textAlign:"center",width:"100%",maxWidth:400,padding:"0 32px",position:"relative",zIndex:1}}>
+            {/* Thin progress bar — minimal, at top of content */}
+            <div style={{height:2,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden",maxWidth:200,margin:"0 auto 40px"}}>
+              <div style={{height:"100%",width:`${100-timerPct}%`,background:timerRemaining<=10?"linear-gradient(90deg,#ff4040,#ff9900)":"linear-gradient(90deg,#9333ea,#38bdf8)",transition:"width 1s linear",borderRadius:2}} />
+            </div>
+            <div style={{fontSize:11,letterSpacing:10,fontWeight:700,marginBottom:20,background:"linear-gradient(90deg,#9333ea,#38bdf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>REST</div>
+            <div
+              key={`${Math.floor(timerRemaining/60)}:${String(timerRemaining%60).padStart(2,"0")}`}
+              style={{
+                fontSize:100,fontWeight:800,letterSpacing:-2,lineHeight:1,
+                fontFamily:"'Orbitron',sans-serif",
+                background:timerRemaining<=10?"linear-gradient(135deg,#ff6060,#ffaa00)":"linear-gradient(135deg,#ffffff,#c4b5fd,#818cf8)",
+                WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
+                animation:timerRemaining<=10?"digitAppear 0.65s ease-out, urgentPulse 1s ease-in-out infinite":"digitAppear 0.65s ease-out",
+              }}
+            >{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</div>
+            <div style={{fontSize:13,color:"rgba(160,140,192,0.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:280,margin:"18px auto 44px"}}>{activeEx||""}</div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-              <button onClick={()=>setTimerDuration(p=>Math.max(5,p-15))} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>−15s</button>
-              <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} className="cta-btn" style={{background:T.accentGradient,border:"none",color:"#fff",padding:"14px 36px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 20px #9333ea40"}}>Skip — Go</button>
-              <button onClick={()=>setTimerDuration(p=>p+15)} style={{background:T.surface,border:`1px solid ${T.border}`,color:T.sub,padding:"14px 18px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>+15s</button>
+              <button onClick={()=>setTimerDuration(p=>Math.max(5,p-15))} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.10)",color:"rgba(200,180,240,0.7)",padding:"14px 18px",borderRadius:12,fontSize:13,cursor:"pointer",fontFamily:T.font,backdropFilter:"blur(8px)"}}>−15s</button>
+              <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} className="cta-btn" style={{background:T.accentGradient,border:"none",color:"#fff",padding:"14px 40px",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 28px rgba(147,51,234,0.55)"}}>Skip — Go</button>
+              <button onClick={()=>setTimerDuration(p=>p+15)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.10)",color:"rgba(200,180,240,0.7)",padding:"14px 18px",borderRadius:12,fontSize:13,cursor:"pointer",fontFamily:T.font,backdropFilter:"blur(8px)"}}>+15s</button>
             </div>
             <div style={{display:"flex",justifyContent:"center",marginTop:16}}>
-              <button onClick={()=>setTimerMinimized(true)} style={{background:"transparent",border:`1px solid ${T.border}`,color:T.dim,padding:"10px 28px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Minimize</button>
+              <button onClick={()=>setTimerMinimized(true)} style={{background:"transparent",border:"1px solid rgba(255,255,255,0.08)",color:"rgba(160,140,192,0.5)",padding:"10px 28px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Minimize</button>
             </div>
           </div>
         </div>
       )}
       {timerActive && timerMinimized && (
-        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:timerRemaining<=10?T.accent:T.surface2,borderBottom:`1.5px solid ${timerRemaining<=10?"#0003":T.accent}`,padding:"8px 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",animation:"slideIn .2s ease",maxWidth:540,margin:"0 auto"}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:timerRemaining<=10?"#000":T.accent,animation:"pulse 1s infinite",flexShrink:0}} />
-          <span style={{color:timerRemaining<=10?"#000":T.text,fontSize:13,fontWeight:600,fontFamily:T.font,whiteSpace:"nowrap"}}>REST</span>
-          {activeEx&&<span style={{color:timerRemaining<=10?"#000a":T.dim,fontSize:12,fontFamily:T.font,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{activeEx}</span>}
-          <span style={{color:timerRemaining<=10?"#000":T.accent,fontSize:18,fontWeight:800,fontFamily:T.mono,whiteSpace:"nowrap",marginLeft:"auto"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</span>
-          <span style={{color:timerRemaining<=10?"#000":T.dim,fontSize:11}}>▼</span>
+        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(5,2,15,0.92)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",padding:"0 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",animation:"slideIn .2s ease",maxWidth:540,margin:"0 auto",overflow:"hidden"}}>
+          {/* Progress fill behind everything */}
+          <div style={{position:"absolute",inset:0,width:`${100-timerPct}%`,background:timerRemaining<=10?"linear-gradient(90deg,rgba(220,38,38,0.18),rgba(255,100,0,0.10))":"linear-gradient(90deg,rgba(147,51,234,0.18),rgba(56,189,248,0.08))",transition:"width 1s linear",pointerEvents:"none"}} />
+          {/* Pulse dot */}
+          <div style={{width:6,height:6,borderRadius:"50%",background:timerRemaining<=10?"#ff4040":"#9333ea",boxShadow:timerRemaining<=10?"0 0 8px #ff4040":"0 0 8px #9333ea",animation:"pulse 1s infinite",flexShrink:0,position:"relative"}} />
+          <span style={{fontSize:11,fontWeight:700,letterSpacing:4,color:"rgba(200,170,255,0.8)",whiteSpace:"nowrap",position:"relative"}}>REST</span>
+          {activeEx&&<span style={{fontSize:12,color:"rgba(160,130,210,0.55)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",position:"relative"}}>{activeEx}</span>}
+          <span style={{fontSize:17,fontWeight:800,fontFamily:"'Orbitron',sans-serif",whiteSpace:"nowrap",marginLeft:"auto",position:"relative",background:timerRemaining<=10?"linear-gradient(135deg,#ff6060,#ffaa00)":"linear-gradient(135deg,#fff,#c4b5fd)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",padding:"10px 0"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</span>
+          <span style={{fontSize:10,color:"rgba(147,51,234,0.6)",position:"relative"}}>▼</span>
         </div>
       )}
 
@@ -1133,7 +1155,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         {/* Row 1: App title centered, wake lock + profile absolute right */}
         <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",padding:"14px 16px 6px"}}>
-          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:4,lineHeight:1}}><span style={{color:T.accent}}>Workout</span><span style={{color:T.text}}> Log</span></div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:4,lineHeight:1,background:"linear-gradient(100deg,#dc2626,#c026d3,#818cf8,#38bdf8,#9333ea,#dc2626)",backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"gradientShift 6s ease infinite"}}>Workout Log</div>
           <div style={{position:"absolute",right:16,display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen lock on":"Screen lock off"} style={{background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.dim,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
           </div>
@@ -1158,7 +1180,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
         {dayPickerOpen&&(
           <div style={{display:"flex",alignItems:"center",gap:5,padding:"0 16px 10px",overflowX:"auto"}}>
             {DAYS.map(d=>{const sel=d===day,tod=d===today,rest=(getWorkout(d).exercises||[]).length===0; return (
-              <button key={d} onClick={()=>{if(sel){setDayPickerOpen(false);}else{switchDay(d);}}} style={{background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:tod?T.green:T.border}`,color:sel?"#fff":tod?T.green:rest?T.dim:T.sub,padding:"6px 11px",borderRadius:8,fontSize:12,fontWeight:sel||tod?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",flexShrink:0,position:"relative"}}>
+              <button key={d} onClick={()=>{if(sel){setDayPickerOpen(false);}else{switchDay(d);}}} style={{background:sel?T.accentGradient:"transparent",border:`1.5px solid ${sel?"#9333ea":tod?T.green:T.border}`,color:sel?"#fff":tod?T.green:rest?T.dim:T.sub,padding:"6px 11px",borderRadius:8,fontSize:12,fontWeight:sel||tod?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",flexShrink:0,position:"relative"}}>
                 {d.slice(0,3)}{tod&&!sel&&<span style={{position:"absolute",top:2,right:3,width:4,height:4,borderRadius:"50%",background:T.green,display:"block"}} />}
               </button>);
             })}
@@ -1191,7 +1213,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                   </div>
                 )}
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                  <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accentGradient,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                   <button onClick={()=>{setShowAddEx(false);setNewExName("");}} style={{flex:1,padding:"11px 0",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                 </div>
               </div>
@@ -1242,7 +1264,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
                         {!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();toggleDone(ex.name);}} style={{width:20,height:20,borderRadius:6,border:`1.5px solid ${isDone?T.green:T.border2}`,background:isDone?T.green:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>{isDone&&<span style={{fontSize:12,color:"#fff",lineHeight:1}}>✓</span>}</button>}
                         {reordering&&<div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}><button onClick={()=>moveExercise(exIdx,-1)} disabled={exIdx===0} style={{background:"none",border:"none",color:exIdx===0?T.border:T.sub,fontSize:13,cursor:exIdx===0?"default":"pointer",padding:0,lineHeight:1}}>▲</button><button onClick={()=>moveExercise(exIdx,1)} disabled={exIdx===allExercises.length-1} style={{background:"none",border:"none",color:exIdx===allExercises.length-1?T.border:T.sub,fontSize:13,cursor:exIdx===allExercises.length-1?"default":"pointer",padding:0,lineHeight:1}}>▼</button></div>}
-                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accent,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isSSFirst&&<span style={{fontSize:10,fontWeight:700,color:T.accent,background:T.accentDim,border:`1px solid ${T.accent}44`,borderRadius:4,padding:"1px 5px",marginLeft:6,letterSpacing:0.5}}>⚡ SS</span>}{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
+                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accentGradient,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isSSFirst&&<span style={{fontSize:10,fontWeight:700,color:T.accent,background:T.accentDim,border:`1px solid ${T.accent}44`,borderRadius:4,padding:"1px 5px",marginLeft:6,letterSpacing:0.5}}>⚡ SS</span>}{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
                       </div>
                       {!reordering&&<>
                         <div style={{paddingLeft:30,display:"flex",alignItems:"center",gap:8,marginBottom:exSets.length>0?10:0,flexWrap:"wrap"}}>
@@ -1251,7 +1273,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                               {!exCardio&&<input type="number" inputMode="numeric" value={editTargetSets} onChange={e=>setEditTargetSets(e.target.value)} placeholder="sets" style={{width:44,background:T.surface2,border:`1.5px solid ${T.accent}`,color:T.text,padding:"3px 6px",borderRadius:6,fontSize:12,fontFamily:T.mono,outline:"none",textAlign:"center"}} />}
                               {!exCardio&&<span style={{fontSize:11,color:T.dim}}>×</span>}
                               <input type="text" value={editTargetReps} onChange={e=>setEditTargetReps(e.target.value)} placeholder={exCardio?"min":"reps"} style={{width:exCardio?50:56,background:T.surface2,border:`1.5px solid ${T.accent}`,color:T.text,padding:"3px 6px",borderRadius:6,fontSize:12,fontFamily:T.mono,outline:"none",textAlign:"center"}} />
-                              <button onClick={()=>saveExerciseTarget(ex.name,editTargetSets,editTargetReps)} style={{background:T.accent,color:"#fff",border:"none",padding:"3px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font,fontWeight:600}}>✓</button>
+                              <button onClick={()=>saveExerciseTarget(ex.name,editTargetSets,editTargetReps)} style={{background:T.accentGradient,color:"#fff",border:"none",padding:"3px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font,fontWeight:600}}>✓</button>
                               <button onClick={()=>setEditingTarget(null)} style={{background:"none",border:`1px solid ${T.border}`,color:T.dim,padding:"3px 8px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button>
                             </div>
                           ):(
@@ -1340,7 +1362,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     </div>
                   </div>}
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accent,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                    <button onClick={addCustomExercise} disabled={!newExName.trim()} style={{flex:1,padding:"11px 0",background:!newExName.trim()?T.surface3:T.accentGradient,color:!newExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:!newExName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                     <button onClick={()=>{setShowAddEx(false);setNewExName("");setNewExCategory("Other");}} style={{flex:1,padding:"11px 0",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
@@ -1356,7 +1378,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                       <span style={{fontSize:11,color:doneCount===allExercises.length?T.accent:T.dim,fontWeight:600}}>{doneCount}/{allExercises.length}</span>
                     </div>
                     <div style={{height:3,background:T.surface3,borderRadius:2,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${doneCount/allExercises.length*100}%`,background:T.accent,transition:"width .4s ease",borderRadius:2,boxShadow:`0 0 6px ${T.accentGlow}`}} />
+                      <div style={{height:"100%",width:`${doneCount/allExercises.length*100}%`,background:T.accentGradient,transition:"width .4s ease",borderRadius:2,boxShadow:`0 0 6px ${T.accentGlow}`}} />
                     </div>
                   </div>
                 )}
@@ -1379,7 +1401,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 const sel=d===day,isToday=d===today;
                 const hasExercises=(getWorkout(d).exercises||[]).length>0;
                 return(
-                  <button key={d} onClick={()=>switchDay(d)} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,fontSize:12,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?T.accent:"transparent",border:`1.5px solid ${sel?T.accent:isToday?T.green:T.border}`,color:sel?"#fff":isToday?T.green:hasExercises?T.sub:T.dim,position:"relative"}}>
+                  <button key={d} onClick={()=>switchDay(d)} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,fontSize:12,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?T.accentGradient:"transparent",border:`1.5px solid ${sel?"#9333ea":isToday?T.green:T.border}`,color:sel?"#fff":isToday?T.green:hasExercises?T.sub:T.dim,position:"relative"}}>
                     {d.slice(0,3)}{isToday&&!sel&&<span style={{position:"absolute",top:2,right:3,width:4,height:4,borderRadius:"50%",background:T.green,display:"block"}} />}
                   </button>
                 );
@@ -1409,7 +1431,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 <div style={{marginBottom:6}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Label</div><input type="text" value={editLabel} onChange={function(e){setEditLabel(e.target.value);}} placeholder="e.g. PUSH A" style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"9px 12px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none"}} /></div>
                 <div style={{marginBottom:10}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Description</div><input type="text" value={editSub} onChange={function(e){setEditSub(e.target.value);}} placeholder="e.g. Chest, Shoulders, Triceps" style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"9px 12px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none"}} /></div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={function(){saveDayMeta(day,editLabel,editSub);}} style={{flex:1,padding:"9px",background:T.accent,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                  <button onClick={function(){saveDayMeta(day,editLabel,editSub);}} style={{flex:1,padding:"9px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                   <button onClick={function(){setEditingMeta(false);}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                 </div>
               </div>
@@ -1430,7 +1452,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={editExReps} onChange={function(e){setEditExReps(e.target.value);}} style={{width:"100%",background:T.surface,border:"1.5px solid "+T.border,color:T.text,padding:"7px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    <button onClick={function(){updateTemplateExercise(day,i,editExName,editExSets,editExReps);}} style={{flex:1,padding:"9px",background:T.accent,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                    <button onClick={function(){updateTemplateExercise(day,i,editExName,editExSets,editExReps);}} style={{flex:1,padding:"9px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                     <button onClick={function(){setEditExIdx(null);}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
@@ -1464,7 +1486,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                   </div>
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={function(){if(!newTemplateName.trim())return;addTemplateExercise(day,newTemplateName,newTemplateSets,newTemplateReps);addToCatalog(newTemplateName,newTemplateCategory);setShowAddTemplate(false);setNewTemplateName("");setNewTemplateSets("3");setNewTemplateReps("10-12");setNewTemplateCategory("Other");}} disabled={!newTemplateName.trim()} style={{flex:1,padding:"9px",background:!newTemplateName.trim()?T.surface3:T.accent,color:!newTemplateName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newTemplateName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
+                  <button onClick={function(){if(!newTemplateName.trim())return;addTemplateExercise(day,newTemplateName,newTemplateSets,newTemplateReps);addToCatalog(newTemplateName,newTemplateCategory);setShowAddTemplate(false);setNewTemplateName("");setNewTemplateSets("3");setNewTemplateReps("10-12");setNewTemplateCategory("Other");}} disabled={!newTemplateName.trim()} style={{flex:1,padding:"9px",background:!newTemplateName.trim()?T.surface3:T.accentGradient,color:!newTemplateName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:!newTemplateName.trim()?"default":"pointer",fontFamily:T.font}}>Add</button>
                   <button onClick={function(){setShowAddTemplate(false);setNewTemplateCategory("Other");}} style={{flex:1,padding:"9px",background:T.surface,border:"1.5px solid "+T.border,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                 </div>
               </div>
@@ -1474,7 +1496,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
             {(getWorkout().exercises||[]).length>0&&(<div style={{marginTop:10,padding:"14px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5}}>SUPERSETS</div>
-                <button onClick={()=>setShowSupersetCreator(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ Create</button>
+                <button onClick={()=>setShowSupersetCreator(true)} style={{background:T.accentGradient,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ Create</button>
               </div>
               {getSupersets().length===0?(<div style={{fontSize:12,color:T.dim}}>Group exercises into supersets — no rest between them.</div>):(
                 getSupersets().map((g,gi)=>(
@@ -1494,7 +1516,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     })}
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    <button disabled={ssSelection.length<2} onClick={async()=>{const updated=[...getSupersets(),ssSelection];setTodaySupersets([]);await saveSupersets(day,updated);setSsSelection([]);setShowSupersetCreator(false);}} style={{flex:1,padding:"9px",background:ssSelection.length<2?T.surface3:T.accent,color:ssSelection.length<2?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:ssSelection.length<2?"default":"pointer",fontFamily:T.font}}>Create Superset</button>
+                    <button disabled={ssSelection.length<2} onClick={async()=>{const updated=[...getSupersets(),ssSelection];setTodaySupersets([]);await saveSupersets(day,updated);setSsSelection([]);setShowSupersetCreator(false);}} style={{flex:1,padding:"9px",background:ssSelection.length<2?T.surface3:T.accentGradient,color:ssSelection.length<2?T.dim:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:ssSelection.length<2?"default":"pointer",fontFamily:T.font}}>Create Superset</button>
                     <button onClick={()=>{setShowSupersetCreator(false);setSsSelection([]);}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
@@ -1505,14 +1527,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               <div style={{fontSize:12,color:T.sub,marginBottom:12,lineHeight:1.5}}>Download today's template + history, upload to any AI (ChatGPT, Claude, etc.), then import the AI's response to update your targets.</div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={downloadTemplateForAI} style={{flex:1,padding:"10px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>⬇ Download</button>
-                <button onClick={()=>aiImportRef.current?.click()} style={{flex:1,padding:"10px",background:T.accent,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>⬆ Upload Response</button>
+                <button onClick={()=>aiImportRef.current?.click()} style={{flex:1,padding:"10px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>⬆ Upload Response</button>
               </div>
               <input ref={aiImportRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])importAITemplate(e.target.files[0]);e.target.value="";}} />
             </div>
             <div style={{marginTop:12,padding:"14px",background:T.surface2,border:`1px solid ${T.border}`,borderRadius:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5}}>PROGRAMS</div>
-                <button onClick={()=>setShowProgramManager(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Manage</button>
+                <button onClick={()=>setShowProgramManager(true)} style={{background:T.accentGradient,border:"none",color:"#fff",padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Manage</button>
               </div>
               {programs.length===0?(
                 <div style={{fontSize:12,color:T.dim,lineHeight:1.5}}>Create a program (e.g. Push / Pull / Legs) to rotate workouts independent of the day of the week.</div>
@@ -1586,7 +1608,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           <button key={v} onClick={()=>{setView(v);if(v==="edit"){setReordering(false);setEditExIdx(null);setEditingMeta(false);}}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"none",border:"none",cursor:"pointer",fontFamily:T.font,gap:3,color:view===v?T.accent:T.dim,padding:"8px 0",position:"relative"}}>
             {svg}
             <span style={{fontSize:10,fontWeight:view===v?700:500,letterSpacing:0.2}}>{label}</span>
-            {view===v&&<div style={{width:3,height:3,borderRadius:"50%",background:T.accent,marginTop:2}} />}
+            {view===v&&<div style={{width:3,height:3,borderRadius:"50%",background:"#9333ea",marginTop:2}} />}
           </button>
         ))}
       </div>
@@ -1784,7 +1806,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
                 <div style={{flex:1}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Reps</div><input type="text" value={addExReps} onChange={e=>setAddExReps(e.target.value)} placeholder="10-12" style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"9px",borderRadius:8,fontSize:15,fontFamily:T.mono,outline:"none",textAlign:"center",boxSizing:"border-box"}} /></div>
               </div>
               <div style={{display:"flex",gap:6}}>
-                <button onClick={addExToWorkout} disabled={!addExName.trim()} style={{flex:2,padding:"11px",background:!addExName.trim()?T.surface3:T.accent,color:!addExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Add</button>
+                <button onClick={addExToWorkout} disabled={!addExName.trim()} style={{flex:2,padding:"11px",background:!addExName.trim()?T.surface3:T.accentGradient,color:!addExName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Add</button>
                 <button onClick={()=>{setShowAddEx(false);setAddExName("");setAddExSets("3");setAddExReps("10-12");}} style={{flex:1,padding:"11px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Done</button>
               </div>
             </div>
@@ -1802,7 +1824,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         <div style={{fontSize:17,fontWeight:700,color:T.text}}>Programs</div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setShowNewProg(true)} style={{background:T.accent,border:"none",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ New</button>
+          <button onClick={()=>setShowNewProg(true)} style={{background:T.accentGradient,border:"none",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>+ New</button>
           <button onClick={onClose} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
         </div>
       </div>
@@ -1812,7 +1834,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
             <div style={{fontSize:11,color:T.accent,fontWeight:600,marginBottom:8}}>New Program</div>
             <input type="text" value={newProgName} onChange={e=>setNewProgName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addProgram();}} placeholder="e.g. Push / Pull / Legs" autoFocus style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"10px 12px",borderRadius:8,fontSize:14,fontFamily:T.font,outline:"none",boxSizing:"border-box",marginBottom:8}} />
             <div style={{display:"flex",gap:6}}>
-              <button onClick={addProgram} disabled={!newProgName.trim()} style={{flex:1,padding:"9px",background:!newProgName.trim()?T.surface3:T.accent,color:!newProgName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Create</button>
+              <button onClick={addProgram} disabled={!newProgName.trim()} style={{flex:1,padding:"9px",background:!newProgName.trim()?T.surface3:T.accentGradient,color:!newProgName.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Create</button>
               <button onClick={()=>{setShowNewProg(false);setNewProgName("");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
             </div>
           </div>
@@ -1851,7 +1873,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
                       </div>
                       <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0,marginLeft:8}}>
                         <button onClick={()=>{setEditingExKey({progId:prog.id,wi});setShowAddEx(false);}} style={{background:"none",border:`1.5px solid ${T.border}`,color:T.sub,padding:"5px 9px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>Exercises</button>
-                        <button onClick={()=>setNext(prog.id,wi)} title="Set as next" style={{background:wi===nextIdx?T.accent:"none",border:`1.5px solid ${wi===nextIdx?T.accent:T.border}`,color:wi===nextIdx?"#fff":T.dim,width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:10}}>▶</button>
+                        <button onClick={()=>setNext(prog.id,wi)} title="Set as next" style={{background:wi===nextIdx?T.accentGradient:"none",border:`1.5px solid ${wi===nextIdx?T.accent:T.border}`,color:wi===nextIdx?"#fff":T.dim,width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:10}}>▶</button>
                         <button onClick={()=>moveWorkout(prog.id,wi,-1)} disabled={wi===0} style={{background:"none",border:`1px solid ${T.border}`,color:wi===0?T.dim:T.sub,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:wi===0?"default":"pointer",fontFamily:T.font}}>↑</button>
                         <button onClick={()=>moveWorkout(prog.id,wi,1)} disabled={wi===prog.workouts.length-1} style={{background:"none",border:`1px solid ${T.border}`,color:wi===prog.workouts.length-1?T.dim:T.sub,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:wi===prog.workouts.length-1?"default":"pointer",fontFamily:T.font}}>↓</button>
                         <button onClick={()=>removeWorkout(prog.id,wi)} style={{background:"none",border:`1px solid ${T.red}33`,color:T.red,padding:"4px 7px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button>
@@ -1877,7 +1899,7 @@ function ProgramManagerOverlay({programs, onSave, onClose, customWorkouts, exerc
                         </div>
                       </div>
                       <div style={{display:"flex",gap:6}}>
-                        <button onClick={()=>addWorkout(prog.id)} disabled={!wLabel.trim()} style={{flex:2,padding:"9px",background:!wLabel.trim()?T.surface3:T.accent,color:!wLabel.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Next: Add Exercises →</button>
+                        <button onClick={()=>addWorkout(prog.id)} disabled={!wLabel.trim()} style={{flex:2,padding:"9px",background:!wLabel.trim()?T.surface3:T.accentGradient,color:!wLabel.trim()?T.dim:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Next: Add Exercises →</button>
                         <button onClick={()=>{setAddingWorkoutTo(null);setWLabel("");setWSub("");setWTemplate("");}} style={{flex:1,padding:"9px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                       </div>
                     </div>
@@ -1994,7 +2016,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
   return (
     <div style={{padding:"12px 0"}}>
       <div style={{display:"flex",margin:"0 16px 14px",border:`1px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
-        {[["sessions","Sessions"],["weekly","Weekly"],["analytics","Analytics"]].map(([v,l])=>(<button key={v} onClick={()=>setHv(v)} style={{flex:1,padding:"9px 0",background:hv===v?T.accent:T.surface,color:hv===v?"#fff":T.sub,border:"none",fontSize:12,fontWeight:hv===v?600:400,cursor:"pointer",fontFamily:T.font}}>{l}</button>))}
+        {[["sessions","Sessions"],["weekly","Weekly"],["analytics","Analytics"]].map(([v,l])=>(<button key={v} onClick={()=>setHv(v)} style={{flex:1,padding:"9px 0",background:hv===v?T.accentGradient:T.surface,color:hv===v?"#fff":T.sub,border:"none",fontSize:12,fontWeight:hv===v?600:400,cursor:"pointer",fontFamily:T.font}}>{l}</button>))}
       </div>
       {hv==="weekly"&&<div>{weekly.map((wk)=>{
         const dayVols=[0,1,2,3,4,5,6].map(d=>wk.days?wk.days[d]||0:0);
@@ -2014,7 +2036,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                 return(
                   <div key={d} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,width:BAR_W}}>
                     {v>0?(
-                      <div style={{width:BAR_W,height:barH,background:`linear-gradient(to top,${T.accent},${T.accent}cc)`,borderRadius:"4px 4px 0 0",flexShrink:0}} />
+                      <div style={{width:BAR_W,height:barH,background:`linear-gradient(to top,#dc2626,#9333ea)`,borderRadius:"4px 4px 0 0",flexShrink:0}} />
                     ):(
                       <div style={{width:BAR_W,height:MAX_H,display:"flex",alignItems:"flex-end"}}>
                         <div style={{width:"100%",height:2,background:T.border,borderRadius:2}} />
@@ -2052,7 +2074,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                         <div style={{marginBottom:8}}>
                           <ExercisePicker value={renameHistValue} onChange={setRenameHistValue} onSelect={n=>setRenameHistValue(n)} catalog={exerciseCatalog||[]} placeholder="Exercise name" />
                           <div style={{display:"flex",gap:6,marginTop:6}}>
-                            <button onClick={()=>renameHistEx(exName,renameHistValue)} style={{flex:1,padding:"7px",background:T.accent,color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>✓ Rename</button>
+                            <button onClick={()=>renameHistEx(exName,renameHistValue)} style={{flex:1,padding:"7px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>✓ Rename</button>
                             <button onClick={()=>setRenamingHistEx(null)} style={{flex:1,padding:"7px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:7,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                           </div>
                         </div>
@@ -2068,7 +2090,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                           const isEditingSet=editingHistSet?.exName===exName&&editingHistSet?.setIdx===i;
                           const df=s.diff?DIFF[s.diff]:null;
                           if(isEditingSet) return (
-                            <div key={i} style={{width:"100%",background:T.surface2,border:`1.5px solid ${T.accent}`,borderRadius:8,padding:"8px 10px",marginBottom:4}}>
+                            <div key={i} style={{width:"100%",background:T.surface2,border:"1.5px solid #9333ea",borderRadius:8,padding:"8px 10px",marginBottom:4}}>
                               <div style={{display:"flex",gap:6,marginBottom:6}}>
                                 <div style={{flex:1}}><div style={{fontSize:9,color:T.dim,marginBottom:2}}>Weight</div><input type="number" inputMode="decimal" value={editHistSetVals.weight} onChange={e=>setEditHistSetVals(v=>({...v,weight:e.target.value}))} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"6px",borderRadius:6,fontSize:14,fontFamily:T.mono,outline:"none",textAlign:"center"}} /></div>
                                 <div style={{flex:1}}><div style={{fontSize:9,color:T.dim,marginBottom:2}}>Reps</div><input type="number" inputMode="numeric" value={editHistSetVals.reps} onChange={e=>setEditHistSetVals(v=>({...v,reps:e.target.value}))} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"6px",borderRadius:6,fontSize:14,fontFamily:T.mono,outline:"none",textAlign:"center"}} /></div>
@@ -2077,7 +2099,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                                 {Object.entries(DIFF).map(([k,v])=><button key={k} onClick={()=>setEditHistSetVals(sv=>({...sv,diff:k}))} style={{flex:1,padding:"5px 0",fontSize:11,background:editHistSetVals.diff===k?v.bg:T.surface,color:editHistSetVals.diff===k?v.color:T.dim,border:"none",borderRight:`1px solid ${T.border}`,cursor:"pointer",fontFamily:T.font,fontWeight:editHistSetVals.diff===k?700:400}}>{v.label==="Just Right"?"👌":v.label==="Easy"?"🟢":"🔴"}</button>)}
                               </div>
                               <div style={{display:"flex",gap:6}}>
-                                <button onClick={()=>{editHistSet(exName,i,"weight",editHistSetVals.weight);editHistSet(exName,i,"reps",editHistSetVals.reps);editHistSet(exName,i,"diff",editHistSetVals.diff);setEditingHistSet(null);}} style={{flex:1,padding:"6px",background:T.accent,color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                                <button onClick={()=>{editHistSet(exName,i,"weight",editHistSetVals.weight);editHistSet(exName,i,"reps",editHistSetVals.reps);editHistSet(exName,i,"diff",editHistSetVals.diff);setEditingHistSet(null);}} style={{flex:1,padding:"6px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                                 <button onClick={()=>setEditingHistSet(null)} style={{flex:1,padding:"6px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                                 <button onClick={()=>{removeHistSet(exName,i);setEditingHistSet(null);}} style={{padding:"6px 10px",background:"transparent",border:`1.5px solid ${T.red}33`,color:T.red,borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:T.font}}>✕</button>
                               </div>
@@ -2089,14 +2111,14 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                     </div>
                   ))}
                   <div style={{display:"flex",gap:8,marginTop:14}}>
-                    <button onClick={saveEdit} style={{flex:1,padding:"10px",background:T.accent,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save Changes</button>
+                    <button onClick={saveEdit} style={{flex:1,padding:"10px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Save Changes</button>
                     <button onClick={cancelEdit} style={{flex:1,padding:"10px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:9,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                   </div>
                 </div>
               ):(
                 /* Read-only mode */
                 <div>
-                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div onClick={()=>setSelectedExercise(exName)} style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{exName}<span style={{fontSize:10,color:T.accent,opacity:0.7}}>›</span></div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div>{entry.notes&&entry.notes[exName]&&<div style={{marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {entry.notes[exName]}</div>}</div>))}
+                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div onClick={()=>setSelectedExercise(exName)} style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{exName}<span style={{fontSize:10,color:"#9333ea",opacity:0.8}}>›</span></div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div>{entry.notes&&entry.notes[exName]&&<div style={{marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {entry.notes[exName]}</div>}</div>))}
                   {entry.logText&&<div style={{marginTop:10,borderTop:`1px solid ${T.border}`,paddingTop:10}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:12,color:T.dim,fontWeight:500}}>Copy to Claude</span><button onClick={()=>{navigator.clipboard.writeText(entry.logText).then(()=>{setCopiedKey(entry.key);setTimeout(()=>setCopiedKey(null),2000);}).catch(()=>{});}} style={{padding:"4px 12px",background:copiedKey===entry.key?T.greenBg:"transparent",border:`1.5px solid ${copiedKey===entry.key?T.green:T.border}`,color:copiedKey===entry.key?T.green:T.sub,borderRadius:8,fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{copiedKey===entry.key?"Copied!":"Copy"}</button></div><pre style={{margin:0,background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"10px 12px",fontSize:11,color:T.dim,overflowX:"auto",whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:160,overflowY:"auto",fontFamily:T.mono}}>{entry.logText}</pre></div>}
                   <div style={{display:"flex",gap:8,marginTop:10}}>
                     <button onClick={()=>startEdit(entry)} style={{padding:"8px 16px",background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>✏️ Edit</button>
@@ -2163,7 +2185,7 @@ function ExerciseDetailOverlay({exName, history, onClose}) {
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <button onClick={onClose} style={{background:"none",border:"none",color:T.accent,fontSize:22,cursor:"pointer",padding:0,lineHeight:1,fontFamily:T.font}}>←</button>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#9333ea",fontSize:22,cursor:"pointer",padding:0,lineHeight:1,fontFamily:T.font}}>←</button>
           <div style={{fontSize:17,fontWeight:700,color:T.text,lineHeight:1.2}}>{exName}</div>
         </div>
         <button onClick={onClose} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
@@ -2205,11 +2227,11 @@ function ExerciseDetailOverlay({exName, history, onClose}) {
           const vol=s.sets.reduce((a,x)=>a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0);
           const isPR=pr&&maxW===pr.weight;
           return(
-            <div key={s.date+i} style={{background:T.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPR?T.accent+"44":T.border}`,marginBottom:8}}>
+            <div key={s.date+i} style={{background:T.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPR?"#9333ea44":T.border}`,marginBottom:8}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:T.text}}>{s.dateLabel||s.date}</div>
-                  <div style={{fontSize:11,color:T.dim}}>{s.day} · {s.label}{isPR&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:T.accent}}>PR</span>}</div>
+                  <div style={{fontSize:11,color:T.dim}}>{s.day} · {s.label}{isPR&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:"#9333ea"}}>PR</span>}</div>
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:13,fontWeight:700,color:T.text,fontFamily:T.mono}}>{maxW}lb</div>
@@ -2242,7 +2264,7 @@ function MiniWeightChart({dataPoints}) {
     <div style={{display:"flex",alignItems:"flex-end",gap:3,paddingTop:8}}>
       {dataPoints.map((d,i)=>(
         <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-          <div style={{width:"100%",maxWidth:28,height:Math.max(4,Math.round(8+((d.weight-minW)/range)*56)),background:T.accent,borderRadius:"3px 3px 0 0"}} />
+          <div style={{width:"100%",maxWidth:28,height:Math.max(4,Math.round(8+((d.weight-minW)/range)*56)),background:T.accentGradient,borderRadius:"3px 3px 0 0"}} />
           <span style={{fontSize:9,color:T.dim,fontFamily:T.mono,whiteSpace:"nowrap"}}>{d.weight}</span>
           <span style={{fontSize:8,color:T.dim,whiteSpace:"nowrap"}}>{(d.dateLabel||d.date||"").slice(-5)}</span>
         </div>
@@ -2266,8 +2288,9 @@ function BodyweightChart({data}) {
   return (
     <div style={{width:"100%",overflow:"hidden"}}>
       <svg viewBox={`0 0 ${w} ${h}`} style={{width:"100%",height:h}}>
-        <path d={linePath} fill="none" stroke={T.accent} strokeWidth="2"/>
-        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill={T.accent} stroke={T.bg} strokeWidth="2"/>)}
+        <defs><linearGradient id="bwGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#dc2626"/><stop offset="100%" stopColor="#9333ea"/></linearGradient></defs>
+        <path d={linePath} fill="none" stroke="url(#bwGrad)" strokeWidth="2"/>
+        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill="#9333ea" stroke={T.bg} strokeWidth="2"/>)}
       </svg>
       <div style={{display:"flex",justifyContent:"space-between",padding:"4px 8px",fontSize:10,color:T.dim}}>
         <span>{data[0].date.slice(5)}</span><span>{data[data.length-1].date.slice(5)}</span>
@@ -2380,7 +2403,7 @@ function AnalyticsView({history, exerciseCatalog}) {
         {allCategories.length>1&&(
           <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:8,marginBottom:8,scrollbarWidth:"none"}}>
             {allCategories.map(cat=>(
-              <button key={cat} onClick={()=>setExFilter(cat)} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:exFilter===cat?600:400,background:exFilter===cat?T.accent:T.surface2,color:exFilter===cat?"#fff":T.dim,border:"none",cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>{cat}</button>
+              <button key={cat} onClick={()=>setExFilter(cat)} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:exFilter===cat?600:400,background:exFilter===cat?T.accentGradient:T.surface2,color:exFilter===cat?"#fff":T.dim,border:"none",cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>{cat}</button>
             ))}
           </div>
         )}
@@ -2429,7 +2452,7 @@ function AnalyticsView({history, exerciseCatalog}) {
       <div style={{...card}}>
         <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:14}}>Overview</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)",border:streak>0?`1.5px solid ${T.accent}33`:`1px solid ${T.border}`}}>
+          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)",border:streak>0?"1.5px solid #9333ea44":`1px solid ${T.border}`}}>
             <div style={{fontSize:streak>0?20:18,marginBottom:4}}>{streak>0?"🔥":"⬜"}</div>
             <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{streak} wk{streak!==1?"s":""}</div>
             <div style={{fontSize:11,color:T.dim,marginTop:4}}>Weekly Streak</div>
@@ -2467,7 +2490,7 @@ function AnalyticsView({history, exerciseCatalog}) {
             const pctChange=prev&&prev.vol>0?Math.round(((wk.vol-prev.vol)/prev.vol)*100):null;
             const isUp=pctChange!==null&&pctChange>5;
             const isDown=pctChange!==null&&pctChange<-5;
-            const barBg=isUp?`linear-gradient(90deg,${T.green}40,${T.green}20)`:isDown?`linear-gradient(90deg,${T.red}40,${T.red}20)`:T.accent;
+            const barBg=isUp?`linear-gradient(90deg,${T.green}60,${T.green}30)`:isDown?`linear-gradient(90deg,${T.red}60,${T.red}30)`:T.accentGradient;
             const barW=Math.max(4,Math.round((wk.vol/maxWeekVol)*100));
             const isThisWeek=i===0;
             return(
@@ -2518,7 +2541,7 @@ function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,n
         <div style={{marginBottom:22}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><span style={{fontSize:12,color:T.sub,fontWeight:500}}>Sleep Quality</span>{sleep>0&&<span style={{fontSize:12,color:T.green,fontWeight:600}}>{labels[sleep]}</span>}</div><div style={{display:"flex",gap:8}}>{[1,2,3,4,5].map(v=>rb(v,sleep,setSleep,T.green))}</div></div>
         <div style={{marginBottom:16}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Bodyweight (lb) — optional</div><input type="number" inputMode="decimal" step="0.1" value={bodyweight} onChange={e=>setBodyweight(e.target.value)} placeholder="e.g. 210" style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:16,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
         <div style={{marginBottom:24}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Notes — optional</div><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Felt strong, shoulder tight, etc." rows={2} style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:14,fontFamily:T.font,outline:"none",resize:"vertical"}} /></div>
-        <button onClick={onConfirm} style={{width:"100%",padding:14,background:`linear-gradient(135deg, ${T.accent}, #991b1b)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:8}}>Save Workout</button>
+        <button onClick={onConfirm} className="cta-btn" style={{width:"100%",padding:14,background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:8}}>Save Workout</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={onSkip} style={{flex:1,padding:12,background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:10,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Skip check-in</button>
           <button onClick={onCancel} style={{flex:1,padding:12,background:"transparent",border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
@@ -2526,4 +2549,280 @@ function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,n
       </div>
     </div>
   );
+}
+
+// ─── STAR FIELD ───────────────────────────────────────────────────────────────
+function StarField() {
+  const canvasRef = useRef(null);
+  const stateRef = useRef({stars:[], shoots:[], ripples:[], mouse:{x:-9999,y:-9999,on:false}});
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    const STAR_COLORS = [
+      [255,255,255],[210,225,255],[255,240,210],[255,200,170],[190,210,255]
+    ];
+
+    const NEBULAS = [
+      {x:0.18,y:0.12,rx:0.65,ry:0.45,color:[130,30,220],a:0.28},
+      {x:0.80,y:0.22,rx:0.55,ry:0.40,color:[220,38,38], a:0.22},
+      {x:0.50,y:0.70,rx:0.60,ry:0.50,color:[40,80,230],  a:0.22},
+      {x:0.12,y:0.78,rx:0.45,ry:0.38,color:[236,60,150], a:0.18},
+      {x:0.88,y:0.65,rx:0.40,ry:0.35,color:[0,190,220],  a:0.16},
+      {x:0.55,y:0.38,rx:0.35,ry:0.30,color:[170,100,255],a:0.14},
+      {x:0.30,y:0.50,rx:0.30,ry:0.25,color:[255,120,50], a:0.10},
+    ];
+
+    function initStars(W, H) {
+      const n = Math.min(Math.floor(W * H / 2200), 320);
+      return Array.from({length:n}, () => {
+        const big = Math.random() < 0.025;
+        const med = !big && Math.random() < 0.10;
+        const sz = big ? 0.9+Math.random()*0.7 : med ? 0.5+Math.random()*0.4 : 0.12+Math.random()*0.28;
+        return {
+          x: Math.random()*W, y: Math.random()*H,
+          sz,
+          op: 0.35+Math.random()*0.65,
+          col: STAR_COLORS[Math.floor(Math.random()*STAR_COLORS.length)],
+          vx: (Math.random()-0.5)*0.10,
+          vy: (Math.random()-0.5)*0.10,
+          tw: Math.random()*Math.PI*2,
+          twS: 0.008+Math.random()*0.035,
+          ox:0, oy:0, ovx:0, ovy:0,
+        };
+      });
+    }
+
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      stateRef.current.stars = initStars(canvas.width, canvas.height);
+    }
+
+    function draw() {
+      const W = canvas.width, H = canvas.height;
+      const S = stateRef.current;
+
+      // Deep space base
+      ctx.fillStyle = '#05020f';
+      ctx.fillRect(0, 0, W, H);
+
+      // Nebula clouds — screen blending for luminous additive colour
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (const n of NEBULAS) {
+        const cx = n.x*W, cy = n.y*H;
+        const rx = n.rx*Math.max(W,H), ry = n.ry*Math.max(W,H);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(1, ry/rx);
+        const g = ctx.createRadialGradient(0,0,0, 0,0,rx);
+        const [r,gr,b] = n.color;
+        g.addColorStop(0,   `rgba(${r},${gr},${b},${n.a})`);
+        g.addColorStop(0.35,`rgba(${r},${gr},${b},${n.a*0.55})`);
+        g.addColorStop(0.70,`rgba(${r},${gr},${b},${n.a*0.18})`);
+        g.addColorStop(1,   `rgba(${r},${gr},${b},0)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(-rx, -rx, rx*2, rx*2);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Stars
+      const m = S.mouse;
+      for (const s of S.stars) {
+        s.tw += s.twS;
+        const tw = 0.60+0.40*Math.sin(s.tw);
+
+        s.x += s.vx; s.y += s.vy;
+        if (s.x < -4) s.x = W+4;
+        if (s.x > W+4) s.x = -4;
+        if (s.y < -4) s.y = H+4;
+        if (s.y > H+4) s.y = -4;
+
+        if (m.on) {
+          const dx = s.x - m.x, dy = s.y - m.y;
+          const d2 = dx*dx + dy*dy, R = 110;
+          if (d2 < R*R && d2 > 0.01) {
+            const d = Math.sqrt(d2);
+            const f = (1-d/R)*1.8;
+            s.ovx += (dx/d)*f; s.ovy += (dy/d)*f;
+          }
+        }
+        s.ovx *= 0.86; s.ovy *= 0.86;
+        s.ox = (s.ox + s.ovx)*0.90;
+        s.oy = (s.oy + s.ovy)*0.90;
+
+        const px = s.x+s.ox, py = s.y+s.oy;
+        const alpha = s.op*tw;
+        const [r,g,b] = s.col;
+
+        // Glow halo for the rare bright stars only
+        if (s.sz > 0.8) {
+          const gr2 = s.sz * 5;
+          const grd = ctx.createRadialGradient(px,py,0,px,py,gr2);
+          grd.addColorStop(0, `rgba(${r},${g},${b},${alpha*0.35})`);
+          grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
+          ctx.fillStyle = grd;
+          ctx.fillRect(px-gr2, py-gr2, gr2*2, gr2*2);
+        }
+
+        ctx.beginPath();
+        ctx.arc(px, py, s.sz, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+        ctx.fill();
+      }
+
+      // Shooting stars
+      if (Math.random() < 0.004) {
+        S.shoots.push({
+          x: Math.random()*W*0.8, y: Math.random()*H*0.4,
+          vx: 7+Math.random()*8, vy: 3+Math.random()*5,
+          life:1, trail:[]
+        });
+      }
+      S.shoots = S.shoots.filter(s => s.life > 0);
+      for (const s of S.shoots) {
+        s.trail.push({x:s.x, y:s.y});
+        if (s.trail.length > 14) s.trail.shift();
+        s.x += s.vx; s.y += s.vy;
+        s.life -= 0.045;
+        if (s.x > W+60 || s.y > H+60) s.life = 0;
+        for (let i=0; i<s.trail.length; i++) {
+          const p = s.trail[i];
+          const a = (i/s.trail.length)*s.life*0.9;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 1.2*(i/s.trail.length), 0, Math.PI*2);
+          ctx.fillStyle = `rgba(255,255,255,${a})`;
+          ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 2, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,255,255,${s.life})`;
+        ctx.fill();
+      }
+
+      // Touch ripples
+      S.ripples = S.ripples.filter(r => r.life > 0);
+      for (const r of S.ripples) {
+        r.radius += 2.8; r.life -= 0.032;
+        const a = r.life*0.55;
+        ctx.beginPath(); ctx.arc(r.x, r.y, r.radius, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(180,80,255,${a})`; ctx.lineWidth = 1.5; ctx.stroke();
+        if (r.radius > 18) {
+          ctx.beginPath(); ctx.arc(r.x, r.y, r.radius-16, 0, Math.PI*2);
+          ctx.strokeStyle = `rgba(220,60,60,${a*0.55})`; ctx.lineWidth = 1; ctx.stroke();
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
+    }
+
+    const pos = e => e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY};
+    const onMove  = e => { const p=pos(e); stateRef.current.mouse={...p, on:true}; };
+    const onDown  = e => { const p=pos(e); stateRef.current.mouse={...p, on:true}; stateRef.current.ripples.push({x:p.x,y:p.y,radius:4,life:1}); };
+    const onUp    = () => { stateRef.current.mouse.on=false; };
+
+    window.addEventListener('mousemove',  onMove);
+    window.addEventListener('mousedown',  onDown);
+    window.addEventListener('mouseup',    onUp);
+    window.addEventListener('touchmove',  onMove, {passive:true});
+    window.addEventListener('touchstart', onDown, {passive:true});
+    window.addEventListener('touchend',   onUp);
+    window.addEventListener('resize',     resize);
+
+    resize();
+    draw();
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('mousemove',  onMove);
+      window.removeEventListener('mousedown',  onDown);
+      window.removeEventListener('mouseup',    onUp);
+      window.removeEventListener('touchmove',  onMove);
+      window.removeEventListener('touchstart', onDown);
+      window.removeEventListener('touchend',   onUp);
+      window.removeEventListener('resize',     resize);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",display:"block"}} />;
+}
+
+// ─── TIMER PARTICLES ─────────────────────────────────────────────────────────
+function TimerParticles({remaining}) {
+  const canvasRef = useRef(null);
+  const rafRef = useRef(null);
+  const stateRef = useRef({particles:[], lastSec:-1});
+  const remRef = useRef(remaining);
+  useEffect(() => { remRef.current = remaining; }, [remaining]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const setSize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    setSize();
+    window.addEventListener('resize', setSize);
+
+    function spawnBurst() {
+      const W = canvas.width, H = canvas.height;
+      const cx = W * 0.5, cy = H * 0.44;
+      const rem = remRef.current;
+      const urgent = rem <= 10;
+      const count = urgent ? 40 : 25;
+      const COLS = urgent
+        ? [[255,80,60],[255,160,20],[220,38,38],[255,220,80]]
+        : [[147,51,234],[56,189,248],[200,170,255],[255,255,255],[192,132,252]];
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.5 + Math.random() * (urgent ? 4.5 : 3);
+        const col = COLS[Math.floor(Math.random() * COLS.length)];
+        stateRef.current.particles.push({
+          x: cx + (Math.random()-0.5)*(urgent?280:240),
+          y: cy + (Math.random()-0.5)*(urgent?120:90),
+          vx: Math.cos(angle)*speed,
+          vy: Math.sin(angle)*speed - 0.8,
+          sz: 0.4 + Math.random()*(urgent?3.2:2.2),
+          life: 0.65 + Math.random()*0.35,
+          decay: 0.009 + Math.random()*0.014,
+          col,
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const sec = Math.floor(remRef.current);
+      if (sec !== stateRef.current.lastSec && remRef.current > 0) {
+        stateRef.current.lastSec = sec;
+        spawnBurst();
+      }
+      const S = stateRef.current;
+      S.particles = S.particles.filter(p => p.life > 0);
+      for (const p of S.particles) {
+        p.x += p.vx; p.y += p.vy;
+        p.vx *= 0.97; p.vy = p.vy * 0.97 - 0.025;
+        p.life -= p.decay;
+        if (p.life <= 0) continue;
+        const [r,g,b] = p.col;
+        if (p.sz > 1.2) {
+          const gr = p.sz * 4;
+          const grd = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,gr);
+          grd.addColorStop(0, `rgba(${r},${g},${b},${p.life*0.45})`);
+          grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
+          ctx.fillStyle = grd; ctx.fillRect(p.x-gr, p.y-gr, gr*2, gr*2);
+        }
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.sz, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(${r},${g},${b},${p.life})`; ctx.fill();
+      }
+      rafRef.current = requestAnimationFrame(draw);
+    }
+
+    draw();
+    return () => { cancelAnimationFrame(rafRef.current); window.removeEventListener('resize', setSize); };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",display:"block"}} />;
 }
