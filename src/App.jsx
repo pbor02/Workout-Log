@@ -383,7 +383,7 @@ function ProfileScreen({onSelect}) {
     <div style={wrap}>
       <style>{css}</style>
       <div style={inner}>
-        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:40,letterSpacing:2,lineHeight:1,marginBottom:4}}><span style={{color:T.accent}}>Workout</span><span style={{color:T.text}}> Log</span></div>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:40,letterSpacing:2,lineHeight:1,marginBottom:4,background:"linear-gradient(100deg,#dc2626,#c026d3,#818cf8,#38bdf8,#9333ea,#dc2626)",backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"gradientShift 6s ease infinite"}}>Workout Log</div>
         <div style={{fontSize:13,color:T.dim,marginBottom:40}}>Choose your profile</div>
         {profiles.map(p=>(
           <div key={p.id} style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:14,padding:"20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1134,7 +1134,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         {/* Row 1: App title centered, wake lock + profile absolute right */}
         <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",padding:"14px 16px 6px"}}>
-          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:4,lineHeight:1}}><span style={{color:T.accent}}>Workout</span><span style={{color:T.text}}> Log</span></div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:4,lineHeight:1,background:"linear-gradient(100deg,#dc2626,#c026d3,#818cf8,#38bdf8,#9333ea,#dc2626)",backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"gradientShift 6s ease infinite"}}>Workout Log</div>
           <div style={{position:"absolute",right:16,display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen lock on":"Screen lock off"} style={{background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.dim,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
           </div>
