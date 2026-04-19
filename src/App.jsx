@@ -586,6 +586,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [activeSessionProgram, setActiveSessionProgram] = useState(null); // {programId, workoutIdx} | null
   const [showProgramManager, setShowProgramManager] = useState(false);
   const [exerciseNotes, setExerciseNotes] = useState({});
+  // note-overrides: persists per-profile across sessions, takes precedence over program ex.note
+  const [noteOverrides, setNoteOverrides] = useState({});
+  const [editingNote, setEditingNote] = useState(null); // exercise name currently being edited
+  const [noteEditValue, setNoteEditValue] = useState("");
   const [todaySupersets, setTodaySupersets] = useState([]);
   const [showSupersetCreator, setShowSupersetCreator] = useState(false);
   const [ssSelection, setSsSelection] = useState([]);
@@ -606,8 +610,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const aiImportRef = useRef(null);
 
   useEffect(() => { (async () => {
-    const [hist,s,d,cex,order,rn,cw,cat,wst,progs,enotes] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-${todayKey()}`),store.get('custom-programs'),store.get(`notes-${day}-${todayKey()}`)]);
-    if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw); if(wst)setWorkoutStartTime(wst); if(progs)setPrograms(progs); if(enotes)setExerciseNotes(enotes);
+    const [hist,s,d,cex,order,rn,cw,cat,wst,progs,enotes,nover] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-${todayKey()}`),store.get('custom-programs'),store.get(`notes-${day}-${todayKey()}`),store.get('note-overrides')]);
+    if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw); if(wst)setWorkoutStartTime(wst); if(progs)setPrograms(progs); if(enotes)setExerciseNotes(enotes); if(nover)setNoteOverrides(nover);
     if(cat){const stored=new Set(cat.map(e=>e.name.toLowerCase()));const merged=[...cat,...EXERCISE_CATALOG_DEFAULT.filter(e=>!stored.has(e.name.toLowerCase()))];setExerciseCatalog(merged);if(merged.length>cat.length)await store.set('exercise-catalog',merged);}else{setExerciseCatalog(EXERCISE_CATALOG_DEFAULT);await store.set('exercise-catalog',EXERCISE_CATALOG_DEFAULT);}
     setLoading(false);
   })(); }, []);
@@ -900,6 +904,31 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     }
     setEditingTarget(null);
     showToast("Target updated");
+  }
+  async function saveNoteOverride(exName, value) {
+    const trimmed = value.trim();
+    const orig = getBaseExercises().find(e => e.name === exName)?.note || "";
+    const updated = {...noteOverrides};
+    if (!trimmed || trimmed === orig) { delete updated[exName]; } else { updated[exName] = trimmed; }
+    setNoteOverrides(updated);
+    setEditingNote(null);
+    await store.set('note-overrides', updated);
+  }
+  async function saveNoteToProgram(exName, value) {
+    const trimmed = value.trim();
+    const baseList = getBaseExercises();
+    const baseIdx = baseList.findIndex(e => e.name === exName);
+    if (baseIdx >= 0) {
+      const current = (getWorkout(day).exercises || []).slice();
+      current[baseIdx] = {...current[baseIdx], note: trimmed || undefined};
+      await saveTemplate(day, current);
+    }
+    const updated = {...noteOverrides};
+    delete updated[exName];
+    setNoteOverrides(updated);
+    await store.set('note-overrides', updated);
+    setEditingNote(null);
+    showToast("Saved to program");
   }
   async function updateTemplateExercise(dayName, idx, name, sets, repRange) {
     var current = (getWorkout(dayName).exercises || []).slice();
@@ -1283,8 +1312,9 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                           {!exSets.length&&lastSession&&<span style={{fontSize:12,color:T.dim,fontStyle:"italic"}}>{exCardio?`last: ${lastSession.reps} min`:`last: ${lastSession.weight}×${lastSession.reps}`}</span>}
                           {exPR&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(147,51,234,0.10)",border:"1px solid rgba(147,51,234,0.25)",color:"#a78bfa",fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:6}}>PR {exPR.weight}lb×{exPR.reps} · {exPR.date}</span>}
                           {!exSets.length&&(function(){var tgt=getSessionTarget(ex.name);return tgt?<div style={{marginTop:4,fontSize:12,color:"#a78bfa",fontWeight:500}}>{"\ud83c\udfaf Target: "+tgt.weight+"lb \u00d7 "+tgt.reps+" \u2014 "+tgt.note}</div>:null;})()}
-                          {ex.note&&<div style={{marginTop:4,fontSize:11,color:"rgba(167,139,250,0.75)",fontStyle:"italic",lineHeight:1.4}}>📌 {ex.note}</div>}
+                          {(()=>{const dn=noteOverrides[ex.name]??ex.note;if(!dn)return null;return(<div data-no-row-click onClick={e=>{e.stopPropagation();if(editingNote!==ex.name){setEditingNote(ex.name);setNoteEditValue(dn);}}} style={{marginTop:4,fontSize:11,color:"rgba(167,139,250,0.75)",fontStyle:"italic",lineHeight:1.4,cursor:"pointer",display:"flex",alignItems:"flex-start",gap:4,flexBasis:"100%"}}><span>📌 {dn}</span><span style={{fontSize:10,color:"rgba(147,51,234,0.45)",flexShrink:0,marginTop:1,marginLeft:2}}>✎</span></div>);})()}
                         </div>
+                        {editingNote===ex.name&&<div data-no-row-click onClick={e=>e.stopPropagation()} style={{paddingLeft:30,marginTop:6}}><textarea autoFocus value={noteEditValue} onChange={e=>setNoteEditValue(e.target.value)} onBlur={()=>saveNoteOverride(ex.name,noteEditValue)} rows={3} style={{width:"100%",background:T.surface2,border:"1px solid rgba(147,51,234,0.4)",color:T.text,padding:"8px 10px",borderRadius:8,fontSize:11,fontFamily:T.font,outline:"none",resize:"none",lineHeight:1.5,boxSizing:"border-box"}}/><div style={{display:"flex",gap:6,marginTop:5}}><button onMouseDown={e=>{e.preventDefault();saveNoteOverride(ex.name,noteEditValue);}} style={{flex:1,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.3)",color:"#a78bfa",padding:"5px 0",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button><button onMouseDown={e=>{e.preventDefault();saveNoteToProgram(ex.name,noteEditValue);}} style={{flex:1,background:"rgba(59,130,246,0.10)",border:"1px solid rgba(59,130,246,0.25)",color:"#93c5fd",padding:"5px 0",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save to program</button>{noteOverrides[ex.name]&&<button onMouseDown={e=>{e.preventDefault();saveNoteOverride(ex.name,ex.note||"");}} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",color:T.dim,padding:"5px 8px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>Reset</button>}<button onMouseDown={e=>{e.preventDefault();setEditingNote(null);}} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",color:T.dim,padding:"5px 8px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button></div></div>}
                         {exSets.length>0&&(
                           <div style={{paddingLeft:30,display:"flex",flexWrap:"wrap",gap:5}}>
                             {exSets.map((s,i)=>{const df=(!exCardio&&s.diff)?DIFF[s.diff]:null; return (
