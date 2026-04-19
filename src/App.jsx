@@ -1283,6 +1283,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                           {!exSets.length&&lastSession&&<span style={{fontSize:12,color:T.dim,fontStyle:"italic"}}>{exCardio?`last: ${lastSession.reps} min`:`last: ${lastSession.weight}×${lastSession.reps}`}</span>}
                           {exPR&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(147,51,234,0.10)",border:"1px solid rgba(147,51,234,0.25)",color:"#a78bfa",fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:6}}>PR {exPR.weight}lb×{exPR.reps} · {exPR.date}</span>}
                           {!exSets.length&&(function(){var tgt=getSessionTarget(ex.name);return tgt?<div style={{marginTop:4,fontSize:12,color:"#a78bfa",fontWeight:500}}>{"\ud83c\udfaf Target: "+tgt.weight+"lb \u00d7 "+tgt.reps+" \u2014 "+tgt.note}</div>:null;})()}
+                          {ex.note&&<div style={{marginTop:4,fontSize:11,color:"rgba(167,139,250,0.75)",fontStyle:"italic",lineHeight:1.4}}>📌 {ex.note}</div>}
                         </div>
                         {exSets.length>0&&(
                           <div style={{paddingLeft:30,display:"flex",flexWrap:"wrap",gap:5}}>
