@@ -2448,7 +2448,7 @@ function AnalyticsView({history, exerciseCatalog}) {
             <div key={name} onClick={()=>setSelectedExercise(name)} style={{borderTop:`1px solid ${T.border}`,paddingTop:12,marginTop:12,cursor:"pointer"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
                 <span style={{fontSize:13,fontWeight:600,color:T.text,flex:1,marginRight:8}}>{name}</span>
-                <span style={{fontSize:13,fontWeight:700,color:col,fontFamily:T.mono,flexShrink:0,display:"flex",alignItems:"center",gap:4}}>{isPos?"+":""}{Math.abs(pct)}% {arrow}</span>
+                <span style={{fontSize:13,fontWeight:700,color:col,fontFamily:T.mono,flexShrink:0,display:"flex",alignItems:"center",gap:4}}>{isPos?"+":""}{pct}% {arrow}</span>
               </div>
               <div style={{display:"flex",gap:16}}>
                 <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>First · {first.dateLabel||first.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{first.weight}lb × {first.reps}</div></div>
