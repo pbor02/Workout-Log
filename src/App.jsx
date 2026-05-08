@@ -610,8 +610,13 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const aiImportRef = useRef(null);
 
   useEffect(() => { (async () => {
-    const [hist,s,d,cex,order,rn,cw,cat,wst,progs,enotes,nover] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-${todayKey()}`),store.get(`done-${day}-${todayKey()}`),store.get(`custom-ex-${day}-${todayKey()}`),store.get(`order-${day}`),store.get(`renames-${day}-${todayKey()}`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-${todayKey()}`),store.get('custom-programs'),store.get(`notes-${day}-${todayKey()}`),store.get('note-overrides')]);
-    if(hist)setHistory(hist); if(s)setSets(s); if(d)setDone(d); if(cex)setCustomExercises(cex); if(order)setExerciseOrder(order); if(rn)setRenames(rn); if(cw)setCustomWorkouts(cw); if(wst)setWorkoutStartTime(wst); if(progs)setPrograms(progs); if(enotes)setExerciseNotes(enotes); if(nover)setNoteOverrides(nover);
+    const [hist,s,d,cex,order,rn,cw,cat,wst,progs,enotes,nover] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-draft`),store.get(`done-${day}-draft`),store.get(`custom-ex-${day}-draft`),store.get(`order-${day}`),store.get(`renames-${day}-draft`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-draft`),store.get('custom-programs'),store.get(`notes-${day}-draft`),store.get('note-overrides')]);
+    let _s=s,_d=d,_cex=cex,_rn=rn,_wst=wst,_enotes=enotes;
+    // Migrate old date-suffixed draft keys if no current draft exists
+    if(!_s||!Object.keys(_s).length){
+      for(let i=1;i<=7;i++){const pd=new Date(Date.now()-i*86400000).toISOString().slice(0,10);if(hist&&hist[`${pd}-${day}`])continue;const [ps,pd2,pcex,prn,pwst,pen]=await Promise.all([store.get(`sets-${day}-${pd}`),store.get(`done-${day}-${pd}`),store.get(`custom-ex-${day}-${pd}`),store.get(`renames-${day}-${pd}`),store.get(`workout-start-${day}-${pd}`),store.get(`notes-${day}-${pd}`)]);if(ps&&Object.keys(ps).length){_s=ps;_d=pd2;_cex=pcex;_rn=prn;_wst=pwst||new Date(pd).setHours(10,0,0,0);_enotes=pen;await Promise.all([store.set(`sets-${day}-draft`,ps),store.set(`done-${day}-draft`,pd2||{}),store.set(`custom-ex-${day}-draft`,pcex||[]),store.set(`renames-${day}-draft`,prn||{}),store.set(`workout-start-${day}-draft`,_wst),store.set(`notes-${day}-draft`,pen||{})]);break;}}
+    }
+    if(hist)setHistory(hist); if(_s)setSets(_s); if(_d)setDone(_d); if(_cex)setCustomExercises(_cex); if(order)setExerciseOrder(order); if(_rn)setRenames(_rn); if(cw)setCustomWorkouts(cw); if(_wst)setWorkoutStartTime(_wst); if(progs)setPrograms(progs); if(_enotes)setExerciseNotes(_enotes); if(nover)setNoteOverrides(nover);
     if(cat){const stored=new Set(cat.map(e=>e.name.toLowerCase()));const merged=[...cat,...EXERCISE_CATALOG_DEFAULT.filter(e=>!stored.has(e.name.toLowerCase()))];setExerciseCatalog(merged);if(merged.length>cat.length)await store.set('exercise-catalog',merged);}else{setExerciseCatalog(EXERCISE_CATALOG_DEFAULT);await store.set('exercise-catalog',EXERCISE_CATALOG_DEFAULT);}
     setLoading(false);
   })(); }, []);
@@ -759,11 +764,11 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     setDayPickerOpen(false);
     if(d===day) return;
     dayCache.current[day] = {sets:sets,done:done,customExercises:customExercises,exerciseOrder:exerciseOrder,renames:renames,exerciseNotes:exerciseNotes};
-    store.set(`sets-${day}-${todayKey()}`,sets);store.set(`done-${day}-${todayKey()}`,done);store.set(`custom-ex-${day}-${todayKey()}`,customExercises);store.set(`renames-${day}-${todayKey()}`,renames);store.set(`notes-${day}-${todayKey()}`,exerciseNotes);
+    store.set(`sets-${day}-draft`,sets);store.set(`done-${day}-draft`,done);store.set(`custom-ex-${day}-draft`,customExercises);store.set(`renames-${day}-draft`,renames);store.set(`notes-${day}-draft`,exerciseNotes);
     setDay(d);setActiveEx(null);setWeight("");setReps("");setEditIdx(null);if(view!=="edit")setView("log");setReordering(false);setRenamingEx(null);setSuggestion(null);setIgnoreTodayCompletion(false);setEditExIdx(null);setEditingMeta(false);setShowAddTemplate(false);setExerciseNotes({});
     var cached = dayCache.current[d];
     if(cached){setSets(cached.sets||{});setDone(cached.done||{});setCustomExercises(cached.customExercises||[]);setExerciseOrder(cached.exerciseOrder);setRenames(cached.renames||{});setExerciseNotes(cached.exerciseNotes||{});}
-    else{const[s,dn,cex,order,rn,en]=await Promise.all([store.get(`sets-${d}-${todayKey()}`),store.get(`done-${d}-${todayKey()}`),store.get(`custom-ex-${d}-${todayKey()}`),store.get(`order-${d}`),store.get(`renames-${d}-${todayKey()}`),store.get(`notes-${d}-${todayKey()}`)]);setSets(s||{});setDone(dn||{});setCustomExercises(cex||[]);setExerciseOrder(order);setRenames(rn||{});setExerciseNotes(en||{});}
+    else{const[s,dn,cex,order,rn,en]=await Promise.all([store.get(`sets-${d}-draft`),store.get(`done-${d}-draft`),store.get(`custom-ex-${d}-draft`),store.get(`order-${d}`),store.get(`renames-${d}-draft`),store.get(`notes-${d}-draft`)]);setSets(s||{});setDone(dn||{});setCustomExercises(cex||[]);setExerciseOrder(order);setRenames(rn||{});setExerciseNotes(en||{});}
   }
 
   function findLastExercise(n) { for(const e of Object.values(history).sort((a,b)=>new Date(b.date)-new Date(a.date))){const s=e.sets?.[n];if(s?.length)return s[s.length-1];} return null; }
@@ -779,12 +784,12 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     let updated;
     if(editIdx!==null){const a=[...(sets[activeEx]||[])];a[editIdx]={...a[editIdx],weight:cardio?"0":String(weight),reps:String(reps),diff:cardio?"just_right":selectedDiff};updated={...sets,[activeEx]:a};setEditIdx(null);showToast("Updated");}
     else{
-      if(!workoutStartTime){const t=Date.now();setWorkoutStartTime(t);await store.set(`workout-start-${day}-${todayKey()}`,t);}
+      if(!workoutStartTime){const t=Date.now();setWorkoutStartTime(t);await store.set(`workout-start-${day}-draft`,t);}
       const entry={weight:cardio?"0":String(weight),reps:String(reps),diff:cardio?"just_right":selectedDiff};updated={...sets,[activeEx]:[...(sets[activeEx]||[]),entry]};showToast("Logged");}
-    setSets(updated); await store.set(`sets-${day}-${todayKey()}`,updated);
+    setSets(updated); await store.set(`sets-${day}-draft`,updated);
     var exData=getAllExercises().find(e=>e.name===activeEx);
     var loggedNow=(updated[activeEx]||[]).length;
-    if(exData&&loggedNow>=exData.sets&&editIdx===null){var ud={...done,[activeEx]:true};setDone(ud);await store.set(`done-${day}-${todayKey()}`,ud);}
+    if(exData&&loggedNow>=exData.sets&&editIdx===null){var ud={...done,[activeEx]:true};setDone(ud);await store.set(`done-${day}-draft`,ud);}
     var ssGroup=getSupersetFor(activeEx);
     var _advInSS=false;
     if(!cardio&&editIdx===null&&exData){
@@ -801,8 +806,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   }
 
   function startEditSet(ex,i){setActiveEx(ex);setEditIdx(i);const s=sets[ex][i];setWeight(s.weight);setReps(s.reps);setSelectedDiff(s.diff||"just_right");setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},80);}
-  async function removeSet(ex,i){const a=(sets[ex]||[]).filter((_,idx)=>idx!==i);const u={...sets};if(a.length)u[ex]=a;else delete u[ex];setSets(u);if(editIdx===i)setEditIdx(null);await store.set(`sets-${day}-${todayKey()}`,u);}
-  async function toggleDone(ex){const u={...done,[ex]:!done[ex]};setDone(u);await store.set(`done-${day}-${todayKey()}`,u);}
+  async function removeSet(ex,i){const a=(sets[ex]||[]).filter((_,idx)=>idx!==i);const u={...sets};if(a.length)u[ex]=a;else delete u[ex];setSets(u);if(editIdx===i)setEditIdx(null);await store.set(`sets-${day}-draft`,u);}
+  async function toggleDone(ex){const u={...done,[ex]:!done[ex]};setDone(u);await store.set(`done-${day}-draft`,u);}
   function isCardio(name) {
     if(!name) return false;
     const n = name.toLowerCase();
@@ -819,12 +824,12 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     }
   }
 
-  async function addCustomExercise(){if(!newExName.trim())return;const _cardio=isCardio(newExName.trim());const ex={name:newExName.trim(),sets:_cardio?1:(parseInt(newExSets)||3),reps:newExReps||(_cardio?"30":"10-12"),custom:true};const upd=[...customExercises,ex];setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);await saveOrder([...getAllExercises(),ex]);addToCatalog(newExName.trim(),_cardio?"Cardio":newExCategory);setNewExName("");setNewExSets("3");setNewExReps("10-12");setNewExCategory("Other");setShowAddEx(false);showToast("Added");}
-  async function removeCustomExercise(idx){const ex=customExercises[idx];const upd=customExercises.filter((_,i)=>i!==idx);setCustomExercises(upd);await store.set(`custom-ex-${day}-${todayKey()}`,upd);if(sets[ex.name]){const u={...sets};delete u[ex.name];setSets(u);await store.set(`sets-${day}-${todayKey()}`,u);}await saveOrder(getAllExercises().filter(e=>e.name!==ex.name));}
+  async function addCustomExercise(){if(!newExName.trim())return;const _cardio=isCardio(newExName.trim());const ex={name:newExName.trim(),sets:_cardio?1:(parseInt(newExSets)||3),reps:newExReps||(_cardio?"30":"10-12"),custom:true};const upd=[...customExercises,ex];setCustomExercises(upd);await store.set(`custom-ex-${day}-draft`,upd);await saveOrder([...getAllExercises(),ex]);addToCatalog(newExName.trim(),_cardio?"Cardio":newExCategory);setNewExName("");setNewExSets("3");setNewExReps("10-12");setNewExCategory("Other");setShowAddEx(false);showToast("Added");}
+  async function removeCustomExercise(idx){const ex=customExercises[idx];const upd=customExercises.filter((_,i)=>i!==idx);setCustomExercises(upd);await store.set(`custom-ex-${day}-draft`,upd);if(sets[ex.name]){const u={...sets};delete u[ex.name];setSets(u);await store.set(`sets-${day}-draft`,u);}await saveOrder(getAllExercises().filter(e=>e.name!==ex.name));}
 
   async function renameExercise(origName,newName){
     if(!newName.trim()||newName===origName){setRenamingEx(null);return;}
-    var u={...renames,[origName]:newName.trim()};setRenames(u);await store.set(`renames-${day}-${todayKey()}`,u);setRenamingEx(null);showToast("Renamed");
+    var u={...renames,[origName]:newName.trim()};setRenames(u);await store.set(`renames-${day}-draft`,u);setRenamingEx(null);showToast("Renamed");
   }
 
   function openPlanEditor() {
@@ -899,7 +904,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       if(customIdx >= 0) {
         const upd = customExercises.map((e,i) => i===customIdx ? {...e, sets:isCardio(exName)?1:(parseInt(newSets)||3), reps:newReps||(isCardio(exName)?"30":"10-12")} : e);
         setCustomExercises(upd);
-        await store.set(`custom-ex-${day}-${todayKey()}`, upd);
+        await store.set(`custom-ex-${day}-draft`, upd);
       }
     }
     setEditingTarget(null);
@@ -1047,20 +1052,23 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   async function finishWorkout(ci) {
     const w=getWorkout();const duration=workoutStartTime?Math.floor((Date.now()-workoutStartTime)/1000):0;const text=buildLogText(ci||{});
     const displaySets={};Object.entries(sets).forEach(([k,v])=>{displaySets[renames[k]||k]=v;});
-    const entry={day,label:w.label,date:todayKey(),dateLabel:dateLabel(),sets:displaySets,customExercises:[...customExercises],checkIn:ci||{},logText:text,duration,notes:{...exerciseNotes},supersets:getSupersets()};
-    const uh={...history,[`${todayKey()}-${day}`]:entry};setHistory(uh);await store.set("iron-history",uh);
+    // Use the actual workout date (from start time) so late submissions record correctly
+    const sessionDate=workoutStartTime?new Date(workoutStartTime).toISOString().slice(0,10):todayKey();
+    const sessionDateLabel=workoutStartTime?new Date(workoutStartTime).toLocaleDateString("en-US",{month:"short",day:"numeric"}):dateLabel();
+    const entry={day,label:w.label,date:sessionDate,dateLabel:sessionDateLabel,sets:displaySets,customExercises:[...customExercises],checkIn:ci||{},logText:text,duration,notes:{...exerciseNotes},supersets:getSupersets()};
+    const uh={...history,[`${sessionDate}-${day}`]:entry};setHistory(uh);await store.set("iron-history",uh);
     setShowFinishModal(false);
     sendToSheets(entry);
     setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});
     setWorkoutStartTime(null);
-    await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{}),store.set(`notes-${day}-${todayKey()}`,{}),store.set(`workout-start-${day}-${todayKey()}`,null)]);
+    await Promise.all([store.set(`sets-${day}-draft`,{}),store.set(`done-${day}-draft`,{}),store.set(`custom-ex-${day}-draft`,[]),store.set(`renames-${day}-draft`,{}),store.set(`notes-${day}-draft`,{}),store.set(`workout-start-${day}-draft`,null)]);
     dayCache.current={};
     if(activeSessionProgram){const{programId,workoutIdx}=activeSessionProgram;const updProgs=programs.map(p=>{if(p.id!==programId)return p;const nextIdx=(workoutIdx+1)%p.workouts.length;return{...p,currentIdx:nextIdx};});await savePrograms(updProgs);setActiveSessionProgram(null);}
     setView("log");
     showToast("Workout saved");
   }
 
-  async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});setWorkoutStartTime(null);setActiveSessionProgram(null);await Promise.all([store.set(`sets-${day}-${todayKey()}`,{}),store.set(`done-${day}-${todayKey()}`,{}),store.set(`custom-ex-${day}-${todayKey()}`,[]),store.set(`renames-${day}-${todayKey()}`,{}),store.set(`notes-${day}-${todayKey()}`,{}),store.set(`workout-start-${day}-${todayKey()}`,null)]); showToast("Cleared");}
+  async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});setWorkoutStartTime(null);setActiveSessionProgram(null);await Promise.all([store.set(`sets-${day}-draft`,{}),store.set(`done-${day}-draft`,{}),store.set(`custom-ex-${day}-draft`,[]),store.set(`renames-${day}-draft`,{}),store.set(`notes-${day}-draft`,{}),store.set(`workout-start-${day}-draft`,null)]); showToast("Cleared");}
 
   async function deleteHistoryEntry(key) {
     const entry = history[key];
@@ -1204,6 +1212,11 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           {w.sub&&<div style={{fontSize:11,color:T.dim,marginTop:3}}>{w.sub}</div>}
           {!w.sub&&isRest&&<div style={{fontSize:11,color:T.dim,marginTop:3}}>Rest Day</div>}
           {activeSessionProgram&&(()=>{const prog=programs.find(p=>p.id===activeSessionProgram.programId);return prog?<div style={{fontSize:10,color:T.accent,marginTop:3,fontWeight:600,letterSpacing:0.3}}>{prog.name} · {activeSessionProgram.workoutIdx+1}/{prog.workouts.length}</div>:null;})()}
+          {workoutStartTime&&new Date(workoutStartTime).toISOString().slice(0,10)!==todayKey()&&(
+            <div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:6,background:"rgba(234,179,8,0.10)",border:"1px solid rgba(234,179,8,0.30)",borderRadius:8,padding:"4px 10px",fontSize:11,color:T.yellow,fontWeight:600}}>
+              ⚠ Unsubmitted session from {new Date(workoutStartTime).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} — tap Finish to save
+            </div>
+          )}
         </div>
         {/* Day picker dropdown */}
         {dayPickerOpen&&(
@@ -1352,7 +1365,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                         </div>}
                         <button onClick={addOrUpdateSet} disabled={!reps||((!exCardio)&&!weight)} className={(!reps||((!exCardio)&&!weight))?"":"cta-btn"} style={{background:(!reps||((!exCardio)&&!weight))?T.surface3:T.accentGradient,color:(!reps||((!exCardio)&&!weight))?T.dim:"#fff",border:"none",padding:"10px 24px",borderRadius:10,fontSize:14,fontWeight:700,cursor:(!reps||((!exCardio)&&!weight))?"default":"pointer",fontFamily:T.font,marginLeft:"auto",boxShadow:(!reps||((!exCardio)&&!weight))?"none":"0 2px 16px #9333ea40"}}>{editIdx!==null?"Update":"Log"}</button>
                       </div>
-                      <input type="text" placeholder="Note (optional)" value={exerciseNotes[ex.name]||""} onChange={async e=>{const v=e.target.value;const u={...exerciseNotes,[ex.name]:v};setExerciseNotes(u);await store.set(`notes-${day}-${todayKey()}`,u);}} style={{marginTop:8,width:"100%",background:T.bg,border:`1px solid ${T.border}`,color:T.sub,padding:"8px 12px",borderRadius:8,fontSize:12,fontFamily:T.font,outline:"none",boxSizing:"border-box"}} />
+                      <input type="text" placeholder="Note (optional)" value={exerciseNotes[ex.name]||""} onChange={async e=>{const v=e.target.value;const u={...exerciseNotes,[ex.name]:v};setExerciseNotes(u);await store.set(`notes-${day}-draft`,u);}} style={{marginTop:8,width:"100%",background:T.bg,border:`1px solid ${T.border}`,color:T.sub,padding:"8px 12px",borderRadius:8,fontSize:12,fontFamily:T.font,outline:"none",boxSizing:"border-box"}} />
                     </div>
                   )}
                 </div>
@@ -2448,7 +2461,7 @@ function AnalyticsView({history, exerciseCatalog}) {
             <div key={name} onClick={()=>setSelectedExercise(name)} style={{borderTop:`1px solid ${T.border}`,paddingTop:12,marginTop:12,cursor:"pointer"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
                 <span style={{fontSize:13,fontWeight:600,color:T.text,flex:1,marginRight:8}}>{name}</span>
-                <span style={{fontSize:13,fontWeight:700,color:col,fontFamily:T.mono,flexShrink:0,display:"flex",alignItems:"center",gap:4}}>{isPos?"+":""}{Math.abs(pct)}% {arrow}</span>
+                <span style={{fontSize:13,fontWeight:700,color:col,fontFamily:T.mono,flexShrink:0,display:"flex",alignItems:"center",gap:4}}>{isPos?"+":""}{pct}% {arrow}</span>
               </div>
               <div style={{display:"flex",gap:16}}>
                 <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>First · {first.dateLabel||first.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{first.weight}lb × {first.reps}</div></div>
