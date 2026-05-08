@@ -590,6 +590,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [noteOverrides, setNoteOverrides] = useState({});
   const [editingNote, setEditingNote] = useState(null); // exercise name currently being edited
   const [noteEditValue, setNoteEditValue] = useState("");
+  const [otherDayDrafts, setOtherDayDrafts] = useState([]); // [{day, dateLabel}] unsaved drafts on other days
+  const [dismissedDrafts, setDismissedDrafts] = useState(false);
   const [todaySupersets, setTodaySupersets] = useState([]);
   const [showSupersetCreator, setShowSupersetCreator] = useState(false);
   const [ssSelection, setSsSelection] = useState([]);
@@ -618,6 +620,11 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     }
     if(hist)setHistory(hist); if(_s)setSets(_s); if(_d)setDone(_d); if(_cex)setCustomExercises(_cex); if(order)setExerciseOrder(order); if(_rn)setRenames(_rn); if(cw)setCustomWorkouts(cw); if(_wst)setWorkoutStartTime(_wst); if(progs)setPrograms(progs); if(_enotes)setExerciseNotes(_enotes); if(nover)setNoteOverrides(nover);
     if(cat){const stored=new Set(cat.map(e=>e.name.toLowerCase()));const merged=[...cat,...EXERCISE_CATALOG_DEFAULT.filter(e=>!stored.has(e.name.toLowerCase()))];setExerciseCatalog(merged);if(merged.length>cat.length)await store.set('exercise-catalog',merged);}else{setExerciseCatalog(EXERCISE_CATALOG_DEFAULT);await store.set('exercise-catalog',EXERCISE_CATALOG_DEFAULT);}
+    // Scan other days for unsaved drafts
+    const otherDays=DAYS.filter(d=>d!==day);
+    const draftChecks=await Promise.all(otherDays.map(async d=>{const ds=await store.get(`sets-${d}-draft`);if(!ds||!Object.keys(ds).length)return null;const dwst=await store.get(`workout-start-${d}-draft`);const draftDate=dwst?new Date(dwst).toISOString().slice(0,10):null;if(draftDate&&hist&&hist[`${draftDate}-${d}`])return null;const dl=dwst?new Date(dwst).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):d;return {day:d,dateLabel:dl};}));
+    const found=draftChecks.filter(Boolean);
+    if(found.length)setOtherDayDrafts(found);
     setLoading(false);
   })(); }, []);
 
@@ -1215,6 +1222,20 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           {workoutStartTime&&new Date(workoutStartTime).toISOString().slice(0,10)!==todayKey()&&(
             <div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:6,background:"rgba(234,179,8,0.10)",border:"1px solid rgba(234,179,8,0.30)",borderRadius:8,padding:"4px 10px",fontSize:11,color:T.yellow,fontWeight:600}}>
               ⚠ Unsubmitted session from {new Date(workoutStartTime).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} — tap Finish to save
+            </div>
+          )}
+          {!dismissedDrafts&&otherDayDrafts.length>0&&(
+            <div style={{marginTop:6,background:"rgba(234,179,8,0.08)",border:"1px solid rgba(234,179,8,0.28)",borderRadius:8,padding:"8px 10px",fontSize:11,color:T.yellow,textAlign:"left"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <span style={{fontWeight:700}}>⚠ Unsaved drafts on other days</span>
+                <button onClick={()=>setDismissedDrafts(true)} style={{background:"none",border:"none",color:T.yellow,fontSize:13,cursor:"pointer",padding:"0 0 0 8px",lineHeight:1,opacity:0.6}}>✕</button>
+              </div>
+              {otherDayDrafts.map(({day:d,dateLabel:dl})=>(
+                <div key={d} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:3}}>
+                  <span style={{opacity:0.85}}>{d} · {dl}</span>
+                  <button onClick={()=>{switchDay(d);setDismissedDrafts(true);}} style={{background:"rgba(234,179,8,0.15)",border:"1px solid rgba(234,179,8,0.35)",color:T.yellow,borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Jump to</button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -2033,9 +2054,9 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
     if(addToCatalog) addToCatalog(newName.trim(),"Other");
     setRenamingHistEx(null);
   }
-  function editHistSet(exName, setIdx, field, value) {
+  function editHistSet(exName, setIdx, fields) {
     const updated={...editedSets, [exName]:[...editedSets[exName]]};
-    updated[exName][setIdx]={...updated[exName][setIdx],[field]:value};
+    updated[exName][setIdx]={...updated[exName][setIdx],...fields};
     setEditedSets(updated);
   }
   function removeHistSet(exName, setIdx) {
@@ -2144,7 +2165,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                                 {Object.entries(DIFF).map(([k,v])=><button key={k} onClick={()=>setEditHistSetVals(sv=>({...sv,diff:k}))} style={{flex:1,padding:"5px 0",fontSize:11,background:editHistSetVals.diff===k?v.bg:T.surface,color:editHistSetVals.diff===k?v.color:T.dim,border:"none",borderRight:`1px solid ${T.border}`,cursor:"pointer",fontFamily:T.font,fontWeight:editHistSetVals.diff===k?700:400}}>{v.label==="Just Right"?"👌":v.label==="Easy"?"🟢":"🔴"}</button>)}
                               </div>
                               <div style={{display:"flex",gap:6}}>
-                                <button onClick={()=>{editHistSet(exName,i,"weight",editHistSetVals.weight);editHistSet(exName,i,"reps",editHistSetVals.reps);editHistSet(exName,i,"diff",editHistSetVals.diff);setEditingHistSet(null);}} style={{flex:1,padding:"6px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                                <button onClick={()=>{editHistSet(exName,i,{weight:editHistSetVals.weight,reps:editHistSetVals.reps,diff:editHistSetVals.diff});setEditingHistSet(null);}} style={{flex:1,padding:"6px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                                 <button onClick={()=>setEditingHistSet(null)} style={{flex:1,padding:"6px",background:T.surface,border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
                                 <button onClick={()=>{removeHistSet(exName,i);setEditingHistSet(null);}} style={{padding:"6px 10px",background:"transparent",border:`1.5px solid ${T.red}33`,color:T.red,borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:T.font}}>✕</button>
                               </div>
