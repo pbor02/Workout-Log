@@ -620,9 +620,21 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     }
     if(hist)setHistory(hist); if(_s)setSets(_s); if(_d)setDone(_d); if(_cex)setCustomExercises(_cex); if(order)setExerciseOrder(order); if(_rn)setRenames(_rn); if(cw)setCustomWorkouts(cw); if(_wst)setWorkoutStartTime(_wst); if(progs)setPrograms(progs); if(_enotes)setExerciseNotes(_enotes); if(nover)setNoteOverrides(nover);
     if(cat){const stored=new Set(cat.map(e=>e.name.toLowerCase()));const merged=[...cat,...EXERCISE_CATALOG_DEFAULT.filter(e=>!stored.has(e.name.toLowerCase()))];setExerciseCatalog(merged);if(merged.length>cat.length)await store.set('exercise-catalog',merged);}else{setExerciseCatalog(EXERCISE_CATALOG_DEFAULT);await store.set('exercise-catalog',EXERCISE_CATALOG_DEFAULT);}
-    // Scan other days for unsaved drafts
+    // Scan other days for unsaved drafts; also migrate old date-suffixed keys for those days
     const otherDays=DAYS.filter(d=>d!==day);
-    const draftChecks=await Promise.all(otherDays.map(async d=>{const ds=await store.get(`sets-${d}-draft`);if(!ds||!Object.keys(ds).length)return null;const dwst=await store.get(`workout-start-${d}-draft`);const draftDate=dwst?new Date(dwst).toISOString().slice(0,10):null;if(draftDate&&hist&&hist[`${draftDate}-${d}`])return null;const dl=dwst?new Date(dwst).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):d;return {day:d,dateLabel:dl};}));
+    const draftChecks=await Promise.all(otherDays.map(async d=>{
+      let ds=await store.get(`sets-${d}-draft`);
+      let dwst=await store.get(`workout-start-${d}-draft`);
+      // Fall back to old date-suffixed keys if draft slot is empty
+      if(!ds||!Object.keys(ds).length){
+        for(let i=1;i<=7;i++){const pd=new Date(Date.now()-i*86400000).toISOString().slice(0,10);if(hist&&hist[`${pd}-${d}`])continue;const pds=await store.get(`sets-${d}-${pd}`);if(pds&&Object.keys(pds).length){ds=pds;dwst=await store.get(`workout-start-${d}-${pd}`)||new Date(pd).setHours(10,0,0,0);await Promise.all([store.set(`sets-${d}-draft`,pds),store.set(`workout-start-${d}-draft`,dwst)]);break;}}
+      }
+      if(!ds||!Object.keys(ds).length)return null;
+      const draftDate=dwst?new Date(dwst).toISOString().slice(0,10):null;
+      if(draftDate&&hist&&hist[`${draftDate}-${d}`])return null;
+      const dl=dwst?new Date(dwst).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):d;
+      return {day:d,dateLabel:dl};
+    }));
     const found=draftChecks.filter(Boolean);
     if(found.length)setOtherDayDrafts(found);
     setLoading(false);
@@ -1224,21 +1236,21 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               ⚠ Unsubmitted session from {new Date(workoutStartTime).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} — tap Finish to save
             </div>
           )}
-          {!dismissedDrafts&&otherDayDrafts.length>0&&(
-            <div style={{marginTop:6,background:"rgba(234,179,8,0.08)",border:"1px solid rgba(234,179,8,0.28)",borderRadius:8,padding:"8px 10px",fontSize:11,color:T.yellow,textAlign:"left"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <span style={{fontWeight:700}}>⚠ Unsaved drafts on other days</span>
-                <button onClick={()=>setDismissedDrafts(true)} style={{background:"none",border:"none",color:T.yellow,fontSize:13,cursor:"pointer",padding:"0 0 0 8px",lineHeight:1,opacity:0.6}}>✕</button>
-              </div>
-              {otherDayDrafts.map(({day:d,dateLabel:dl})=>(
-                <div key={d} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:3}}>
-                  <span style={{opacity:0.85}}>{d} · {dl}</span>
-                  <button onClick={()=>{switchDay(d);setDismissedDrafts(true);}} style={{background:"rgba(234,179,8,0.15)",border:"1px solid rgba(234,179,8,0.35)",color:T.yellow,borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Jump to</button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
+        {!dismissedDrafts&&otherDayDrafts.length>0&&(
+          <div style={{margin:"0 16px 10px",background:"rgba(234,179,8,0.08)",border:"1px solid rgba(234,179,8,0.28)",borderRadius:8,padding:"8px 12px",fontSize:12,color:T.yellow}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <span style={{fontWeight:700}}>⚠ Unsaved drafts</span>
+              <button onClick={()=>setDismissedDrafts(true)} style={{background:"none",border:"none",color:T.yellow,fontSize:14,cursor:"pointer",padding:"0 0 0 8px",lineHeight:1,opacity:0.6}}>✕</button>
+            </div>
+            {otherDayDrafts.map(({day:d,dateLabel:dl})=>(
+              <div key={d} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:5}}>
+                <span style={{opacity:0.85}}>{d} · {dl}</span>
+                <button onClick={()=>{switchDay(d);setDismissedDrafts(true);}} style={{background:"rgba(234,179,8,0.18)",border:"1px solid rgba(234,179,8,0.40)",color:T.yellow,borderRadius:6,padding:"5px 14px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:T.font,flexShrink:0}}>Jump to →</button>
+              </div>
+            ))}
+          </div>
+        )}
         {/* Day picker dropdown */}
         {dayPickerOpen&&(
           <div style={{display:"flex",alignItems:"center",gap:5,padding:"0 16px 10px",overflowX:"auto"}}>
