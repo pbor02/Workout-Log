@@ -1094,13 +1094,35 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     const u = {...history}; delete u[key]; setHistory(u); await store.set("iron-history", u); showToast("Deleted");
     if(entry) deleteFromSheets(entry.date, entry.day);
   }
-  async function editHistoryEntry(key, newSets) {
+  async function editHistoryEntry(key, newSets, newDate, newDay) {
     const orig = history[key];
-    const updatedEntry = {...orig, sets: newSets};
-    const updated = {...history, [key]: updatedEntry};
-    setHistory(updated); await store.set("iron-history", updated); showToast("Updated");
-    if(activeProfileId === "peter" && orig) {
-      await updateInSheets(updatedEntry);
+    if(!orig) return;
+    const finalDate = newDate || orig.date;
+    const finalDay = newDay || orig.day;
+    const finalDateLabel = newDate ? new Date(newDate+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}) : orig.dateLabel;
+    const dateOrDayChanged = orig.date !== finalDate || orig.day !== finalDay;
+    const updatedEntry = {...orig, sets: newSets, date: finalDate, day: finalDay, dateLabel: finalDateLabel};
+    const updated = {...history};
+    const newKey = `${finalDate}-${finalDay}`;
+    if(newKey !== key) {
+      delete updated[key];
+      let safeKey = newKey;
+      let n = 1;
+      while(updated[safeKey]) { safeKey = `${newKey}-${n}`; n++; }
+      updated[safeKey] = updatedEntry;
+    } else {
+      updated[key] = updatedEntry;
+    }
+    setHistory(updated);
+    await store.set("iron-history", updated);
+    showToast("Updated");
+    if(activeProfileId === "peter") {
+      if(dateOrDayChanged) {
+        await deleteFromSheets(orig.date, orig.day);
+        await sendToSheets(updatedEntry);
+      } else {
+        await updateInSheets(updatedEntry);
+      }
     }
   }
   async function clearAllHistory() {
@@ -2049,14 +2071,21 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
   const [copiedKey,setCopiedKey]=useState(null);
   const [editingEntry,setEditingEntry]=useState(null);
   const [editedSets,setEditedSets]=useState(null);
+  const [editedDate,setEditedDate]=useState("");
+  const [editedDay,setEditedDay]=useState("");
   const [renamingHistEx,setRenamingHistEx]=useState(null); // {key, oldName}
   const [renameHistValue,setRenameHistValue]=useState("");
   const [editingHistSet,setEditingHistSet]=useState(null); // {exName, setIdx}
   const [editHistSetVals,setEditHistSetVals]=useState({weight:"",reps:"",diff:"just_right"});
 
-  function startEdit(entry) { setEditingEntry(entry.key); setEditedSets(JSON.parse(JSON.stringify(entry.sets||{}))); }
-  function cancelEdit() { setEditingEntry(null); setEditedSets(null); setRenamingHistEx(null); setEditingHistSet(null); }
-  function saveEdit() { onEdit(editingEntry, editedSets); cancelEdit(); }
+  function startEdit(entry) {
+    setEditingEntry(entry.key);
+    setEditedSets(JSON.parse(JSON.stringify(entry.sets||{})));
+    setEditedDate(entry.date || "");
+    setEditedDay(entry.day || "");
+  }
+  function cancelEdit() { setEditingEntry(null); setEditedSets(null); setRenamingHistEx(null); setEditingHistSet(null); setEditedDate(""); setEditedDay(""); }
+  function saveEdit() { onEdit(editingEntry, editedSets, editedDate, editedDay); cancelEdit(); }
 
   function renameHistEx(oldName, newName) {
     if(!newName.trim()||newName===oldName){setRenamingHistEx(null);return;}
@@ -2145,6 +2174,25 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
               {/* Edit mode */}
               {isEditing&&editedSets?(
                 <div>
+                  <div style={{padding:"12px 0",borderBottom:`1px solid ${T.border}`,marginBottom:4}}>
+                    <div style={{fontSize:11,color:T.accent,fontWeight:600,marginBottom:8,letterSpacing:0.5}}>SESSION DATE & DAY</div>
+                    <div style={{display:"flex",gap:8}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:10,color:T.dim,marginBottom:3}}>Date</div>
+                        <input type="date" value={editedDate} onChange={e=>{
+                          const v=e.target.value;
+                          setEditedDate(v);
+                          if(v){const d=new Date(v+"T12:00:00");if(!isNaN(d))setEditedDay(DAYS[d.getDay()]);}
+                        }} style={{width:"100%",background:T.surface2,border:`1.5px solid ${T.accent}`,color:T.text,padding:"8px 10px",borderRadius:8,fontSize:13,fontFamily:T.mono,outline:"none",boxSizing:"border-box"}} />
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:10,color:T.dim,marginBottom:3}}>Day of week</div>
+                        <select value={editedDay} onChange={e=>setEditedDay(e.target.value)} style={{width:"100%",background:T.surface2,border:`1.5px solid ${T.border}`,color:T.text,padding:"8px 10px",borderRadius:8,fontSize:13,fontFamily:T.font,outline:"none",boxSizing:"border-box"}}>
+                          {DAYS.map(d=><option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
                   {Object.entries(editedSets).map(([exName,exSets])=>(
                     <div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}>
                       {/* Exercise name — tappable to rename */}
