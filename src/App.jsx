@@ -799,6 +799,25 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   function findLastExercise(n) { for(const e of Object.values(history).sort((a,b)=>new Date(b.date)-new Date(a.date))){const s=e.sets?.[n];if(s?.length)return s[s.length-1];} return null; }
   function findPR(n) { var best=null; for(const e of Object.values(history)){const sts=e.sets?.[n];if(!sts?.length)continue;for(const s of sts){const w=parseFloat(s.weight);if(!w)continue;if(!best||w>best.weight||(w===best.weight&&parseInt(s.reps)>parseInt(best.reps))){best={weight:w,reps:s.reps,date:e.dateLabel||e.date};}}} return best; }
+  function findRecentSessions(exName, limit=3) {
+    return Object.values(history)
+      .filter(e=>e.sets?.[exName]?.length)
+      .sort((a,b)=>new Date(b.date)-new Date(a.date))
+      .slice(0,limit)
+      .map(e=>({date:e.date,dateLabel:e.dateLabel,sets:e.sets[exName]}));
+  }
+  function detectPlateau(exName) {
+    const sameDayHist=Object.values(history).filter(e=>e.day===day&&e.sets?.[exName]?.length).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
+    if(sameDayHist.length<3)return null;
+    const maxWeights=sameDayHist.map(e=>Math.max(...e.sets[exName].map(s=>parseFloat(s.weight)||0)));
+    const totalReps=sameDayHist.map(e=>e.sets[exName].reduce((sum,s)=>sum+(parseInt(s.reps)||0),0));
+    if(Math.max(...maxWeights)-Math.min(...maxWeights)>2.5)return null;
+    if(totalReps[0]>totalReps[2])return null;
+    const allDiffs=sameDayHist.flatMap(e=>e.sets[exName].map(s=>s.diff).filter(Boolean));
+    if(!allDiffs.length)return null;
+    if(allDiffs.every(d=>d==="easy"))return null;
+    return {sessions:sameDayHist.length,weight:maxWeights[0]};
+  }
 
   function openExercise(ex) { if(activeEx===ex){setActiveEx(null);setWeight("");setReps("");setEditIdx(null);setSuggestion(null);return;} setActiveEx(ex);setEditIdx(null);setSuggestion(null);
     const xs=sets[ex]||[]; if(xs.length){const l=xs[xs.length-1];setWeight(l.weight);setReps(l.reps);var sg=suggestWeight(ex,l.weight,l.diff);if(sg){setSuggestion(sg);setWeight(String(sg.weight));}} else{const l=findLastExercise(ex);if(l){setWeight(l.weight);setReps(l.reps);var sg2=suggestWeight(ex,l.weight,l.diff);if(sg2){setSuggestion(sg2);setWeight(String(sg2.weight));}}else{setWeight("");setReps("");}}
@@ -1426,6 +1445,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                           {exSets.length>0&&<span style={{fontSize:12,color:targetMet?T.green:"#a78bfa",fontWeight:600}}>{exCardio?`${exSets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min ✓`:`${exSets.length}/${ex.sets}${targetMet?" ✓":""}`}</span>}
                           {!exSets.length&&lastSession&&<span style={{fontSize:12,color:T.dim,fontStyle:"italic"}}>{exCardio?`last: ${lastSession.reps} min`:`last: ${lastSession.weight}×${lastSession.reps}`}</span>}
                           {exPR&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(147,51,234,0.10)",border:"1px solid rgba(147,51,234,0.25)",color:"#a78bfa",fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:6}}>PR {exPR.weight}lb×{exPR.reps} · {exPR.date}</span>}
+                          {!exSets.length&&(()=>{const p=detectPlateau(ex.name);return p?<div style={{marginTop:4,fontSize:11,color:"rgba(234,179,8,0.75)",fontStyle:"italic",lineHeight:1.4,display:"flex",alignItems:"center",gap:4,flexBasis:"100%"}}>💤 {p.sessions} sessions at {p.weight}lb — push, deload, or hold steady?</div>:null;})()}
                           {!exSets.length&&(function(){var tgt=getSessionTarget(ex.name);return tgt?<div style={{marginTop:4,fontSize:12,color:"#a78bfa",fontWeight:500}}>{"\ud83c\udfaf Target: "+tgt.weight+"lb \u00d7 "+tgt.reps+" \u2014 "+tgt.note}</div>:null;})()}
                           {(()=>{const dn=noteOverrides[ex.name]??ex.note;if(!dn)return null;return(<div data-no-row-click onClick={e=>{e.stopPropagation();if(editingNote!==ex.name){setEditingNote(ex.name);setNoteEditValue(dn);}}} style={{marginTop:4,fontSize:11,color:"rgba(167,139,250,0.75)",fontStyle:"italic",lineHeight:1.4,cursor:"pointer",display:"flex",alignItems:"flex-start",gap:4,flexBasis:"100%"}}><span>📌 {dn}</span><span style={{fontSize:10,color:"rgba(147,51,234,0.45)",flexShrink:0,marginTop:1,marginLeft:2}}>✎</span></div>);})()}
                         </div>
@@ -1450,6 +1470,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
                   {isActive&&!reordering&&(
                     <div data-no-row-click onClick={e=>e.stopPropagation()} style={{paddingLeft:30,marginTop:14}}>
+                      {(()=>{const DIFF_EMOJI={just_right:"👌",easy:"🟢",hard:"🔴"};const recent=findRecentSessions(ex.name);if(!recent.length)return null;return(<div style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${T.border}`}}><div style={{fontSize:10,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:6}}>RECENT</div>{recent.map((r,i)=>{const label=r.dateLabel||r.date.slice(5);const row=exCardio?`${r.sets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min`:r.sets.map(s=>{const em=s.diff?DIFF_EMOJI[s.diff]||"":"";return `${s.weight}×${s.reps}${em}`;}).join(" · ");return(<div key={i} style={{fontSize:11,color:T.sub,fontFamily:T.mono,lineHeight:1.6}}><span style={{color:T.dim}}>{label}</span>{" · "}{row}</div>);})}</div>);})()}
                       {!exCardio&&suggestion&&editIdx===null&&<div style={{marginBottom:8,fontSize:12,color:"#a78bfa",fontWeight:500,animation:"fadeIn .3s"}}>{"💡 "+suggestion.reason}</div>}
                       <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",animation:"slideIn .2s ease"}}>
                         {!exCardio&&<div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:4}}>Weight</div><input ref={weightRef} type="number" inputMode="decimal" step="any" value={weight} onChange={e=>setWeight(e.target.value)} onFocus={e=>e.target.select()} onKeyDown={e=>{if(e.key==="Enter")repsRef.current?.focus();}} placeholder="0" style={{background:T.bg,border:`1.5px solid ${T.border2}`,color:T.text,padding:"12px 8px",width:80,borderRadius:10,textAlign:"center",fontSize:22,fontWeight:700,fontFamily:T.mono,outline:"none"}} /></div>}
