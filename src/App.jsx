@@ -553,6 +553,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
+  const [showStaleDraftModal, setShowStaleDraftModal] = useState(false);
   const [finishEnergy, setFinishEnergy] = useState(0);
   const [finishSleep, setFinishSleep] = useState(0);
   const [finishWeight, setFinishWeight] = useState("");
@@ -592,6 +593,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [noteEditValue, setNoteEditValue] = useState("");
   const [otherDayDrafts, setOtherDayDrafts] = useState([]); // [{day, dateLabel}] unsaved drafts on other days
   const [dismissedDrafts, setDismissedDrafts] = useState(false);
+  const [draftsRefresh, setDraftsRefresh] = useState(0);
+  const [discardConfirmDay, setDiscardConfirmDay] = useState(null);
   const [todaySupersets, setTodaySupersets] = useState([]);
   const [showSupersetCreator, setShowSupersetCreator] = useState(false);
   const [ssSelection, setSsSelection] = useState([]);
@@ -619,6 +622,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       for(let i=1;i<=7;i++){const pd=new Date(Date.now()-i*86400000).toISOString().slice(0,10);if(hist&&hist[`${pd}-${day}`])continue;const [ps,pd2,pcex,prn,pwst,pen]=await Promise.all([store.get(`sets-${day}-${pd}`),store.get(`done-${day}-${pd}`),store.get(`custom-ex-${day}-${pd}`),store.get(`renames-${day}-${pd}`),store.get(`workout-start-${day}-${pd}`),store.get(`notes-${day}-${pd}`)]);if(ps&&Object.keys(ps).length){_s=ps;_d=pd2;_cex=pcex;_rn=prn;_wst=pwst||new Date(pd).setHours(10,0,0,0);_enotes=pen;await Promise.all([store.set(`sets-${day}-draft`,ps),store.set(`done-${day}-draft`,pd2||{}),store.set(`custom-ex-${day}-draft`,pcex||[]),store.set(`renames-${day}-draft`,prn||{}),store.set(`workout-start-${day}-draft`,_wst),store.set(`notes-${day}-draft`,pen||{})]);break;}}
     }
     if(hist)setHistory(hist); if(_s)setSets(_s); if(_d)setDone(_d); if(_cex)setCustomExercises(_cex); if(order)setExerciseOrder(order); if(_rn)setRenames(_rn); if(cw)setCustomWorkouts(cw); if(_wst)setWorkoutStartTime(_wst); if(progs)setPrograms(progs); if(_enotes)setExerciseNotes(_enotes); if(nover)setNoteOverrides(nover);
+    // Show blocking modal if current day has a stale draft
+    if(_wst && _s && Object.keys(_s).length > 0 && new Date(_wst).toISOString().slice(0,10) !== todayKey()) {
+      setShowStaleDraftModal(true);
+    }
     if(cat){const stored=new Set(cat.map(e=>e.name.toLowerCase()));const merged=[...cat,...EXERCISE_CATALOG_DEFAULT.filter(e=>!stored.has(e.name.toLowerCase()))];setExerciseCatalog(merged);if(merged.length>cat.length)await store.set('exercise-catalog',merged);}else{setExerciseCatalog(EXERCISE_CATALOG_DEFAULT);await store.set('exercise-catalog',EXERCISE_CATALOG_DEFAULT);}
     // Scan other days for unsaved drafts; also migrate old date-suffixed keys for those days
     const otherDays=DAYS.filter(d=>d!==day);
@@ -1089,6 +1096,32 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   async function clearToday(){setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});setWorkoutStartTime(null);setActiveSessionProgram(null);await Promise.all([store.set(`sets-${day}-draft`,{}),store.set(`done-${day}-draft`,{}),store.set(`custom-ex-${day}-draft`,[]),store.set(`renames-${day}-draft`,{}),store.set(`notes-${day}-draft`,{}),store.set(`workout-start-${day}-draft`,null)]); showToast("Cleared");}
 
+  async function saveDraftForDay(d) {
+    const prefix=`wl_${activeProfileId}_`;
+    const raw=k=>{ try{const v=localStorage.getItem(prefix+k);return v?JSON.parse(v):null;}catch{return null;} };
+    const dSets=raw(`sets-${d}-draft`)||{};
+    const dWst=raw(`workout-start-${d}-draft`);
+    const dCex=raw(`custom-ex-${d}-draft`)||[];
+    const dRenames=raw(`renames-${d}-draft`)||{};
+    const dNotes=raw(`notes-${d}-draft`)||{};
+    const w=getWorkout(d);
+    const sessionDate=dWst?new Date(dWst).toISOString().slice(0,10):todayKey();
+    const sessionDateLabel=dWst?new Date(dWst).toLocaleDateString("en-US",{month:"short",day:"numeric"}):dateLabel();
+    const displaySets={};Object.entries(dSets).forEach(([k,v])=>{displaySets[dRenames[k]||k]=v;});
+    const entry={day:d,label:w.label,date:sessionDate,dateLabel:sessionDateLabel,sets:displaySets,customExercises:dCex,checkIn:{},logText:"",duration:0,notes:dNotes,supersets:[]};
+    const uh={...history,[`${sessionDate}-${d}`]:entry};
+    setHistory(uh);await store.set("iron-history",uh);
+    await Promise.all([store.set(`sets-${d}-draft`,{}),store.set(`done-${d}-draft`,{}),store.set(`custom-ex-${d}-draft`,[]),store.set(`renames-${d}-draft`,{}),store.set(`notes-${d}-draft`,{}),store.set(`workout-start-${d}-draft`,null)]);
+    sendToSheets(entry);
+    if(d===day){setSets({});setDone({});setCustomExercises([]);setRenames({});setExerciseNotes({});setWorkoutStartTime(null);}
+    showToast("Saved");setDraftsRefresh(r=>r+1);
+  }
+  async function discardDraftForDay(d) {
+    await Promise.all([store.set(`sets-${d}-draft`,{}),store.set(`done-${d}-draft`,{}),store.set(`custom-ex-${d}-draft`,[]),store.set(`renames-${d}-draft`,{}),store.set(`notes-${d}-draft`,{}),store.set(`workout-start-${d}-draft`,null)]);
+    if(d===day){setSets({});setDone({});setCustomExercises([]);setRenames({});setExerciseNotes({});setWorkoutStartTime(null);}
+    showToast("Draft discarded");setDiscardConfirmDay(null);setDraftsRefresh(r=>r+1);
+  }
+
   async function deleteHistoryEntry(key) {
     const entry = history[key];
     const u = {...history}; delete u[key]; setHistory(u); await store.set("iron-history", u); showToast("Deleted");
@@ -1150,6 +1183,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.surface,color:T.text,border:`1px solid ${T.border2}`,padding:"10px 24px",borderRadius:100,fontSize:13,fontWeight:600,zIndex:200,animation:"slideIn .25s",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",fontFamily:T.font,whiteSpace:"nowrap"}}>{toast}</div>}
 
       {showFinishModal && <FinishModal energy={finishEnergy} setEnergy={setFinishEnergy} sleep={finishSleep} setSleep={setFinishSleep} bodyweight={finishWeight} setBodyweight={setFinishWeight} notes={finishNotes} setNotes={setFinishNotes} onConfirm={()=>finishWorkout({energy:finishEnergy,sleep:finishSleep,bodyweight:finishWeight,notes:finishNotes})} onSkip={()=>finishWorkout({})} onCancel={()=>setShowFinishModal(false)} />}
+      {showStaleDraftModal && <StaleDraftModal
+        wst={workoutStartTime}
+        setCount={Object.values(sets).reduce((a,v)=>a+v.length,0)}
+        volume={Math.round(Object.values(sets).reduce((a,v)=>a+v.reduce((b,s)=>b+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0),0))}
+        onResume={()=>setShowStaleDraftModal(false)}
+        onSaveAsIs={()=>{setShowStaleDraftModal(false);finishWorkout({});}}
+        onDiscard={async()=>{setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});setWorkoutStartTime(null);await Promise.all([store.set(`sets-${day}-draft`,{}),store.set(`done-${day}-draft`,{}),store.set(`custom-ex-${day}-draft`,[]),store.set(`renames-${day}-draft`,{}),store.set(`notes-${day}-draft`,{}),store.set(`workout-start-${day}-draft`,null)]);setShowStaleDraftModal(false);showToast("Draft discarded");}}
+      />}
 
 
       {/* ═══ PLAN JSON EDITOR ═══ */}
@@ -1287,6 +1328,12 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ CONTENT ═══ */}
       <div style={{flex:1,overflowY:"auto",paddingBottom:90}}>
+        {Object.keys(sets).length>0&&workoutStartTime&&new Date(workoutStartTime).toISOString().slice(0,10)!==todayKey()&&(
+          <div style={{position:"sticky",top:0,zIndex:50,background:"#dc2626",color:"#fff",padding:"10px 16px",fontWeight:700,fontSize:13,textAlign:"center",lineHeight:1.5}}>
+            ⚠ DRAFT FROM {new Date(workoutStartTime).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})} — NOT TODAY
+            <div style={{fontWeight:400,fontSize:11,marginTop:1}}>Do not log today's workout here. Finish or discard this draft first (Profile → Drafts).</div>
+          </div>
+        )}
         {view==="log"&&(<>
           {/* Program picker — outside isRest check so it shows on rest days too */}
           {programs.length>0&&!activeSessionProgram&&totalSets===0&&(!todayCompleted||ignoreTodayCompletion)&&<ProgramPickerCard programs={programs} onStart={(programId,workoutIdx)=>setActiveSessionProgram({programId,workoutIdx})} />}
@@ -1679,6 +1726,46 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               </div>
               <button onClick={openPlanEditor} style={{width:"100%",background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Edit Workout Plan (JSON)</button>
             </div>
+
+            {/* ── DRAFTS ── */}
+            {(()=>{
+              void draftsRefresh; // subscribe to refresh counter
+              const prefix=`wl_${activeProfileId}_`;
+              const raw=k=>{try{const v=localStorage.getItem(prefix+k);return v?JSON.parse(v):null;}catch{return null;}};
+              const drafts=DAYS.map(d=>{
+                const s=raw(`sets-${d}-draft`);
+                if(!s||!Object.keys(s).length)return null;
+                const wst=raw(`workout-start-${d}-draft`);
+                const dl=wst?new Date(wst).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):d;
+                const setCount=Object.values(s).reduce((a,v)=>a+v.length,0);
+                const vol=Math.round(Object.values(s).reduce((a,v)=>a+v.reduce((b,sv)=>b+(parseFloat(sv.weight)||0)*(parseInt(sv.reps)||0),0),0));
+                return {d,dl,setCount,vol};
+              }).filter(Boolean);
+              if(!drafts.length)return null;
+              return (<>
+                <div style={{fontSize:11,fontWeight:600,color:T.dim,letterSpacing:1,textTransform:"uppercase",marginTop:24,marginBottom:12}}>Drafts</div>
+                <div style={{borderTop:`1px solid ${T.border}`,paddingTop:16,display:"flex",flexDirection:"column",gap:10}}>
+                  {drafts.map(({d,dl,setCount,vol})=>(
+                    <div key={d} style={{background:T.surface2,borderRadius:10,padding:"12px 14px",border:`1px solid ${T.border2}`}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:700,color:T.text}}>{d}</div>
+                          <div style={{fontSize:12,color:T.sub,marginTop:1}}>{dl}</div>
+                        </div>
+                        <div style={{fontSize:12,color:T.dim,fontFamily:T.mono,textAlign:"right"}}>{setCount} sets<br/>{vol.toLocaleString()} lb</div>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>saveDraftForDay(d)} style={{flex:1,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.35)",color:"#c4b5fd",padding:"9px 0",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                        {discardConfirmDay===d
+                          ? <button onClick={()=>discardDraftForDay(d)} style={{flex:1,background:"#dc2626",border:"none",color:"#fff",padding:"9px 0",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Sure? Delete {setCount} sets</button>
+                          : <button onClick={()=>setDiscardConfirmDay(d)} style={{flex:1,background:"rgba(220,38,38,0.08)",border:"1px solid rgba(220,38,38,0.28)",color:"#f87171",padding:"9px 0",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Discard</button>
+                        }
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>);
+            })()}
 
             {/* ── ACCOUNT ── */}
             <div style={{fontSize:11,fontWeight:600,color:T.dim,letterSpacing:1,textTransform:"uppercase",marginTop:24,marginBottom:12}}>Account</div>
@@ -2655,6 +2742,30 @@ function AnalyticsView({history, exerciseCatalog}) {
 }
 
 // ─── FINISH MODAL ────────────────────────────────────────────────────────────
+function StaleDraftModal({wst,setCount,volume,onResume,onSaveAsIs,onDiscard}) {
+  const [discardConfirm,setDiscardConfirm] = useState(false);
+  const draftDateStr = new Date(wst).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+  const btn = (label,onClick,style)=>(<button onClick={onClick} style={{width:"100%",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:T.font,border:"none",...style}}>{label}</button>);
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.80)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:T.surface,border:`1px solid ${T.border2}`,borderRadius:18,padding:"24px 20px",width:"100%",maxWidth:360,boxShadow:"0 20px 60px rgba(0,0,0,0.6)"}}>
+        <div style={{fontSize:17,fontWeight:800,color:T.text,marginBottom:8}}>⚠ Unfinished workout from {draftDateStr}</div>
+        <div style={{fontSize:13,color:T.sub,marginBottom:8}}>You have an unsaved workout from a previous day. What do you want to do?</div>
+        <div style={{fontSize:12,color:"#f87171",marginBottom:12,fontWeight:600}}>If you log today's workout into this draft, it will save under the OLD date.</div>
+        <div style={{fontSize:13,color:T.dim,marginBottom:20,fontFamily:T.mono,background:T.surface2,borderRadius:8,padding:"8px 12px"}}>{setCount} sets · {volume.toLocaleString()} lb</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {btn("Resume this session",onResume,{background:T.surface2,color:T.text})}
+          {btn("Save as-is",onSaveAsIs,{background:"rgba(147,51,234,0.18)",color:"#c4b5fd",border:"1px solid rgba(147,51,234,0.35)"})}
+          {discardConfirm
+            ? btn(`Sure? This deletes ${setCount} sets`,onDiscard,{background:"#dc2626",color:"#fff"})
+            : btn("Discard",()=>setDiscardConfirm(true),{background:"rgba(220,38,38,0.10)",color:"#f87171",border:"1px solid rgba(220,38,38,0.30)"})
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,notes,setNotes,onConfirm,onSkip,onCancel}) {
   const labels={1:"Dead",2:"Low",3:"OK",4:"Good",5:"Great"};
   const rb=(val,cur,setter,col)=>(<button key={val} onClick={()=>setter(val)} style={{width:44,height:44,borderRadius:10,background:cur===val?col:T.surface,border:`1.5px solid ${cur===val?col:T.border}`,color:cur===val?"#fff":T.sub,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center"}}>{val}</button>);
