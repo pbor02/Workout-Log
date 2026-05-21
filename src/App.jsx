@@ -1017,18 +1017,83 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   function buildLogText(ci) {
     const w=getWorkout(),allEx=getAllExercises();
-    const vol=Object.values(sets).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);
-    const setsText=allEx.map(ex=>{const xs=sets[ex.name]||[];if(!xs.length)return null;const noteStr=exerciseNotes[ex.name]?` [Note: ${exerciseNotes[ex.name]}]`:"";return `${ex.name} (target ${ex.sets}x${ex.reps}): ${xs.map((s,i)=>`Set ${i+1}: ${s.weight}lb x ${s.reps}${s.diff?` [${DIFF[s.diff]?.label||s.diff}]`:""}`).join(", ")}${noteStr}`;}).filter(Boolean).join("\n");
-    const skipped=allEx.filter(ex=>!(sets[ex.name]?.length)).map(e=>e.name);
-    const hist=Object.values(history).filter(e=>e.day===day).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
-    const histText=hist.map(e=>{const s=Object.entries(e.sets||{}).map(([ex,sts])=>`  ${ex}: ${sts.map(x=>`${x.weight}x${x.reps}${x.diff?` [${x.diff}]`:""}`).join(", ")}`).join("\n");return `${e.dateLabel||e.date} — ${e.label}\n${s}`;}).join("\n\n");
-    const ciLines=[];if(ci?.energy)ciLines.push(`Energy: ${ci.energy}/5`);if(ci?.sleep)ciLines.push(`Sleep: ${ci.sleep}/5`);if(ci?.bodyweight)ciLines.push(`BW: ${ci.bodyweight}lb`);if(ci?.notes)ciLines.push(`Notes: ${ci.notes}`);
-    const header = activeProfileId === "peter"
-      ? `WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${dateLabel()}\n\nPROGRAM: 5-day hypertrophy split (Push/Pull/Legs/Arms&Shoulders/Full Upper), Wed+Sat rest\nGOAL: Body recomp — visible abs by June. TRT ~150mg/wk + tirzepatide. Progressive overload while cutting.`
-      : `WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${dateLabel()}`;
+    const historyN=profile.historyN||5;
+    const phase=profile.phase||null;
     const durMin=workoutStartTime?Math.floor((Date.now()-workoutStartTime)/60000):0;
+    const vol=Object.values(sets).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);
+
+    // Latest bodyweight from history check-ins (most recent that has one)
+    const latestBW=(()=>{const sorted=Object.values(history).filter(e=>e.checkIn?.bodyweight).sort((a,b)=>new Date(b.date)-new Date(a.date));return sorted.length?sorted[0].checkIn.bodyweight:null;})();
+
+    // Header — neutral, no personal context
+    const sessionDate=workoutStartTime?new Date(workoutStartTime).toISOString().slice(0,10):todayKey();
+    const sessionDateLabel=workoutStartTime?new Date(workoutStartTime).toLocaleDateString("en-US",{month:"short",day:"numeric"}):dateLabel();
+    let header=`WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${sessionDateLabel}`;
+    const metaParts=[];
+    if(w.sub)metaParts.push(`Split: ${w.sub}`);
+    if(phase)metaParts.push(`Phase: ${phase}`);
+    if(latestBW)metaParts.push(`BW: ${latestBW}lb`);
+    if(metaParts.length)header+=`\n${metaParts.join(" | ")}`;
+
+    // Check-in
+    const ciLines=[];if(ci?.energy)ciLines.push(`Energy: ${ci.energy}/5`);if(ci?.sleep)ciLines.push(`Sleep: ${ci.sleep}/5`);if(ci?.bodyweight)ciLines.push(`BW: ${ci.bodyweight}lb`);if(ci?.notes)ciLines.push(`Notes: ${ci.notes}`);
+
+    // Substitution log — added vs program template
+    const templateNames=(getWorkout(day).exercises||[]).map(e=>e.name);
+    const addedEx=customExercises.map(e=>e.name);
+    const removedEx=templateNames.filter(n=>!(sets[n]?.length)&&!allEx.some(e=>e.name===n&&e.custom));
+    const subLines=[];
+    if(addedEx.length)subLines.push(`Added: ${addedEx.join(", ")}`);
+    if(removedEx.length)subLines.push(`Skipped: ${removedEx.join(", ")}`);
+
+    // PR detection per exercise
+    function getPRFlags(exName, exSets) {
+      if(!exSets.length)return [];
+      const flags=[];
+      const histWeights=Object.values(history).flatMap(e=>(e.sets?.[exName]||[]).map(s=>parseFloat(s.weight)||0));
+      const histVolumes=Object.values(history).map(e=>(e.sets?.[exName]||[]).reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0));
+      const maxHistWeight=histWeights.length?Math.max(...histWeights):0;
+      const maxHistVol=histVolumes.length?Math.max(...histVolumes):0;
+      const curMaxWeight=Math.max(...exSets.map(s=>parseFloat(s.weight)||0));
+      const curVol=exSets.reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);
+      // Weight PR: new max weight (only flag if there's prior history)
+      if(histWeights.length&&curMaxWeight>maxHistWeight)flags.push("Weight PR");
+      // Rep PR at a given weight: any set beats prior best reps at same weight
+      for(const s of exSets){
+        const w=parseFloat(s.weight);if(!w)continue;
+        const priorRepsAtW=Object.values(history).flatMap(e=>(e.sets?.[exName]||[]).filter(hs=>Math.abs((parseFloat(hs.weight)||0)-w)<0.1).map(hs=>parseInt(hs.reps)||0));
+        const bestPrior=priorRepsAtW.length?Math.max(...priorRepsAtW):0;
+        if(bestPrior>0&&(parseInt(s.reps)||0)>bestPrior){flags.push(`Rep PR @${w}lb`);break;}
+      }
+      // Volume PR
+      if(histVolumes.some(v=>v>0)&&curVol>maxHistVol)flags.push("Volume PR");
+      return flags;
+    }
+
+    // Sets text with PR flags
+    const setsText=allEx.map(ex=>{
+      const xs=sets[ex.name]||[];if(!xs.length)return null;
+      const noteStr=exerciseNotes[ex.name]?` [${exerciseNotes[ex.name]}]`:"";
+      const prFlags=getPRFlags(ex.name,xs);
+      const prStr=prFlags.length?` ★${prFlags.join(", ")}`:""
+      return `${ex.name} (target ${ex.sets}x${ex.reps}): ${xs.map((s,i)=>`Set ${i+1}: ${s.weight}lb x ${s.reps}${s.diff?` [${DIFF[s.diff]?.label||s.diff}]`:""}`).join(", ")}${noteStr}${prStr}`;
+    }).filter(Boolean).join("\n");
+
+    // History (same-day sessions)
+    const hist=Object.values(history).filter(e=>e.day===day).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,historyN);
+    const histText=hist.map(e=>{const s=Object.entries(e.sets||{}).map(([ex,sts])=>`  ${ex}: ${sts.map(x=>`${x.weight}x${x.reps}${x.diff?` [${x.diff}]`:""}`).join(", ")}`).join("\n");return `${e.dateLabel||e.date} — ${e.label}\n${s}`;}).join("\n\n");
+
     const ss=getSupersets();const ssText=ss.length?`\n\nSUPERSETS:\n${ss.map(g=>`  ${g.join(" + ")}`).join("\n")}`:"";
-    return `${header}\n\n${ciLines.length?"CHECK-IN:\n"+ciLines.join("\n")+"\n\n":""}SESSION: ${durMin?`${durMin} min | `:""}Volume ${vol.toLocaleString()} lb | ${Object.keys(sets).length}/${allEx.length} exercises\n${skipped.length?`Skipped: ${skipped.join(", ")}`:"All completed"}\n\nSETS:\n${setsText||"None"}\n${customExercises.length?`\nADDED: ${customExercises.map(e=>e.name).join(", ")}`:""}`+ssText+`\n\nPREVIOUS ${day.toUpperCase()} (${hist.length}):\n${histText||"First session"}\n\nAnalyze:\n1. Compare to last ${day} — volume, progression, regression. Note difficulty ratings.\n2. Exact weight/rep targets for next ${day}\n3. Flag anything off\n4. One-sentence verdict\nDirect. No filler.`;
+
+    return [
+      header,
+      ciLines.length?"CHECK-IN:\n"+ciLines.join("\n"):"",
+      `SESSION: ${durMin?`${durMin} min | `:""}Volume ${vol.toLocaleString()} lb | ${Object.values(sets).filter(v=>v.length).length}/${allEx.length} exercises`,
+      subLines.length?"SUBSTITUTIONS:\n"+subLines.join("\n"):"",
+      `SETS:\n${setsText||"None"}`,
+      ssText.trim(),
+      `PREVIOUS ${day.toUpperCase()} (${hist.length} of ${historyN}):\n${histText||"First session"}`,
+    ].filter(Boolean).join("\n\n");
   }
 
   async function sendToSheets(entry){if(activeProfileId!=="peter")return;if(!sheetsUrl)return;setSheetsSyncStatus("sending");try{const r=await fetch(sheetsUrl,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(entry)});const d=await r.json();setSheetsSyncStatus(d.status==="ok"?"ok":"error");}catch(e){setSheetsSyncStatus("error");}}
@@ -1730,6 +1795,24 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                   <button key={s} onClick={async()=>{const u={...profile,restTime:s};onProfileUpdated(u);}} style={{flex:1,padding:"12px 0",background:(profile.restTime||90)===s?T.accentDim:"none",border:`1.5px solid ${(profile.restTime||90)===s?T.accent:T.border}`,color:(profile.restTime||90)===s?T.accent:T.sub,borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>{s}s</button>
                 ))}
                 <button onClick={()=>{const v=prompt("Custom rest time (seconds):",(profile.restTime||90).toString());const n=parseInt(v);if(n&&n>0){const u={...profile,restTime:n};onProfileUpdated(u);}}} style={{flex:1,padding:"12px 0",background:![60,90,120].includes(profile.restTime||90)?T.accentDim:"none",border:`1.5px solid ${![60,90,120].includes(profile.restTime||90)?T.accent:T.border}`,color:![60,90,120].includes(profile.restTime||90)?T.accent:T.sub,borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{![60,90,120].includes(profile.restTime||90)?`${profile.restTime}s`:"Custom"}</button>
+              </div>
+            </div>
+
+            <div style={{borderTop:`1px solid ${T.border}`,paddingTop:16,marginTop:16}}>
+              <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:10}}>TRAINING PHASE</div>
+              <div style={{display:"flex",gap:8}}>
+                {["Bulk","Cut","Maintain"].map(p=>{const active=(profile.phase||null)===p;return(
+                  <button key={p} onClick={()=>onProfileUpdated({...profile,phase:active?null:p})} style={{flex:1,padding:"12px 0",background:active?T.accentDim:"none",border:`1.5px solid ${active?T.accent:T.border}`,color:active?T.accent:T.sub,borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>{p}</button>
+                );})}
+              </div>
+            </div>
+
+            <div style={{borderTop:`1px solid ${T.border}`,paddingTop:16,marginTop:16}}>
+              <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:10}}>HISTORY IN LOG EXPORT</div>
+              <div style={{display:"flex",gap:8}}>
+                {[3,5,8,10].map(n=>{const active=(profile.historyN||5)===n;return(
+                  <button key={n} onClick={()=>onProfileUpdated({...profile,historyN:n})} style={{flex:1,padding:"12px 0",background:active?T.accentDim:"none",border:`1.5px solid ${active?T.accent:T.border}`,color:active?T.accent:T.sub,borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>{n}</button>
+                );})}
               </div>
             </div>
 
