@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import LedgerView from './pages/Ledger.jsx';
 
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DEFAULT_WORKOUTS = {
@@ -201,25 +202,25 @@ function getShared(k) { try { var v = localStorage.getItem("wl_" + k); return v 
 function setShared(k, v) { try { localStorage.setItem("wl_" + k, JSON.stringify(v)); } catch(e) {} }
 
 const T = {
-  bg:"rgba(7,4,16,0.94)", surface:"rgba(13,9,23,0.88)", surface2:"rgba(19,13,33,0.86)", surface3:"rgba(27,19,43,0.83)",
-  border:"#1e1230", border2:"#281843",
-  text:"#f0eaff", sub:"#a08cc0", dim:"#5a4878",
-  accent:"#dc2626", accentDim:"#dc262618", accentLight:"#dc262608", accentGlow:"#dc262640",
-  accentGradient:"linear-gradient(135deg,#dc2626,#9333ea)",
-  spaceBg:"transparent",
-  green:"#22c55e", greenBg:"#22c55e12", yellow:"#eab308", yellowBg:"#eab30812",
-  red:"#ef4444", redBg:"#ef444412",
-  font:"'Geist','SF Pro Display',-apple-system,sans-serif",
-  display:"'Geist','SF Pro Display',-apple-system,sans-serif",
-  mono:"'Geist Mono','SF Mono','Menlo',monospace",
-  timerBg:"rgba(5,2,14,0.96)",
+  bg:"#f4ede0", surface:"#ece2cb", surface2:"#e4d5b5", surface3:"#d8c89e",
+  border:"#1a1612", border2:"#3d3530",
+  text:"#1a1612", sub:"#3d3530", dim:"#8b7a5e",
+  accent:"#c8341d", accentDim:"rgba(200,52,29,0.10)", accentLight:"rgba(200,52,29,0.05)", accentGlow:"rgba(200,52,29,0.25)",
+  accentGradient:"linear-gradient(135deg,#c8341d,#8b3a1f)",
+  spaceBg:"#f4ede0",
+  green:"#5a6b3a", greenBg:"rgba(90,107,58,0.10)", yellow:"#c89933", yellowBg:"rgba(200,153,51,0.10)",
+  red:"#c8341d", redBg:"rgba(200,52,29,0.10)",
+  font:"'Inter Tight',system-ui,sans-serif",
+  display:"'Bebas Neue','Oswald',Impact,sans-serif",
+  mono:"'JetBrains Mono',monospace",
+  timerBg:"#1a1612",
 };
 
 const DIFF = { easy:{label:"Easy",color:"#22c55e",bg:"#22c55e0c",btnBg:"#22c55e18",icon:"\u2191"}, just_right:{label:"Just Right",color:"#eab308",bg:"#eab3080c",btnBg:"#eab30818",icon:"\u2022"}, hard:{label:"Hard",color:"#ef4444",bg:"#ef44440c",btnBg:"#ef444418",icon:"\u2193"} };
 const CATEGORIES = ["Chest","Back","Shoulders","Biceps","Triceps","Legs","Calves","Core","Cardio","Other"];
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Orbitron:wght@700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&family=Inter+Tight:wght@400;600;800&family=JetBrains+Mono:wght@400;600&family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:${T.border2};border-radius:2px}
   input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -1254,7 +1255,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const workoutElapsed=workoutStartTime?Math.floor((now-workoutStartTime)/1000):0;
   const workoutMin=Math.floor(workoutElapsed/60),workoutSec=workoutElapsed%60;
   const dayFull=new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
-  if(view!=="log"&&view!=="history"&&view!=="edit"&&view!=="profile") setView("log");
+  if(view!=="log"&&view!=="history"&&view!=="edit"&&view!=="profile"&&view!=="ledger") setView("log");
 
   if(loading) return <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.font}}><div style={{color:T.dim,fontSize:13,letterSpacing:2,animation:"pulse 1.5s infinite"}}>Loading...</div></div>;
 
@@ -1781,6 +1782,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           <HistoryView history={history} onDelete={deleteHistoryEntry} onClearAll={clearAllHistory} onEdit={editHistoryEntry} exerciseCatalog={exerciseCatalog} addToCatalog={addToCatalog} />
         )}
 
+        {view==="ledger"&&(
+          <LedgerView history={history} />
+        )}
+
         {view==="profile"&&(
           <div style={{padding:"24px 20px"}}>
             <div style={{fontSize:22,fontWeight:800,color:T.text,marginBottom:2}}>{profile.name}</div>
@@ -1891,15 +1896,16 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       {/* ═══ BOTTOM NAV ═══ */}
       <div className="bottom-nav" style={{position:"fixed",bottom:0,left:0,right:0,background:T.surface,borderTop:`1px solid ${T.border}`,boxShadow:"0 -2px 10px rgba(0,0,0,0.3)",display:"flex",alignItems:"flex-start",zIndex:100,maxWidth:540,margin:"0 auto"}}>
         {[
-          {v:"log",label:"Log",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1.5" y="8.5" width="5" height="7" rx="1.5"/><rect x="17.5" y="8.5" width="5" height="7" rx="1.5"/><line x1="6.5" y1="12" x2="17.5" y2="12" strokeWidth="2.5"/></svg>},
-          {v:"history",label:"History",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>},
-          {v:"edit",label:"Edit",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>},
-          {v:"profile",label:"Profile",svg:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>},
+          {v:"log",label:"Log",svg:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1.5" y="8.5" width="5" height="7" rx="1.5"/><rect x="17.5" y="8.5" width="5" height="7" rx="1.5"/><line x1="6.5" y1="12" x2="17.5" y2="12" strokeWidth="2.5"/></svg>},
+          {v:"history",label:"History",svg:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>},
+          {v:"ledger",label:"Ledger",svg:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20"/><path d="M5 20V10l7-7 7 7v10"/><path d="M9 20v-5h6v5"/></svg>},
+          {v:"edit",label:"Edit",svg:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>},
+          {v:"profile",label:"Profile",svg:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>},
         ].map(({v,label,svg})=>(
-          <button key={v} onClick={()=>{setView(v);if(v==="edit"){setReordering(false);setEditExIdx(null);setEditingMeta(false);}}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"none",border:"none",cursor:"pointer",fontFamily:T.font,gap:3,color:view===v?"#a78bfa":T.dim,padding:"8px 0",position:"relative"}}>
+          <button key={v} onClick={()=>{setView(v);if(v==="edit"){setReordering(false);setEditExIdx(null);setEditingMeta(false);}}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"none",border:"none",cursor:"pointer",fontFamily:T.font,gap:2,color:view===v?T.accent:T.dim,padding:"8px 0",position:"relative"}}>
             {svg}
-            <span style={{fontSize:10,fontWeight:view===v?700:500,letterSpacing:0.2}}>{label}</span>
-            {view===v&&<div style={{width:3,height:3,borderRadius:"50%",background:"#9333ea",marginTop:2}} />}
+            <span style={{fontSize:9,fontWeight:view===v?700:500,letterSpacing:0.2,fontFamily:view===v?"'Bebas Neue','Oswald',sans-serif":T.font}}>{label.toUpperCase()}</span>
+            {view===v&&<div style={{width:16,height:2,background:T.accent,marginTop:1}} />}
           </button>
         ))}
       </div>
