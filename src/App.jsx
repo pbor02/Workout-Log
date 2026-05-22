@@ -216,7 +216,11 @@ const T = {
   timerBg:"#1a1612",
 };
 
-const DIFF = { easy:{label:"Easy",color:"#22c55e",bg:"#22c55e0c",btnBg:"#22c55e18",icon:"\u2191"}, just_right:{label:"Just Right",color:"#eab308",bg:"#eab3080c",btnBg:"#eab30818",icon:"\u2022"}, hard:{label:"Hard",color:"#ef4444",bg:"#ef44440c",btnBg:"#ef444418",icon:"\u2193"} };
+const DIFF = {
+  easy:       { label:"Easy",       color:"#5a6b3a", bg:"rgba(90,107,58,0.10)",  btnBg:"rgba(90,107,58,0.18)",  icon:"\u2191" },
+  just_right: { label:"Just Right", color:"#c89933", bg:"rgba(200,153,51,0.10)", btnBg:"rgba(200,153,51,0.18)", icon:"\u2022" },
+  hard:       { label:"Hard",       color:"#c8341d", bg:"rgba(200,52,29,0.10)",  btnBg:"rgba(200,52,29,0.18)",  icon:"\u2193" },
+};
 const CATEGORIES = ["Chest","Back","Shoulders","Biceps","Triceps","Legs","Calves","Core","Cardio","Other"];
 
 const css = `
@@ -230,13 +234,13 @@ const css = `
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   @keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
-  @keyframes cosmicPulse{0%,100%{box-shadow:0 0 0 0 #9333ea00}50%{box-shadow:0 0 18px 4px #9333ea28}}
+  @keyframes cosmicPulse{0%,100%{box-shadow:0 0 0 0 #c8341d00}50%{box-shadow:0 0 18px 4px #c8341d28}}
   @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
   @keyframes digitAppear{0%{opacity:0;filter:blur(8px)}100%{opacity:1;filter:blur(0)}}
-  @keyframes urgentPulse{0%,100%{opacity:1;filter:drop-shadow(0 0 20px #dc262680)}50%{opacity:0.85;filter:drop-shadow(0 0 55px #ff440090)}}
+  @keyframes urgentPulse{0%,100%{opacity:1;filter:drop-shadow(0 0 20px #c8341d80)}50%{opacity:0.85;filter:drop-shadow(0 0 55px #c8341d90)}}
   @media(orientation:landscape){.app-wrap{display:none!important}.landscape-msg{display:flex!important}}
   .bottom-nav{height:calc(60px + max(env(safe-area-inset-bottom,0px),16px))}
-  input:focus{border-color:#9333ea!important;box-shadow:0 0 0 3px rgba(147,51,234,0.15)!important}
+  input:focus{border-color:#c8341d!important;box-shadow:0 0 0 3px rgba(200,52,29,0.15)!important}
   button:active{transform:scale(0.97)}
   .cta-btn{background-size:200% 200%!important;animation:gradientShift 4s ease infinite}
 `;
@@ -378,7 +382,7 @@ function ProfileScreen({onSelect}) {
   }
 
   const inp = (extra) => ({width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"14px 16px",borderRadius:10,fontSize:16,fontFamily:T.font,outline:"none",...extra});
-  const btnPrimary = (disabled) => ({width:"100%",padding:"16px",background:disabled?T.surface3:T.accentGradient,color:disabled?T.dim:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:disabled?"default":"pointer",fontFamily:T.font,boxShadow:disabled?"none":"0 4px 24px #9333ea40",marginTop:28});
+  const btnPrimary = (disabled) => ({width:"100%",padding:"16px",background:disabled?T.surface3:T.accentGradient,color:disabled?T.dim:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:disabled?"default":"pointer",fontFamily:T.font,boxShadow:disabled?"none":"0 4px 24px #c8341d40",marginTop:28});
   const wrap = {minHeight:"100vh",background:T.bg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"48px 24px 48px"};
   const inner = {width:"100%",maxWidth:420};
 
@@ -386,7 +390,7 @@ function ProfileScreen({onSelect}) {
     <div style={wrap}>
       <style>{css}</style>
       <div style={inner}>
-        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:40,letterSpacing:2,lineHeight:1,marginBottom:4,background:"linear-gradient(100deg,#dc2626,#c026d3,#818cf8,#38bdf8,#9333ea,#dc2626)",backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"gradientShift 6s ease infinite"}}>Workout Log</div>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:40,letterSpacing:2,lineHeight:1,marginBottom:4,color:"#1a1612"}}>Workout Log</div>
         <div style={{fontSize:13,color:T.dim,marginBottom:40}}>Choose your profile</div>
         {profiles.map(p=>(
           <div key={p.id} style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:14,padding:"20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -459,7 +463,7 @@ function ProfileScreen({onSelect}) {
           })}
           <div style={{display:"flex",gap:10,marginTop:24}}>
             <button onClick={()=>setStep(1)} style={{flex:1,padding:"14px",background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:T.font}}>← Back</button>
-            <button onClick={()=>setStep(3)} style={{flex:2,padding:"14px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Next →</button>
+            <button onClick={()=>setStep(3)} style={{flex:2,padding:"14px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #c8341d40"}}>Next →</button>
           </div>
         </>)}
 
@@ -503,7 +507,7 @@ function ProfileScreen({onSelect}) {
           })}
           <div style={{display:"flex",gap:10,marginTop:8}}>
             <button onClick={()=>setStep(2)} style={{flex:1,padding:"14px",background:"transparent",border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:T.font}}>← Back</button>
-            <button onClick={finishWizard} style={{flex:2,padding:"14px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #dc262640"}}>Finish ✓</button>
+            <button onClick={finishWizard} style={{flex:2,padding:"14px",background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #c8341d40"}}>Finish ✓</button>
           </div>
         </>)}
       </div>
@@ -1261,11 +1265,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   return (
     <>
-    <StarField />
-    <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:"#05020f",alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
+    <div className="landscape-msg" style={{display:"none",minHeight:"100vh",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:T.font,color:T.dim,fontSize:14,textAlign:"center",padding:40}}>Rotate to portrait</div>
     <div className="app-wrap" style={{height:"100dvh",maxWidth:540,margin:"0 auto",background:T.spaceBg,fontFamily:T.font,color:T.text,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",zIndex:1}}>
       <style>{css}</style>
-      {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.surface,color:T.text,border:`1px solid ${T.border2}`,padding:"10px 24px",borderRadius:100,fontSize:13,fontWeight:600,zIndex:200,animation:"slideIn .25s",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",fontFamily:T.font,whiteSpace:"nowrap"}}>{toast}</div>}
+      {toast && <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.border,color:"#f4ede0",border:`1px solid ${T.border2}`,padding:"10px 24px",borderRadius:4,fontSize:13,fontWeight:600,zIndex:200,animation:"slideIn .25s",fontFamily:T.mono,whiteSpace:"nowrap"}}>{toast}</div>}
 
       {showFinishModal && <FinishModal energy={finishEnergy} setEnergy={setFinishEnergy} sleep={finishSleep} setSleep={setFinishSleep} bodyweight={finishWeight} setBodyweight={setFinishWeight} notes={finishNotes} setNotes={setFinishNotes} onConfirm={()=>finishWorkout({energy:finishEnergy,sleep:finishSleep,bodyweight:finishWeight,notes:finishNotes})} onSkip={()=>finishWorkout({})} onCancel={()=>setShowFinishModal(false)} />}
       {showStaleDraftModal && <StaleDraftModal
@@ -1306,49 +1309,41 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ TIMER — FULL or MINIMIZED ═══ */}
       {timerActive && !timerMinimized && (
-        <div style={{position:"fixed",inset:0,zIndex:150,background:"#05020f",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .3s"}}>
-          {/* Subtle nebula bleed */}
-          <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 70% 55% at 50% 45%, rgba(147,51,234,0.10) 0%, transparent 70%)",pointerEvents:"none"}} />
-          {/* Particle dust */}
-          <TimerParticles remaining={timerRemaining} />
+        <div style={{position:"fixed",inset:0,zIndex:150,background:T.timerBg,display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .3s"}}>
           <div style={{textAlign:"center",width:"100%",maxWidth:400,padding:"0 32px",position:"relative",zIndex:1}}>
-            {/* Thin progress bar — minimal, at top of content */}
-            <div style={{height:2,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden",maxWidth:200,margin:"0 auto 40px"}}>
-              <div style={{height:"100%",width:`${100-timerPct}%`,background:timerRemaining<=10?"linear-gradient(90deg,#ff4040,#ff9900)":"linear-gradient(90deg,#9333ea,#38bdf8)",transition:"width 1s linear",borderRadius:2}} />
+            <div style={{height:2,background:T.border2,overflow:"hidden",maxWidth:200,margin:"0 auto 40px"}}>
+              <div style={{height:"100%",width:`${100-timerPct}%`,background:timerRemaining<=10?T.accent:T.sub,transition:"width 1s linear"}} />
             </div>
-            <div style={{fontSize:11,letterSpacing:10,fontWeight:700,marginBottom:20,background:"linear-gradient(90deg,#9333ea,#38bdf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>REST</div>
+            <div style={{fontSize:11,letterSpacing:10,fontWeight:700,marginBottom:20,color:T.accent,fontFamily:T.display}}>REST</div>
             <div
               key={`${Math.floor(timerRemaining/60)}:${String(timerRemaining%60).padStart(2,"0")}`}
               style={{
                 fontSize:100,fontWeight:800,letterSpacing:-2,lineHeight:1,
-                fontFamily:"'Orbitron',sans-serif",
-                background:timerRemaining<=10?"linear-gradient(135deg,#ff6060,#ffaa00)":"linear-gradient(135deg,#ffffff,#c4b5fd,#818cf8)",
-                WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
-                animation:timerRemaining<=10?"digitAppear 0.65s ease-out, urgentPulse 1s ease-in-out infinite":"digitAppear 0.65s ease-out",
+                fontFamily:T.display,
+                color:timerRemaining<=10?T.accent:"#f4ede0",
+                animation:"digitAppear 0.65s ease-out",
               }}
             >{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</div>
-            <div style={{fontSize:13,color:"rgba(160,140,192,0.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:280,margin:"18px auto 44px"}}>{activeEx||""}</div>
+            <div style={{fontSize:13,color:T.dim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:280,margin:"18px auto 44px",fontFamily:T.mono}}>{activeEx||""}</div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-              <button onClick={()=>setTimerDuration(p=>Math.max(5,p-15))} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.10)",color:"rgba(200,180,240,0.7)",padding:"14px 18px",borderRadius:12,fontSize:13,cursor:"pointer",fontFamily:T.font,backdropFilter:"blur(8px)"}}>−15s</button>
-              <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} className="cta-btn" style={{background:T.accentGradient,border:"none",color:"#fff",padding:"14px 40px",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 28px rgba(147,51,234,0.55)"}}>Skip — Go</button>
-              <button onClick={()=>setTimerDuration(p=>p+15)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.10)",color:"rgba(200,180,240,0.7)",padding:"14px 18px",borderRadius:12,fontSize:13,cursor:"pointer",fontFamily:T.font,backdropFilter:"blur(8px)"}}>+15s</button>
+              <button onClick={()=>setTimerDuration(p=>Math.max(5,p-15))} style={{background:T.border2,border:`1px solid ${T.sub}`,color:"#f4ede0",padding:"14px 18px",fontSize:13,cursor:"pointer",fontFamily:T.font}}>−15s</button>
+              <button onClick={()=>{setTimerStart(null);setTimerMinimized(false);setTimeout(()=>{repsRef.current?.focus();repsRef.current?.select();},150);}} style={{background:T.accent,border:"none",color:"#f4ede0",padding:"14px 40px",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Skip — Go</button>
+              <button onClick={()=>setTimerDuration(p=>p+15)} style={{background:T.border2,border:`1px solid ${T.sub}`,color:"#f4ede0",padding:"14px 18px",fontSize:13,cursor:"pointer",fontFamily:T.font}}>+15s</button>
             </div>
             <div style={{display:"flex",justifyContent:"center",marginTop:16}}>
-              <button onClick={()=>setTimerMinimized(true)} style={{background:"transparent",border:"1px solid rgba(255,255,255,0.08)",color:"rgba(160,140,192,0.5)",padding:"10px 28px",borderRadius:10,fontSize:13,cursor:"pointer",fontFamily:T.font}}>Minimize</button>
+              <button onClick={()=>setTimerMinimized(true)} style={{background:"transparent",border:`1px solid ${T.border2}`,color:T.sub,padding:"10px 28px",fontSize:13,cursor:"pointer",fontFamily:T.font}}>Minimize</button>
             </div>
           </div>
         </div>
       )}
       {timerActive && timerMinimized && (
-        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(5,2,15,0.92)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",padding:"0 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",animation:"slideIn .2s ease",maxWidth:540,margin:"0 auto",overflow:"hidden"}}>
-          {/* Progress fill behind everything */}
-          <div style={{position:"absolute",inset:0,width:`${100-timerPct}%`,background:timerRemaining<=10?"linear-gradient(90deg,rgba(220,38,38,0.18),rgba(255,100,0,0.10))":"linear-gradient(90deg,rgba(147,51,234,0.18),rgba(56,189,248,0.08))",transition:"width 1s linear",pointerEvents:"none"}} />
-          {/* Pulse dot */}
-          <div style={{width:6,height:6,borderRadius:"50%",background:timerRemaining<=10?"#ff4040":"#9333ea",boxShadow:timerRemaining<=10?"0 0 8px #ff4040":"0 0 8px #9333ea",animation:"pulse 1s infinite",flexShrink:0,position:"relative"}} />
-          <span style={{fontSize:11,fontWeight:700,letterSpacing:4,color:"rgba(200,170,255,0.8)",whiteSpace:"nowrap",position:"relative"}}>REST</span>
-          {activeEx&&<span style={{fontSize:12,color:"rgba(160,130,210,0.55)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",position:"relative"}}>{activeEx}</span>}
-          <span style={{fontSize:17,fontWeight:800,fontFamily:"'Orbitron',sans-serif",whiteSpace:"nowrap",marginLeft:"auto",position:"relative",background:timerRemaining<=10?"linear-gradient(135deg,#ff6060,#ffaa00)":"linear-gradient(135deg,#fff,#c4b5fd)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",padding:"10px 0"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</span>
-          <span style={{fontSize:10,color:"rgba(147,51,234,0.6)",position:"relative"}}>▼</span>
+        <div onClick={()=>setTimerMinimized(false)} style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:T.timerBg,padding:"0 20px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",animation:"slideIn .2s ease",maxWidth:540,margin:"0 auto",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,width:`${100-timerPct}%`,background:`rgba(200,52,29,${timerRemaining<=10?0.25:0.12})`,transition:"width 1s linear",pointerEvents:"none"}} />
+          <div style={{width:6,height:6,background:T.accent,animation:"pulse 1s infinite",flexShrink:0,position:"relative"}} />
+          <span style={{fontSize:11,fontWeight:700,letterSpacing:4,color:"#f4ede0",whiteSpace:"nowrap",position:"relative",fontFamily:T.display}}>REST</span>
+          {activeEx&&<span style={{fontSize:12,color:T.sub,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",position:"relative",fontFamily:T.mono}}>{activeEx}</span>}
+          <span style={{fontSize:17,fontWeight:800,fontFamily:T.display,whiteSpace:"nowrap",marginLeft:"auto",position:"relative",color:timerRemaining<=10?T.accent:"#f4ede0",padding:"10px 0"}}>{Math.floor(timerRemaining/60)}:{String(timerRemaining%60).padStart(2,"0")}</span>
+          <span style={{fontSize:10,color:T.accent,position:"relative"}}>▼</span>
         </div>
       )}
 
@@ -1359,7 +1354,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       <div style={{background:T.surface,borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         {/* Row 1: App title centered, wake lock + profile absolute right */}
         <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",padding:"14px 16px 6px"}}>
-          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:4,lineHeight:1,background:"linear-gradient(100deg,#dc2626,#c026d3,#818cf8,#38bdf8,#9333ea,#dc2626)",backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"gradientShift 6s ease infinite"}}>Workout Log</div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:4,lineHeight:1,color:"#1a1612"}}>Workout Log</div>
           <div style={{position:"absolute",right:16,display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>setWakeLockOn(v=>!v)} title={wakeLockOn?"Screen lock on":"Screen lock off"} style={{background:wakeLockOn?T.accentDim:"none",border:`1.5px solid ${wakeLockOn?T.accent:T.border}`,color:wakeLockOn?T.accent:T.dim,width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:15,flexShrink:0}}>☀</button>
           </div>
@@ -1403,7 +1398,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
         {dayPickerOpen&&(
           <div style={{display:"flex",alignItems:"center",gap:5,padding:"0 16px 10px",overflowX:"auto"}}>
             {DAYS.map(d=>{const sel=d===day,tod=d===today,rest=(getWorkout(d).exercises||[]).length===0; return (
-              <button key={d} onClick={()=>{if(sel){setDayPickerOpen(false);}else{switchDay(d);}}} style={{background:sel?T.accentGradient:"transparent",border:`1.5px solid ${sel?"#9333ea":tod?T.green:T.border}`,color:sel?"#fff":tod?T.green:rest?T.dim:T.sub,padding:"6px 11px",borderRadius:8,fontSize:12,fontWeight:sel||tod?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",flexShrink:0,position:"relative"}}>
+              <button key={d} onClick={()=>{if(sel){setDayPickerOpen(false);}else{switchDay(d);}}} style={{background:sel?T.accentGradient:"transparent",border:`1.5px solid ${sel?"#c8341d":tod?T.green:T.border}`,color:sel?"#fff":tod?T.green:rest?T.dim:T.sub,padding:"6px 11px",borderRadius:8,fontSize:12,fontWeight:sel||tod?600:400,cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap",flexShrink:0,position:"relative"}}>
                 {d.slice(0,3)}{tod&&!sel&&<span style={{position:"absolute",top:2,right:3,width:4,height:4,borderRadius:"50%",background:T.green,display:"block"}} />}
               </button>);
             })}
@@ -1414,7 +1409,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       {/* ═══ CONTENT ═══ */}
       <div style={{flex:1,overflowY:"auto",paddingBottom:90}}>
         {Object.keys(sets).length>0&&workoutStartTime&&new Date(workoutStartTime).toISOString().slice(0,10)!==todayKey()&&(
-          <div style={{position:"sticky",top:0,zIndex:50,background:"#dc2626",color:"#fff",padding:"10px 16px",fontWeight:700,fontSize:13,textAlign:"center",lineHeight:1.5}}>
+          <div style={{position:"sticky",top:0,zIndex:50,background:"#c8341d",color:"#fff",padding:"10px 16px",fontWeight:700,fontSize:13,textAlign:"center",lineHeight:1.5}}>
             ⚠ DRAFT FROM {new Date(workoutStartTime).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})} — NOT TODAY
             <div style={{fontWeight:400,fontSize:11,marginTop:1}}>Do not log today's workout here. Finish or discard this draft first (Profile → Drafts).</div>
           </div>
@@ -1487,13 +1482,13 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 </div>
               );
               return (
-                <div key={ex.name+exIdx} ref={el=>{exRefs.current[ex.name]=el;}} onClick={e=>{if(reordering||e.target.closest("[data-no-row-click]"))return;openExercise(ex.name);}} style={{background:T.surface,borderRadius:12,margin:isSSMember?"2px 16px":"6px 16px",padding:"16px",border:isActive?"1.5px solid rgba(147,51,234,0.35)":`1px solid ${isCustom?"rgba(234,179,8,0.3)":T.border}`,borderLeft:isSSMember?"2px solid #9333ea":undefined,boxShadow:isActive?"0 0 16px rgba(147,51,234,0.12)":"0 1px 3px rgba(0,0,0,0.3)",opacity:isDone&&!reordering?0.4:1,cursor:reordering?"default":"pointer"}}>
+                <div key={ex.name+exIdx} ref={el=>{exRefs.current[ex.name]=el;}} onClick={e=>{if(reordering||e.target.closest("[data-no-row-click]"))return;openExercise(ex.name);}} style={{background:T.surface,borderRadius:12,margin:isSSMember?"2px 16px":"6px 16px",padding:"16px",border:isActive?"1.5px solid rgba(200,52,29,0.35)":`1px solid ${isCustom?"rgba(234,179,8,0.3)":T.border}`,borderLeft:isSSMember?"2px solid #c8341d":undefined,boxShadow:isActive?"0 0 16px rgba(200,52,29,0.12)":"0 1px 3px rgba(0,0,0,0.3)",opacity:isDone&&!reordering?0.4:1,cursor:reordering?"default":"pointer"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
                     <div style={{flex:1}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
                         {!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();toggleDone(ex.name);}} style={{width:20,height:20,borderRadius:6,border:`1.5px solid ${isDone?T.green:T.border2}`,background:isDone?T.green:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>{isDone&&<span style={{fontSize:12,color:"#fff",lineHeight:1}}>✓</span>}</button>}
                         {reordering&&<div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}><button onClick={()=>moveExercise(exIdx,-1)} disabled={exIdx===0} style={{background:"none",border:"none",color:exIdx===0?T.border:T.sub,fontSize:13,cursor:exIdx===0?"default":"pointer",padding:0,lineHeight:1}}>▲</button><button onClick={()=>moveExercise(exIdx,1)} disabled={exIdx===allExercises.length-1} style={{background:"none",border:"none",color:exIdx===allExercises.length-1?T.border:T.sub,fontSize:13,cursor:exIdx===allExercises.length-1?"default":"pointer",padding:0,lineHeight:1}}>▼</button></div>}
-                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accentGradient,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isSSFirst&&<span style={{fontSize:10,fontWeight:700,color:"#c4b5fd",background:"rgba(147,51,234,0.12)",border:"1px solid rgba(147,51,234,0.3)",borderRadius:4,padding:"1px 5px",marginLeft:6,letterSpacing:0.5}}>⚡ SS</span>}{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
+                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accentGradient,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isSSFirst&&<span style={{fontSize:10,fontWeight:700,color:"#c8341d",background:"rgba(200,52,29,0.12)",border:"1px solid rgba(200,52,29,0.3)",borderRadius:4,padding:"1px 5px",marginLeft:6,letterSpacing:0.5}}>⚡ SS</span>}{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
                       </div>
                       {!reordering&&<>
                         <div style={{paddingLeft:30,display:"flex",alignItems:"center",gap:8,marginBottom:exSets.length>0?10:0,flexWrap:"wrap"}}>
@@ -1508,14 +1503,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                           ):(
                             <span data-no-row-click onClick={e=>{e.stopPropagation();if(isActive){setEditingTarget(ex.name);setEditTargetSets(String(ex.sets));setEditTargetReps(ex.reps);}}} style={{fontSize:12,color:T.dim,cursor:isActive?"pointer":"default",textDecoration:isActive?"underline dotted":"none",textUnderlineOffset:2}}>{exCardio?`${ex.reps} min`:`${ex.sets}×${ex.reps}`}</span>
                           )}
-                          {exSets.length>0&&<span style={{fontSize:12,color:targetMet?T.green:"#a78bfa",fontWeight:600}}>{exCardio?`${exSets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min ✓`:`${exSets.length}/${ex.sets}${targetMet?" ✓":""}`}</span>}
+                          {exSets.length>0&&<span style={{fontSize:12,color:targetMet?T.green:"#c8341d",fontWeight:600}}>{exCardio?`${exSets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min ✓`:`${exSets.length}/${ex.sets}${targetMet?" ✓":""}`}</span>}
                           {!exSets.length&&lastSession&&<span style={{fontSize:12,color:T.dim,fontStyle:"italic"}}>{exCardio?`last: ${lastSession.reps} min`:`last: ${lastSession.weight}×${lastSession.reps}`}</span>}
-                          {exPR&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(147,51,234,0.10)",border:"1px solid rgba(147,51,234,0.25)",color:"#a78bfa",fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:6}}>PR {exPR.weight}lb×{exPR.reps} · {exPR.date}</span>}
+                          {exPR&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(200,52,29,0.10)",border:"1px solid rgba(200,52,29,0.25)",color:"#c8341d",fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:6}}>PR {exPR.weight}lb×{exPR.reps} · {exPR.date}</span>}
                           {!exSets.length&&(()=>{const p=detectPlateau(ex.name);return p?<div style={{marginTop:4,fontSize:11,color:"rgba(234,179,8,0.75)",fontStyle:"italic",lineHeight:1.4,display:"flex",alignItems:"center",gap:4,flexBasis:"100%"}}>💤 {p.sessions} sessions at {p.weight}lb — push, deload, or hold steady?</div>:null;})()}
-                          {!exSets.length&&(function(){var tgt=getSessionTarget(ex.name);return tgt?<div style={{marginTop:4,fontSize:12,color:"#a78bfa",fontWeight:500}}>{"\ud83c\udfaf Target: "+tgt.weight+"lb \u00d7 "+tgt.reps+" \u2014 "+tgt.note}</div>:null;})()}
-                          {(()=>{const dn=noteOverrides[ex.name]??ex.note;if(!dn)return null;return(<div data-no-row-click onClick={e=>{e.stopPropagation();if(editingNote!==ex.name){setEditingNote(ex.name);setNoteEditValue(dn);}}} style={{marginTop:4,fontSize:11,color:"rgba(167,139,250,0.75)",fontStyle:"italic",lineHeight:1.4,cursor:"pointer",display:"flex",alignItems:"flex-start",gap:4,flexBasis:"100%"}}><span>📌 {dn}</span><span style={{fontSize:10,color:"rgba(147,51,234,0.45)",flexShrink:0,marginTop:1,marginLeft:2}}>✎</span></div>);})()}
+                          {!exSets.length&&(function(){var tgt=getSessionTarget(ex.name);return tgt?<div style={{marginTop:4,fontSize:12,color:"#c8341d",fontWeight:500}}>{"\ud83c\udfaf Target: "+tgt.weight+"lb \u00d7 "+tgt.reps+" \u2014 "+tgt.note}</div>:null;})()}
+                          {(()=>{const dn=noteOverrides[ex.name]??ex.note;if(!dn)return null;return(<div data-no-row-click onClick={e=>{e.stopPropagation();if(editingNote!==ex.name){setEditingNote(ex.name);setNoteEditValue(dn);}}} style={{marginTop:4,fontSize:11,color:"rgba(200,52,29,0.75)",fontStyle:"italic",lineHeight:1.4,cursor:"pointer",display:"flex",alignItems:"flex-start",gap:4,flexBasis:"100%"}}><span>📌 {dn}</span><span style={{fontSize:10,color:"rgba(200,52,29,0.45)",flexShrink:0,marginTop:1,marginLeft:2}}>✎</span></div>);})()}
                         </div>
-                        {editingNote===ex.name&&<div data-no-row-click onClick={e=>e.stopPropagation()} style={{paddingLeft:30,marginTop:6}}><textarea autoFocus value={noteEditValue} onChange={e=>setNoteEditValue(e.target.value)} onBlur={()=>saveNoteOverride(ex.name,noteEditValue)} rows={3} style={{width:"100%",background:T.surface2,border:"1px solid rgba(147,51,234,0.4)",color:T.text,padding:"8px 10px",borderRadius:8,fontSize:11,fontFamily:T.font,outline:"none",resize:"none",lineHeight:1.5,boxSizing:"border-box"}}/><div style={{display:"flex",gap:6,marginTop:5}}><button onMouseDown={e=>{e.preventDefault();saveNoteOverride(ex.name,noteEditValue);}} style={{flex:1,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.3)",color:"#a78bfa",padding:"5px 0",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button><button onMouseDown={e=>{e.preventDefault();saveNoteToProgram(ex.name,noteEditValue);}} style={{flex:1,background:"rgba(59,130,246,0.10)",border:"1px solid rgba(59,130,246,0.25)",color:"#93c5fd",padding:"5px 0",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save to program</button>{noteOverrides[ex.name]&&<button onMouseDown={e=>{e.preventDefault();saveNoteOverride(ex.name,ex.note||"");}} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",color:T.dim,padding:"5px 8px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>Reset</button>}<button onMouseDown={e=>{e.preventDefault();setEditingNote(null);}} style={{background:"none",border:"1px solid rgba(255,255,255,0.1)",color:T.dim,padding:"5px 8px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button></div></div>}
+                        {editingNote===ex.name&&<div data-no-row-click onClick={e=>e.stopPropagation()} style={{paddingLeft:30,marginTop:6}}><textarea autoFocus value={noteEditValue} onChange={e=>setNoteEditValue(e.target.value)} onBlur={()=>saveNoteOverride(ex.name,noteEditValue)} rows={3} style={{width:"100%",background:T.surface2,border:"1px solid rgba(200,52,29,0.4)",color:T.text,padding:"8px 10px",borderRadius:8,fontSize:11,fontFamily:T.font,outline:"none",resize:"none",lineHeight:1.5,boxSizing:"border-box"}}/><div style={{display:"flex",gap:6,marginTop:5}}><button onMouseDown={e=>{e.preventDefault();saveNoteOverride(ex.name,noteEditValue);}} style={{flex:1,background:"rgba(200,52,29,0.15)",border:"1px solid rgba(200,52,29,0.3)",color:"#c8341d",padding:"5px 0",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button><button onMouseDown={e=>{e.preventDefault();saveNoteToProgram(ex.name,noteEditValue);}} style={{flex:1,background:"rgba(200,52,29,0.10)",border:"1px solid rgba(200,52,29,0.25)",color:"#c8341d",padding:"5px 0",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save to program</button>{noteOverrides[ex.name]&&<button onMouseDown={e=>{e.preventDefault();saveNoteOverride(ex.name,ex.note||"");}} style={{background:"none",border:"1px solid rgba(26,22,18,0.12)",color:T.dim,padding:"5px 8px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>Reset</button>}<button onMouseDown={e=>{e.preventDefault();setEditingNote(null);}} style={{background:"none",border:"1px solid rgba(26,22,18,0.12)",color:T.dim,padding:"5px 8px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✕</button></div></div>}
                         {exSets.length>0&&(
                           <div style={{paddingLeft:30,display:"flex",flexWrap:"wrap",gap:5}}>
                             {exSets.map((s,i)=>{const df=(!exCardio&&s.diff)?DIFF[s.diff]:null; return (
@@ -1530,14 +1525,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     </div>
                     {!reordering&&<div style={{display:"flex",gap:4,flexShrink:0}}>
                       {isCustom&&<button data-no-row-click onClick={e=>{e.stopPropagation();removeCustomExercise(customExercises.findIndex(c=>c.name===ex.name));}} style={{background:"none",border:`1.5px solid ${T.red}22`,color:T.red,padding:"6px 10px",borderRadius:8,fontSize:11,cursor:"pointer",fontFamily:T.font,opacity:0.7}}>✕</button>}
-                      <button data-no-row-click onClick={e=>{e.stopPropagation();openExercise(ex.name);}} style={isActive?{background:"transparent",border:"none",color:"rgba(167,139,250,0.5)",fontSize:11,fontWeight:500,padding:"6px 12px",cursor:"pointer",fontFamily:T.font,letterSpacing:0.3}:{background:"rgba(147,51,234,0.08)",border:"1.5px solid rgba(147,51,234,0.25)",color:"#c4b5fd",padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{isActive?"Close":"+ Set"}</button>
+                      <button data-no-row-click onClick={e=>{e.stopPropagation();openExercise(ex.name);}} style={isActive?{background:"transparent",border:"none",color:"rgba(200,52,29,0.5)",fontSize:11,fontWeight:500,padding:"6px 12px",cursor:"pointer",fontFamily:T.font,letterSpacing:0.3}:{background:"rgba(200,52,29,0.08)",border:"1.5px solid rgba(200,52,29,0.25)",color:"#c8341d",padding:"8px 16px",borderRadius:10,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{isActive?"Close":"+ Set"}</button>
                     </div>}
                   </div>
 
                   {isActive&&!reordering&&(
                     <div data-no-row-click onClick={e=>e.stopPropagation()} style={{paddingLeft:30,marginTop:14}}>
                       {(()=>{const DIFF_EMOJI={just_right:"👌",easy:"🟢",hard:"🔴"};const recent=findRecentSessions(ex.name);if(!recent.length)return null;return(<div style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${T.border}`}}><div style={{fontSize:10,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:6}}>RECENT</div>{recent.map((r,i)=>{const label=r.dateLabel||r.date.slice(5);const row=exCardio?`${r.sets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min`:r.sets.map(s=>{const em=s.diff?DIFF_EMOJI[s.diff]||"":"";return `${s.weight}×${s.reps}${em}`;}).join(" · ");return(<div key={i} style={{fontSize:11,color:T.sub,fontFamily:T.mono,lineHeight:1.6}}><span style={{color:T.dim}}>{label}</span>{" · "}{row}</div>);})}</div>);})()}
-                      {!exCardio&&suggestion&&editIdx===null&&<div style={{marginBottom:8,fontSize:12,color:"#a78bfa",fontWeight:500,animation:"fadeIn .3s"}}>{"💡 "+suggestion.reason}</div>}
+                      {!exCardio&&suggestion&&editIdx===null&&<div style={{marginBottom:8,fontSize:12,color:"#c8341d",fontWeight:500,animation:"fadeIn .3s"}}>{"💡 "+suggestion.reason}</div>}
                       <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",animation:"slideIn .2s ease"}}>
                         {!exCardio&&<div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:4}}>Weight</div><input ref={weightRef} type="number" inputMode="decimal" step="any" value={weight} onChange={e=>setWeight(e.target.value)} onFocus={e=>e.target.select()} onKeyDown={e=>{if(e.key==="Enter")repsRef.current?.focus();}} placeholder="0" style={{background:T.bg,border:`1.5px solid ${T.border2}`,color:T.text,padding:"12px 8px",width:80,borderRadius:10,textAlign:"center",fontSize:22,fontWeight:700,fontFamily:T.mono,outline:"none"}} /></div>}
                         <div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:4}}>{exCardio?"Minutes":"Reps"}</div><input ref={repsRef} type="number" inputMode="numeric" value={reps} onChange={e=>setReps(e.target.value)} onFocus={e=>e.target.select()} onKeyDown={e=>{if(e.key==="Enter")addOrUpdateSet();}} placeholder="0" style={{background:T.bg,border:`1.5px solid ${T.border2}`,color:T.text,padding:"12px 8px",width:exCardio?96:72,borderRadius:10,textAlign:"center",fontSize:22,fontWeight:700,fontFamily:T.mono,outline:"none"}} /></div>
@@ -1549,10 +1544,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                         {!exCardio&&<div style={{display:"flex",gap:5,flex:1}}>
                           {Object.entries(DIFF).map(([k,v])=>{
                             const sel=selectedDiff===k;
-                            return <button key={k} onClick={()=>setSelectedDiff(k)} style={{flex:1,padding:"9px 6px",fontSize:11,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?v.btnBg:"rgba(255,255,255,0.03)",color:sel?v.color:"rgba(255,255,255,0.3)",border:sel?`1.5px solid ${v.color}55`:"1.5px solid rgba(255,255,255,0.07)",borderRadius:10,transition:"all .15s",boxShadow:sel?`0 0 10px ${v.color}30`:"none",letterSpacing:0.2}}>{k==="just_right"?"👌 Right":k==="easy"?"↑ Easy":"↓ Hard"}</button>;
+                            return <button key={k} onClick={()=>setSelectedDiff(k)} style={{flex:1,padding:"9px 6px",fontSize:11,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?v.btnBg:T.surface3,color:sel?v.color:"rgba(26,22,18,0.4)",border:sel?`1.5px solid ${v.color}55`:"1.5px solid rgba(26,22,18,0.20)",borderRadius:10,transition:"all .15s",boxShadow:sel?`0 0 10px ${v.color}30`:"none",letterSpacing:0.2}}>{k==="just_right"?"👌 Right":k==="easy"?"↑ Easy":"↓ Hard"}</button>;
                           })}
                         </div>}
-                        <button onClick={addOrUpdateSet} disabled={!reps||((!exCardio)&&!weight)} className={(!reps||((!exCardio)&&!weight))?"":"cta-btn"} style={{background:(!reps||((!exCardio)&&!weight))?T.surface3:T.accentGradient,color:(!reps||((!exCardio)&&!weight))?T.dim:"#fff",border:"none",padding:"10px 24px",borderRadius:10,fontSize:14,fontWeight:700,cursor:(!reps||((!exCardio)&&!weight))?"default":"pointer",fontFamily:T.font,marginLeft:"auto",boxShadow:(!reps||((!exCardio)&&!weight))?"none":"0 2px 16px #9333ea40"}}>{editIdx!==null?"Update":"Log"}</button>
+                        <button onClick={addOrUpdateSet} disabled={!reps||((!exCardio)&&!weight)} className={(!reps||((!exCardio)&&!weight))?"":"cta-btn"} style={{background:(!reps||((!exCardio)&&!weight))?T.surface3:T.accentGradient,color:(!reps||((!exCardio)&&!weight))?T.dim:"#fff",border:"none",padding:"10px 24px",borderRadius:10,fontSize:14,fontWeight:700,cursor:(!reps||((!exCardio)&&!weight))?"default":"pointer",fontFamily:T.font,marginLeft:"auto",boxShadow:(!reps||((!exCardio)&&!weight))?"none":"0 2px 16px #c8341d40"}}>{editIdx!==null?"Update":"Log"}</button>
                       </div>
                       <input type="text" placeholder="Note (optional)" value={exerciseNotes[ex.name]||""} onChange={async e=>{const v=e.target.value;const u={...exerciseNotes,[ex.name]:v};setExerciseNotes(u);await store.set(`notes-${day}-draft`,u);}} style={{marginTop:8,width:"100%",background:T.bg,border:`1px solid ${T.border}`,color:T.sub,padding:"8px 12px",borderRadius:8,fontSize:12,fontFamily:T.font,outline:"none",boxSizing:"border-box"}} />
                     </div>
@@ -1616,7 +1611,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                     </div>
                   </div>
                 )}
-                <button onClick={()=>{setShowFinishModal(true);setFinishEnergy(0);setFinishSleep(0);setFinishWeight("");setFinishNotes("");}} className="cta-btn" style={{width:"100%",padding:16,background:T.accentGradient,color:"#fff",border:"none",borderRadius:14,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #9333ea40",letterSpacing:0.3}}>Finish & Analyze</button>
+                <button onClick={()=>{setShowFinishModal(true);setFinishEnergy(0);setFinishSleep(0);setFinishWeight("");setFinishNotes("");}} className="cta-btn" style={{width:"100%",padding:16,background:T.accentGradient,color:"#fff",border:"none",borderRadius:14,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:T.font,boxShadow:"0 4px 24px #c8341d40",letterSpacing:0.3}}>Finish & Analyze</button>
                 <div style={{display:"flex",justifyContent:"center",marginTop:10}}>
                   {clearConfirm===0&&<button onClick={()=>{setClearConfirm(1);setTimeout(()=>setClearConfirm(0),3000);}} style={{background:"none",border:"none",color:T.dim,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Clear all</button>}
                   {clearConfirm===1&&<button onClick={()=>{setClearConfirm(2);setTimeout(()=>setClearConfirm(0),3000);}} style={{background:"none",border:`1px solid ${T.red}`,color:T.red,fontSize:12,cursor:"pointer",fontFamily:T.font,borderRadius:6,padding:"4px 12px"}}>Are you sure?</button>}
@@ -1635,7 +1630,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                 const sel=d===day,isToday=d===today;
                 const hasExercises=(getWorkout(d).exercises||[]).length>0;
                 return(
-                  <button key={d} onClick={()=>switchDay(d)} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,fontSize:12,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?T.accentGradient:"transparent",border:`1.5px solid ${sel?"#9333ea":isToday?T.green:T.border}`,color:sel?"#fff":isToday?T.green:hasExercises?T.sub:T.dim,position:"relative"}}>
+                  <button key={d} onClick={()=>switchDay(d)} style={{flexShrink:0,padding:"7px 12px",borderRadius:8,fontSize:12,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?T.accentGradient:"transparent",border:`1.5px solid ${sel?"#c8341d":isToday?T.green:T.border}`,color:sel?"#fff":isToday?T.green:hasExercises?T.sub:T.dim,position:"relative"}}>
                     {d.slice(0,3)}{isToday&&!sel&&<span style={{position:"absolute",top:2,right:3,width:4,height:4,borderRadius:"50%",background:T.green,display:"block"}} />}
                   </button>
                 );
@@ -1864,10 +1859,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                         <div style={{fontSize:12,color:T.dim,fontFamily:T.mono,textAlign:"right"}}>{setCount} sets<br/>{vol.toLocaleString()} lb</div>
                       </div>
                       <div style={{display:"flex",gap:8}}>
-                        <button onClick={()=>saveDraftForDay(d)} style={{flex:1,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.35)",color:"#c4b5fd",padding:"9px 0",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
+                        <button onClick={()=>saveDraftForDay(d)} style={{flex:1,background:"rgba(200,52,29,0.15)",border:"1px solid rgba(200,52,29,0.35)",color:"#c8341d",padding:"9px 0",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Save</button>
                         {discardConfirmDay===d
-                          ? <button onClick={()=>discardDraftForDay(d)} style={{flex:1,background:"#dc2626",border:"none",color:"#fff",padding:"9px 0",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Sure? Delete {setCount} sets</button>
-                          : <button onClick={()=>setDiscardConfirmDay(d)} style={{flex:1,background:"rgba(220,38,38,0.08)",border:"1px solid rgba(220,38,38,0.28)",color:"#f87171",padding:"9px 0",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Discard</button>
+                          ? <button onClick={()=>discardDraftForDay(d)} style={{flex:1,background:"#c8341d",border:"none",color:"#fff",padding:"9px 0",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Sure? Delete {setCount} sets</button>
+                          : <button onClick={()=>setDiscardConfirmDay(d)} style={{flex:1,background:"rgba(200,52,29,0.08)",border:"1px solid rgba(200,52,29,0.28)",color:"#c8341d",padding:"9px 0",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:T.font}}>Discard</button>
                         }
                       </div>
                     </div>
@@ -1883,10 +1878,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               {confirmDeleteProfile ? (
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>setConfirmDeleteProfile(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
-                  <button onClick={async()=>{const profiles=(getShared("profiles")||[]).filter(p=>p.id!==activeProfileId);setShared("profiles",profiles);setShared("active-profile",null);setConfirmDeleteProfile(false);onLogout();}} style={{flex:1,background:"#dc2626",border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Delete</button>
+                  <button onClick={async()=>{const profiles=(getShared("profiles")||[]).filter(p=>p.id!==activeProfileId);setShared("profiles",profiles);setShared("active-profile",null);setConfirmDeleteProfile(false);onLogout();}} style={{flex:1,background:"#c8341d",border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Delete</button>
                 </div>
               ) : (
-                <button onClick={()=>setConfirmDeleteProfile(true)} style={{width:"100%",background:"none",border:"1.5px solid #dc2626",color:"#dc2626",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete Profile…</button>
+                <button onClick={()=>setConfirmDeleteProfile(true)} style={{width:"100%",background:"none",border:"1.5px solid #c8341d",color:"#c8341d",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete Profile…</button>
               )}
             </div>
           </div>
@@ -2340,7 +2335,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                 return(
                   <div key={d} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,width:BAR_W}}>
                     {v>0?(
-                      <div style={{width:BAR_W,height:barH,background:`linear-gradient(to top,#dc2626,#9333ea)`,borderRadius:"4px 4px 0 0",flexShrink:0}} />
+                      <div style={{width:BAR_W,height:barH,background:T.accent,borderRadius:"4px 4px 0 0",flexShrink:0}} />
                     ):(
                       <div style={{width:BAR_W,height:MAX_H,display:"flex",alignItems:"flex-end"}}>
                         <div style={{width:"100%",height:2,background:T.border,borderRadius:2}} />
@@ -2413,7 +2408,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
                           const isEditingSet=editingHistSet?.exName===exName&&editingHistSet?.setIdx===i;
                           const df=s.diff?DIFF[s.diff]:null;
                           if(isEditingSet) return (
-                            <div key={i} style={{width:"100%",background:T.surface2,border:"1.5px solid #9333ea",borderRadius:8,padding:"8px 10px",marginBottom:4}}>
+                            <div key={i} style={{width:"100%",background:T.surface2,border:"1.5px solid #c8341d",borderRadius:8,padding:"8px 10px",marginBottom:4}}>
                               <div style={{display:"flex",gap:6,marginBottom:6}}>
                                 <div style={{flex:1}}><div style={{fontSize:9,color:T.dim,marginBottom:2}}>Weight</div><input type="number" inputMode="decimal" value={editHistSetVals.weight} onChange={e=>setEditHistSetVals(v=>({...v,weight:e.target.value}))} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"6px",borderRadius:6,fontSize:14,fontFamily:T.mono,outline:"none",textAlign:"center"}} /></div>
                                 <div style={{flex:1}}><div style={{fontSize:9,color:T.dim,marginBottom:2}}>Reps</div><input type="number" inputMode="numeric" value={editHistSetVals.reps} onChange={e=>setEditHistSetVals(v=>({...v,reps:e.target.value}))} style={{width:"100%",background:T.surface,border:`1.5px solid ${T.border}`,color:T.text,padding:"6px",borderRadius:6,fontSize:14,fontFamily:T.mono,outline:"none",textAlign:"center"}} /></div>
@@ -2441,7 +2436,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
               ):(
                 /* Read-only mode */
                 <div>
-                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div onClick={()=>setSelectedExercise(exName)} style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{exName}<span style={{fontSize:10,color:"#9333ea",opacity:0.8}}>›</span></div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div>{entry.notes&&entry.notes[exName]&&<div style={{marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {entry.notes[exName]}</div>}</div>))}
+                  {Object.entries(entry.sets||{}).map(([exName,exSets])=>(<div key={exName} style={{padding:"10px 0",borderTop:`1px solid ${T.border}`}}><div onClick={()=>setSelectedExercise(exName)} style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:6,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{exName}<span style={{fontSize:10,color:"#c8341d",opacity:0.8}}>›</span></div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{exSets.map((s,i)=>{const df=s.diff?DIFF[s.diff]:null;return <span key={i} style={{background:df?df.bg:T.surface,border:`1.5px solid ${df?df.color+"33":T.border}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>{s.weight} × {s.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</span>;})}</div>{entry.notes&&entry.notes[exName]&&<div style={{marginTop:4,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {entry.notes[exName]}</div>}</div>))}
                   {entry.logText&&<div style={{marginTop:10,borderTop:`1px solid ${T.border}`,paddingTop:10}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:12,color:T.dim,fontWeight:500}}>Copy to Claude</span><button onClick={()=>{navigator.clipboard.writeText(entry.logText).then(()=>{setCopiedKey(entry.key);setTimeout(()=>setCopiedKey(null),2000);}).catch(()=>{});}} style={{padding:"4px 12px",background:copiedKey===entry.key?T.greenBg:"transparent",border:`1.5px solid ${copiedKey===entry.key?T.green:T.border}`,color:copiedKey===entry.key?T.green:T.sub,borderRadius:8,fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>{copiedKey===entry.key?"Copied!":"Copy"}</button></div><pre style={{margin:0,background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"10px 12px",fontSize:11,color:T.dim,overflowX:"auto",whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:160,overflowY:"auto",fontFamily:T.mono}}>{entry.logText}</pre></div>}
                   <div style={{display:"flex",gap:8,marginTop:10}}>
                     <button onClick={()=>startEdit(entry)} style={{padding:"8px 16px",background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>✏️ Edit</button>
@@ -2508,7 +2503,7 @@ function ExerciseDetailOverlay({exName, history, onClose}) {
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <button onClick={onClose} style={{background:"none",border:"none",color:"#9333ea",fontSize:22,cursor:"pointer",padding:0,lineHeight:1,fontFamily:T.font}}>←</button>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#c8341d",fontSize:22,cursor:"pointer",padding:0,lineHeight:1,fontFamily:T.font}}>←</button>
           <div style={{fontSize:17,fontWeight:700,color:T.text,lineHeight:1.2}}>{exName}</div>
         </div>
         <button onClick={onClose} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
@@ -2550,11 +2545,11 @@ function ExerciseDetailOverlay({exName, history, onClose}) {
           const vol=s.sets.reduce((a,x)=>a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0);
           const isPR=pr&&maxW===pr.weight;
           return(
-            <div key={s.date+i} style={{background:T.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPR?"#9333ea44":T.border}`,marginBottom:8}}>
+            <div key={s.date+i} style={{background:T.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPR?"#c8341d44":T.border}`,marginBottom:8}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:T.text}}>{s.dateLabel||s.date}</div>
-                  <div style={{fontSize:11,color:T.dim}}>{s.day} · {s.label}{isPR&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:"#9333ea"}}>PR</span>}</div>
+                  <div style={{fontSize:11,color:T.dim}}>{s.day} · {s.label}{isPR&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:"#c8341d"}}>PR</span>}</div>
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:13,fontWeight:700,color:T.text,fontFamily:T.mono}}>{maxW}lb</div>
@@ -2611,9 +2606,9 @@ function BodyweightChart({data}) {
   return (
     <div style={{width:"100%",overflow:"hidden"}}>
       <svg viewBox={`0 0 ${w} ${h}`} style={{width:"100%",height:h}}>
-        <defs><linearGradient id="bwGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#dc2626"/><stop offset="100%" stopColor="#9333ea"/></linearGradient></defs>
-        <path d={linePath} fill="none" stroke="url(#bwGrad)" strokeWidth="2"/>
-        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill="#9333ea" stroke={T.bg} strokeWidth="2"/>)}
+        <defs><linearGradient id="bwGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#c8341d"/><stop offset="100%" stopColor="#c8341d"/></linearGradient></defs>
+        <path d={linePath} fill="none" stroke="#c8341d" strokeWidth="2"/>
+        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill="#c8341d" stroke={T.bg} strokeWidth="2"/>)}
       </svg>
       <div style={{display:"flex",justifyContent:"space-between",padding:"4px 8px",fontSize:10,color:T.dim}}>
         <span>{data[0].date.slice(5)}</span><span>{data[data.length-1].date.slice(5)}</span>
@@ -2775,7 +2770,7 @@ function AnalyticsView({history, exerciseCatalog}) {
       <div style={{...card}}>
         <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:14}}>Overview</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)",border:streak>0?"1.5px solid #9333ea44":`1px solid ${T.border}`}}>
+          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)",border:streak>0?"1.5px solid #c8341d44":`1px solid ${T.border}`}}>
             <div style={{fontSize:streak>0?20:18,marginBottom:4}}>{streak>0?"🔥":"⬜"}</div>
             <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{streak} wk{streak!==1?"s":""}</div>
             <div style={{fontSize:11,color:T.dim,marginTop:4}}>Weekly Streak</div>
@@ -2861,14 +2856,14 @@ function StaleDraftModal({wst,setCount,volume,onResume,onSaveAsIs,onDiscard}) {
       <div style={{background:T.surface,border:`1px solid ${T.border2}`,borderRadius:18,padding:"24px 20px",width:"100%",maxWidth:360,boxShadow:"0 20px 60px rgba(0,0,0,0.6)"}}>
         <div style={{fontSize:17,fontWeight:800,color:T.text,marginBottom:8}}>⚠ Unfinished workout from {draftDateStr}</div>
         <div style={{fontSize:13,color:T.sub,marginBottom:8}}>You have an unsaved workout from a previous day. What do you want to do?</div>
-        <div style={{fontSize:12,color:"#f87171",marginBottom:12,fontWeight:600}}>If you log today's workout into this draft, it will save under the OLD date.</div>
+        <div style={{fontSize:12,color:"#c8341d",marginBottom:12,fontWeight:600}}>If you log today's workout into this draft, it will save under the OLD date.</div>
         <div style={{fontSize:13,color:T.dim,marginBottom:20,fontFamily:T.mono,background:T.surface2,borderRadius:8,padding:"8px 12px"}}>{setCount} sets · {volume.toLocaleString()} lb</div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {btn("Resume this session",onResume,{background:T.surface2,color:T.text})}
-          {btn("Save as-is",onSaveAsIs,{background:"rgba(147,51,234,0.18)",color:"#c4b5fd",border:"1px solid rgba(147,51,234,0.35)"})}
+          {btn("Save as-is",onSaveAsIs,{background:"rgba(200,52,29,0.18)",color:"#c8341d",border:"1px solid rgba(200,52,29,0.35)"})}
           {discardConfirm
-            ? btn(`Sure? This deletes ${setCount} sets`,onDiscard,{background:"#dc2626",color:"#fff"})
-            : btn("Discard",()=>setDiscardConfirm(true),{background:"rgba(220,38,38,0.10)",color:"#f87171",border:"1px solid rgba(220,38,38,0.30)"})
+            ? btn(`Sure? This deletes ${setCount} sets`,onDiscard,{background:"#c8341d",color:"#fff"})
+            : btn("Discard",()=>setDiscardConfirm(true),{background:"rgba(200,52,29,0.10)",color:"#c8341d",border:"1px solid rgba(200,52,29,0.30)"})
           }
         </div>
       </div>
@@ -2898,278 +2893,3 @@ function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,n
   );
 }
 
-// ─── STAR FIELD ───────────────────────────────────────────────────────────────
-function StarField() {
-  const canvasRef = useRef(null);
-  const stateRef = useRef({stars:[], shoots:[], ripples:[], mouse:{x:-9999,y:-9999,on:false}});
-  const rafRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    const STAR_COLORS = [
-      [255,255,255],[210,225,255],[255,240,210],[255,200,170],[190,210,255]
-    ];
-
-    const NEBULAS = [
-      {x:0.18,y:0.12,rx:0.65,ry:0.45,color:[130,30,220],a:0.28},
-      {x:0.80,y:0.22,rx:0.55,ry:0.40,color:[220,38,38], a:0.22},
-      {x:0.50,y:0.70,rx:0.60,ry:0.50,color:[40,80,230],  a:0.22},
-      {x:0.12,y:0.78,rx:0.45,ry:0.38,color:[236,60,150], a:0.18},
-      {x:0.88,y:0.65,rx:0.40,ry:0.35,color:[0,190,220],  a:0.16},
-      {x:0.55,y:0.38,rx:0.35,ry:0.30,color:[170,100,255],a:0.14},
-      {x:0.30,y:0.50,rx:0.30,ry:0.25,color:[255,120,50], a:0.10},
-    ];
-
-    function initStars(W, H) {
-      const n = Math.min(Math.floor(W * H / 2200), 320);
-      return Array.from({length:n}, () => {
-        const big = Math.random() < 0.025;
-        const med = !big && Math.random() < 0.10;
-        const sz = big ? 0.9+Math.random()*0.7 : med ? 0.5+Math.random()*0.4 : 0.12+Math.random()*0.28;
-        return {
-          x: Math.random()*W, y: Math.random()*H,
-          sz,
-          op: 0.35+Math.random()*0.65,
-          col: STAR_COLORS[Math.floor(Math.random()*STAR_COLORS.length)],
-          vx: (Math.random()-0.5)*0.10,
-          vy: (Math.random()-0.5)*0.10,
-          tw: Math.random()*Math.PI*2,
-          twS: 0.008+Math.random()*0.035,
-          ox:0, oy:0, ovx:0, ovy:0,
-        };
-      });
-    }
-
-    function resize() {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
-      stateRef.current.stars = initStars(canvas.width, canvas.height);
-    }
-
-    function draw() {
-      const W = canvas.width, H = canvas.height;
-      const S = stateRef.current;
-
-      // Deep space base
-      ctx.fillStyle = '#05020f';
-      ctx.fillRect(0, 0, W, H);
-
-      // Nebula clouds — screen blending for luminous additive colour
-      ctx.save();
-      ctx.globalCompositeOperation = 'screen';
-      for (const n of NEBULAS) {
-        const cx = n.x*W, cy = n.y*H;
-        const rx = n.rx*Math.max(W,H), ry = n.ry*Math.max(W,H);
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.scale(1, ry/rx);
-        const g = ctx.createRadialGradient(0,0,0, 0,0,rx);
-        const [r,gr,b] = n.color;
-        g.addColorStop(0,   `rgba(${r},${gr},${b},${n.a})`);
-        g.addColorStop(0.35,`rgba(${r},${gr},${b},${n.a*0.55})`);
-        g.addColorStop(0.70,`rgba(${r},${gr},${b},${n.a*0.18})`);
-        g.addColorStop(1,   `rgba(${r},${gr},${b},0)`);
-        ctx.fillStyle = g;
-        ctx.fillRect(-rx, -rx, rx*2, rx*2);
-        ctx.restore();
-      }
-      ctx.restore();
-
-      // Stars
-      const m = S.mouse;
-      for (const s of S.stars) {
-        s.tw += s.twS;
-        const tw = 0.60+0.40*Math.sin(s.tw);
-
-        s.x += s.vx; s.y += s.vy;
-        if (s.x < -4) s.x = W+4;
-        if (s.x > W+4) s.x = -4;
-        if (s.y < -4) s.y = H+4;
-        if (s.y > H+4) s.y = -4;
-
-        if (m.on) {
-          const dx = s.x - m.x, dy = s.y - m.y;
-          const d2 = dx*dx + dy*dy, R = 110;
-          if (d2 < R*R && d2 > 0.01) {
-            const d = Math.sqrt(d2);
-            const f = (1-d/R)*1.8;
-            s.ovx += (dx/d)*f; s.ovy += (dy/d)*f;
-          }
-        }
-        s.ovx *= 0.86; s.ovy *= 0.86;
-        s.ox = (s.ox + s.ovx)*0.90;
-        s.oy = (s.oy + s.ovy)*0.90;
-
-        const px = s.x+s.ox, py = s.y+s.oy;
-        const alpha = s.op*tw;
-        const [r,g,b] = s.col;
-
-        // Glow halo for the rare bright stars only
-        if (s.sz > 0.8) {
-          const gr2 = s.sz * 5;
-          const grd = ctx.createRadialGradient(px,py,0,px,py,gr2);
-          grd.addColorStop(0, `rgba(${r},${g},${b},${alpha*0.35})`);
-          grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
-          ctx.fillStyle = grd;
-          ctx.fillRect(px-gr2, py-gr2, gr2*2, gr2*2);
-        }
-
-        ctx.beginPath();
-        ctx.arc(px, py, s.sz, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
-        ctx.fill();
-      }
-
-      // Shooting stars
-      if (Math.random() < 0.004) {
-        S.shoots.push({
-          x: Math.random()*W*0.8, y: Math.random()*H*0.4,
-          vx: 7+Math.random()*8, vy: 3+Math.random()*5,
-          life:1, trail:[]
-        });
-      }
-      S.shoots = S.shoots.filter(s => s.life > 0);
-      for (const s of S.shoots) {
-        s.trail.push({x:s.x, y:s.y});
-        if (s.trail.length > 14) s.trail.shift();
-        s.x += s.vx; s.y += s.vy;
-        s.life -= 0.045;
-        if (s.x > W+60 || s.y > H+60) s.life = 0;
-        for (let i=0; i<s.trail.length; i++) {
-          const p = s.trail[i];
-          const a = (i/s.trail.length)*s.life*0.9;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 1.2*(i/s.trail.length), 0, Math.PI*2);
-          ctx.fillStyle = `rgba(255,255,255,${a})`;
-          ctx.fill();
-        }
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, 2, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(255,255,255,${s.life})`;
-        ctx.fill();
-      }
-
-      // Touch ripples
-      S.ripples = S.ripples.filter(r => r.life > 0);
-      for (const r of S.ripples) {
-        r.radius += 2.8; r.life -= 0.032;
-        const a = r.life*0.55;
-        ctx.beginPath(); ctx.arc(r.x, r.y, r.radius, 0, Math.PI*2);
-        ctx.strokeStyle = `rgba(180,80,255,${a})`; ctx.lineWidth = 1.5; ctx.stroke();
-        if (r.radius > 18) {
-          ctx.beginPath(); ctx.arc(r.x, r.y, r.radius-16, 0, Math.PI*2);
-          ctx.strokeStyle = `rgba(220,60,60,${a*0.55})`; ctx.lineWidth = 1; ctx.stroke();
-        }
-      }
-
-      rafRef.current = requestAnimationFrame(draw);
-    }
-
-    const pos = e => e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY};
-    const onMove  = e => { const p=pos(e); stateRef.current.mouse={...p, on:true}; };
-    const onDown  = e => { const p=pos(e); stateRef.current.mouse={...p, on:true}; stateRef.current.ripples.push({x:p.x,y:p.y,radius:4,life:1}); };
-    const onUp    = () => { stateRef.current.mouse.on=false; };
-
-    window.addEventListener('mousemove',  onMove);
-    window.addEventListener('mousedown',  onDown);
-    window.addEventListener('mouseup',    onUp);
-    window.addEventListener('touchmove',  onMove, {passive:true});
-    window.addEventListener('touchstart', onDown, {passive:true});
-    window.addEventListener('touchend',   onUp);
-    window.addEventListener('resize',     resize);
-
-    resize();
-    draw();
-
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('mousemove',  onMove);
-      window.removeEventListener('mousedown',  onDown);
-      window.removeEventListener('mouseup',    onUp);
-      window.removeEventListener('touchmove',  onMove);
-      window.removeEventListener('touchstart', onDown);
-      window.removeEventListener('touchend',   onUp);
-      window.removeEventListener('resize',     resize);
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",display:"block"}} />;
-}
-
-// ─── TIMER PARTICLES ─────────────────────────────────────────────────────────
-function TimerParticles({remaining}) {
-  const canvasRef = useRef(null);
-  const rafRef = useRef(null);
-  const stateRef = useRef({particles:[], lastSec:-1});
-  const remRef = useRef(remaining);
-  useEffect(() => { remRef.current = remaining; }, [remaining]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const setSize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-    setSize();
-    window.addEventListener('resize', setSize);
-
-    function spawnBurst() {
-      const W = canvas.width, H = canvas.height;
-      const cx = W * 0.5, cy = H * 0.44;
-      const rem = remRef.current;
-      const urgent = rem <= 10;
-      const count = urgent ? 40 : 25;
-      const COLS = urgent
-        ? [[255,80,60],[255,160,20],[220,38,38],[255,220,80]]
-        : [[147,51,234],[56,189,248],[200,170,255],[255,255,255],[192,132,252]];
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 0.5 + Math.random() * (urgent ? 4.5 : 3);
-        const col = COLS[Math.floor(Math.random() * COLS.length)];
-        stateRef.current.particles.push({
-          x: cx + (Math.random()-0.5)*(urgent?280:240),
-          y: cy + (Math.random()-0.5)*(urgent?120:90),
-          vx: Math.cos(angle)*speed,
-          vy: Math.sin(angle)*speed - 0.8,
-          sz: 0.4 + Math.random()*(urgent?3.2:2.2),
-          life: 0.65 + Math.random()*0.35,
-          decay: 0.009 + Math.random()*0.014,
-          col,
-        });
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const sec = Math.floor(remRef.current);
-      if (sec !== stateRef.current.lastSec && remRef.current > 0) {
-        stateRef.current.lastSec = sec;
-        spawnBurst();
-      }
-      const S = stateRef.current;
-      S.particles = S.particles.filter(p => p.life > 0);
-      for (const p of S.particles) {
-        p.x += p.vx; p.y += p.vy;
-        p.vx *= 0.97; p.vy = p.vy * 0.97 - 0.025;
-        p.life -= p.decay;
-        if (p.life <= 0) continue;
-        const [r,g,b] = p.col;
-        if (p.sz > 1.2) {
-          const gr = p.sz * 4;
-          const grd = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,gr);
-          grd.addColorStop(0, `rgba(${r},${g},${b},${p.life*0.45})`);
-          grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
-          ctx.fillStyle = grd; ctx.fillRect(p.x-gr, p.y-gr, gr*2, gr*2);
-        }
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.sz, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(${r},${g},${b},${p.life})`; ctx.fill();
-      }
-      rafRef.current = requestAnimationFrame(draw);
-    }
-
-    draw();
-    return () => { cancelAnimationFrame(rafRef.current); window.removeEventListener('resize', setSize); };
-  }, []);
-
-  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",display:"block"}} />;
-}
