@@ -2610,9 +2610,9 @@ function BodyweightChart({data}) {
   return (
     <div style={{width:"100%",overflow:"hidden"}}>
       <svg viewBox={`0 0 ${w} ${h}`} style={{width:"100%",height:h}}>
-        <defs><linearGradient id="bwGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor=T.accent/><stop offset="100%" stopColor=T.accent/></linearGradient></defs>
-        <path d={linePath} fill="none" stroke=T.accent strokeWidth="2"/>
-        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill=T.accent stroke={T.bg} strokeWidth="2"/>)}
+        <defs><linearGradient id="bwGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor={T.accent}/><stop offset="100%" stopColor={T.accent}/></linearGradient></defs>
+        <path d={linePath} fill="none" stroke={T.accent} strokeWidth="2"/>
+        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill={T.accent} stroke={T.bg} strokeWidth="2"/>)}
       </svg>
       <div style={{display:"flex",justifyContent:"space-between",padding:"4px 8px",fontSize:10,color:T.dim}}>
         <span>{data[0].date.slice(5)}</span><span>{data[data.length-1].date.slice(5)}</span>
