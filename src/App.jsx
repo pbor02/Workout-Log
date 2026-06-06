@@ -202,28 +202,30 @@ function getShared(k) { try { var v = localStorage.getItem("wl_" + k); return v 
 function setShared(k, v) { try { localStorage.setItem("wl_" + k, JSON.stringify(v)); } catch(e) {} }
 
 const T = {
-  bg:"#1a1613", surface:"#252019", surface2:"#2f2920", surface3:"#3a3229",
-  border:"#3a3229", border2:"#4a4035",
-  text:"#f0e6d6", sub:"#a89a85", dim:"#6b6052",
+  bg:"#17120e", surface:"#231d16", surface2:"#2d261d", surface3:"#392f25",
+  border:"#41382e", border2:"#52473a",
+  text:"#f3ebdd", sub:"#bcae98", dim:"#8a7c69",
   accent:"#e89464",
   accentDim:"rgba(232,148,100,0.15)",
   accentLight:"rgba(232,148,100,0.08)",
   accentGlow:"rgba(232,148,100,0.30)",
   accentGradient:"linear-gradient(135deg,#e89464,#c8642a)",
-  spaceBg:"#1a1613",
-  green:"#7ab87a", greenBg:"rgba(122,184,122,0.12)",
-  yellow:"#d9b061", yellowBg:"rgba(217,176,97,0.12)",
-  red:"#d96a5a", redBg:"rgba(217,106,90,0.12)",
+  spaceBg:"#17120e",
+  green:"#82c182", greenBg:"rgba(130,193,130,0.12)",
+  yellow:"#dcb464", yellowBg:"rgba(220,180,100,0.12)",
+  warning:"#dcb464",
+  red:"#dd6f5e", redBg:"rgba(221,111,94,0.12)",
+  teal:"#6cb6c4", tealBg:"rgba(108,182,196,0.12)",
   font:"'Inter Tight',system-ui,sans-serif",
   display:"'Bebas Neue','Oswald',Impact,sans-serif",
   mono:"'JetBrains Mono',monospace",
-  timerBg:"#1a1613",
+  timerBg:"#17120e",
 };
 
 const DIFF = {
-  easy:       { label:"Easy",       color:"#7ab87a", bg:"rgba(122,184,122,0.10)", btnBg:"rgba(122,184,122,0.18)", icon:"\u2191" },
-  just_right: { label:"Just Right", color:"#d9b061", bg:"rgba(217,176,97,0.10)",  btnBg:"rgba(217,176,97,0.18)",  icon:"\u2022" },
-  hard:       { label:"Hard",       color:"#d96a5a", bg:"rgba(217,106,90,0.10)",  btnBg:"rgba(217,106,90,0.18)",  icon:"\u2193" },
+  easy:       { label:"Easy",       color:"#82c182", bg:"rgba(130,193,130,0.12)", btnBg:"rgba(130,193,130,0.20)", icon:"\u2191" },
+  just_right: { label:"Just Right", color:"#dcb464", bg:"rgba(220,180,100,0.12)",  btnBg:"rgba(220,180,100,0.20)",  icon:"\u2022" },
+  hard:       { label:"Hard",       color:"#e0894f", bg:"rgba(224,137,79,0.12)",  btnBg:"rgba(224,137,79,0.20)",  icon:"\u2193" },
 };
 const CATEGORIES = ["Chest","Back","Shoulders","Biceps","Triceps","Legs","Calves","Core","Cardio","Other"];
 
@@ -543,6 +545,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [activeEx, setActiveEx] = useState(null);
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
+  const [tempoSlow, setTempoSlow] = useState(false);
   const [editIdx, setEditIdx] = useState(null);
   const [selectedDiff, setSelectedDiff] = useState("just_right");
   const [history, setHistory] = useState({});
@@ -598,6 +601,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [exerciseNotes, setExerciseNotes] = useState({});
   // note-overrides: persists per-profile across sessions, takes precedence over program ex.note
   const [noteOverrides, setNoteOverrides] = useState({});
+  const [controlFocus, setControlFocus] = useState({});
   const [editingNote, setEditingNote] = useState(null); // exercise name currently being edited
   const [noteEditValue, setNoteEditValue] = useState("");
   const [otherDayDrafts, setOtherDayDrafts] = useState([]); // [{day, dateLabel}] unsaved drafts on other days
@@ -624,13 +628,13 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const aiImportRef = useRef(null);
 
   useEffect(() => { (async () => {
-    const [hist,s,d,cex,order,rn,cw,cat,wst,progs,enotes,nover] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-draft`),store.get(`done-${day}-draft`),store.get(`custom-ex-${day}-draft`),store.get(`order-${day}`),store.get(`renames-${day}-draft`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-draft`),store.get('custom-programs'),store.get(`notes-${day}-draft`),store.get('note-overrides')]);
+    const [hist,s,d,cex,order,rn,cw,cat,wst,progs,enotes,nover,cfoc] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-draft`),store.get(`done-${day}-draft`),store.get(`custom-ex-${day}-draft`),store.get(`order-${day}`),store.get(`renames-${day}-draft`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-draft`),store.get('custom-programs'),store.get(`notes-${day}-draft`),store.get('note-overrides'),store.get('control-focus')]);
     let _s=s,_d=d,_cex=cex,_rn=rn,_wst=wst,_enotes=enotes;
     // Migrate old date-suffixed draft keys if no current draft exists
     if(!_s||!Object.keys(_s).length){
       for(let i=1;i<=7;i++){const pd=new Date(Date.now()-i*86400000).toISOString().slice(0,10);if(hist&&hist[`${pd}-${day}`])continue;const [ps,pd2,pcex,prn,pwst,pen]=await Promise.all([store.get(`sets-${day}-${pd}`),store.get(`done-${day}-${pd}`),store.get(`custom-ex-${day}-${pd}`),store.get(`renames-${day}-${pd}`),store.get(`workout-start-${day}-${pd}`),store.get(`notes-${day}-${pd}`)]);if(ps&&Object.keys(ps).length){_s=ps;_d=pd2;_cex=pcex;_rn=prn;_wst=pwst||new Date(pd).setHours(10,0,0,0);_enotes=pen;await Promise.all([store.set(`sets-${day}-draft`,ps),store.set(`done-${day}-draft`,pd2||{}),store.set(`custom-ex-${day}-draft`,pcex||[]),store.set(`renames-${day}-draft`,prn||{}),store.set(`workout-start-${day}-draft`,_wst),store.set(`notes-${day}-draft`,pen||{})]);break;}}
     }
-    if(hist)setHistory(hist); if(_s)setSets(_s); if(_d)setDone(_d); if(_cex)setCustomExercises(_cex); if(order)setExerciseOrder(order); if(_rn)setRenames(_rn); if(cw)setCustomWorkouts(cw); if(_wst)setWorkoutStartTime(_wst); if(progs)setPrograms(progs); if(_enotes)setExerciseNotes(_enotes); if(nover)setNoteOverrides(nover);
+    if(hist)setHistory(hist); if(_s)setSets(_s); if(_d)setDone(_d); if(_cex)setCustomExercises(_cex); if(order)setExerciseOrder(order); if(_rn)setRenames(_rn); if(cw)setCustomWorkouts(cw); if(_wst)setWorkoutStartTime(_wst); if(progs)setPrograms(progs); if(_enotes)setExerciseNotes(_enotes); if(nover)setNoteOverrides(nover); if(cfoc)setControlFocus(cfoc);
     // Show blocking modal if current day has a stale draft
     if(_wst && _s && Object.keys(_s).length > 0 && new Date(_wst).toISOString().slice(0,10) !== todayKey()) {
       setShowStaleDraftModal(true);
@@ -694,16 +698,17 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   }
 
   function suggestWeight(exName, lastWeight, lastDiff) {
+    if (controlFocus[exName]) return null;
     var w = parseFloat(lastWeight) || 0;
     if (!w) return null;
     var bump = getWeightBump(exName);
-    if (lastDiff === "easy") return {weight: w + bump, reason: "+" + bump + "lb — last was easy"};
+    if (lastDiff === "easy") return {weight: w + bump, reason: "Had more — add a rep or slow it down first; bump only if form held"};
     var allHistSets = [];
     Object.values(history).forEach(function(e) { var s = e.sets ? e.sets[exName] : null; if (s) s.forEach(function(x) { allHistSets.push(x); }); });
     var justRight = allHistSets.filter(function(s) { return s.diff === "just_right"; });
     if (justRight.length >= 3) {
       var avgW = justRight.reduce(function(a, s) { return a + (parseFloat(s.weight) || 0); }, 0) / justRight.length;
-      if (Math.abs(avgW - w) > bump) return {weight: Math.round(avgW / bump) * bump, reason: Math.round(avgW) + "lb avg for just right"};
+      if (Math.abs(avgW - w) > bump) return {weight: Math.round(avgW / bump) * bump, reason: Math.round(avgW) + "lb is your usual here"};
     }
     return null;
   }
@@ -725,11 +730,15 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     var allEasy = diffs.every(function(d) { return d === "easy"; });
     var allJR = diffs.every(function(d) { return d === "just_right"; });
     var anyHard = diffs.some(function(d) { return d === "hard"; });
-    if (allEasy) return {weight: lastW + bump, reps: lastAvgReps, note: "Bump +" + bump + "lb"};
-    if (allJR && lastAvgReps >= repMax) return {weight: lastW + bump, reps: repMin, note: "Top of range — go up"};
-    if (allJR) return {weight: lastW, reps: Math.min(lastAvgReps + 1, repMax), note: "+1 rep"};
-    if (anyHard) return {weight: lastW, reps: lastAvgReps, note: "Match weight — complete all reps"};
-    return {weight: lastW, reps: lastAvgReps, note: "Same targets"};
+    if (controlFocus[exName]) {
+      if (allEasy) return {weight: lastW, reps: Math.min(lastAvgReps + 1, repMax), note: "Hold weight — +1 rep, full depth, 3s eccentric"};
+      return {weight: lastW, reps: lastAvgReps, note: "Hold weight — same reps, slower & deeper"};
+    }
+    if (allEasy) return {weight: lastW + bump, reps: lastAvgReps, note: "Felt easy — earn +" + bump + "lb with clean reps"};
+    if (allJR && lastAvgReps >= repMax) return {weight: lastW + bump, reps: repMin, note: "Owned the top of the range — small bump"};
+    if (allJR) return {weight: lastW, reps: Math.min(lastAvgReps + 1, repMax), note: "Hold weight — +1 rep, tighten the tempo"};
+    if (anyHard) return {weight: lastW, reps: lastAvgReps, note: "Stay here — clean up all reps before adding"};
+    return {weight: lastW, reps: lastAvgReps, note: "Repeat — focus on execution"};
   }
 
   useEffect(() => {
@@ -829,17 +838,17 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   }
 
   function openExercise(ex) { if(activeEx===ex){setActiveEx(null);setWeight("");setReps("");setEditIdx(null);setSuggestion(null);return;} setActiveEx(ex);setEditIdx(null);setSuggestion(null);
-    const xs=sets[ex]||[]; if(xs.length){const l=xs[xs.length-1];setWeight(l.weight);setReps(l.reps);var sg=suggestWeight(ex,l.weight,l.diff);if(sg){setSuggestion(sg);setWeight(String(sg.weight));}} else{const l=findLastExercise(ex);if(l){setWeight(l.weight);setReps(l.reps);var sg2=suggestWeight(ex,l.weight,l.diff);if(sg2){setSuggestion(sg2);setWeight(String(sg2.weight));}}else{setWeight("");setReps("");}}
-    setSelectedDiff("just_right"); }
+    const xs=sets[ex]||[]; if(xs.length){const l=xs[xs.length-1];setWeight(l.weight);setReps(l.reps);var sg=suggestWeight(ex,l.weight,l.diff);if(sg)setSuggestion(sg);} else{const l=findLastExercise(ex);if(l){setWeight(l.weight);setReps(l.reps);var sg2=suggestWeight(ex,l.weight,l.diff);if(sg2)setSuggestion(sg2);}else{setWeight("");setReps("");}}
+    setSelectedDiff("just_right"); setTempoSlow(!!controlFocus[ex]); }
 
   async function addOrUpdateSet() {
     const cardio=isCardio(activeEx);
     if(!activeEx||!reps||(!cardio&&!weight)) return;
     let updated;
-    if(editIdx!==null){const a=[...(sets[activeEx]||[])];a[editIdx]={...a[editIdx],weight:cardio?"0":String(weight),reps:String(reps),diff:cardio?"just_right":selectedDiff};updated={...sets,[activeEx]:a};setEditIdx(null);showToast("Updated");}
+    if(editIdx!==null){const a=[...(sets[activeEx]||[])];a[editIdx]={...a[editIdx],weight:cardio?"0":String(weight),reps:String(reps),diff:cardio?"just_right":selectedDiff,tempo:(!cardio&&tempoSlow)?true:undefined};updated={...sets,[activeEx]:a};setEditIdx(null);showToast("Updated");}
     else{
       if(!workoutStartTime){const t=Date.now();setWorkoutStartTime(t);await store.set(`workout-start-${day}-draft`,t);}
-      const entry={weight:cardio?"0":String(weight),reps:String(reps),diff:cardio?"just_right":selectedDiff};updated={...sets,[activeEx]:[...(sets[activeEx]||[]),entry]};showToast("Logged");}
+      const entry={weight:cardio?"0":String(weight),reps:String(reps),diff:cardio?"just_right":selectedDiff,tempo:(!cardio&&tempoSlow)?true:undefined};updated={...sets,[activeEx]:[...(sets[activeEx]||[]),entry]};showToast("Logged");}
     setSets(updated); await store.set(`sets-${day}-draft`,updated);
     var exData=getAllExercises().find(e=>e.name===activeEx);
     var loggedNow=(updated[activeEx]||[]).length;
@@ -973,6 +982,13 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     setEditingNote(null);
     await store.set('note-overrides', updated);
   }
+  async function toggleControlFocus(exName) {
+    const updated = {...controlFocus};
+    if (updated[exName]) { delete updated[exName]; } else { updated[exName] = true; }
+    setControlFocus(updated);
+    await store.set('control-focus', updated);
+    showToast(updated[exName] ? "Control focus on — quality over plates" : "Control focus off");
+  }
   async function saveNoteToProgram(exName, value) {
     const trimmed = value.trim();
     const baseList = getBaseExercises();
@@ -1085,7 +1101,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       const noteStr=exerciseNotes[ex.name]?` [${exerciseNotes[ex.name]}]`:"";
       const prFlags=getPRFlags(ex.name,xs);
       const prStr=prFlags.length?` ★${prFlags.join(", ")}`:""
-      return `${ex.name} (target ${ex.sets}x${ex.reps}): ${xs.map((s,i)=>`Set ${i+1}: ${s.weight}lb x ${s.reps}${s.diff?` [${DIFF[s.diff]?.label||s.diff}]`:""}`).join(", ")}${noteStr}${prStr}`;
+      const cfStr=controlFocus[ex.name]?" [CONTROL FOCUS — progress via reps/tempo, not load]":"";
+      return `${ex.name} (target ${ex.sets}x${ex.reps})${cfStr}: ${xs.map((s,i)=>`Set ${i+1}: ${s.weight}lb x ${s.reps}${s.diff?` [${DIFF[s.diff]?.label||s.diff}]`:""}${s.tempo?" [slow/controlled]":""}`).join(", ")}${noteStr}${prStr}`;
     }).filter(Boolean).join("\n");
 
     // History (same-day sessions)
@@ -1178,7 +1195,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     const uh={...history,[`${sessionDate}-${day}`]:entry};setHistory(uh);await store.set("iron-history",uh);
     setShowFinishModal(false);
     sendToSheets(entry);
-    setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});
+    setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});setTempoSlow(false);
     setWorkoutStartTime(null);
     await Promise.all([store.set(`sets-${day}-draft`,{}),store.set(`done-${day}-draft`,{}),store.set(`custom-ex-${day}-draft`,[]),store.set(`renames-${day}-draft`,{}),store.set(`notes-${day}-draft`,{}),store.set(`workout-start-${day}-draft`,null)]);
     dayCache.current={};
@@ -1492,7 +1509,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
                         {!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();toggleDone(ex.name);}} style={{width:20,height:20,borderRadius:6,border:`1.5px solid ${isDone?T.green:T.border2}`,background:isDone?T.green:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>{isDone&&<span style={{fontSize:12,color:"#fff",lineHeight:1}}>✓</span>}</button>}
                         {reordering&&<div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}><button onClick={()=>moveExercise(exIdx,-1)} disabled={exIdx===0} style={{background:"none",border:"none",color:exIdx===0?T.border:T.sub,fontSize:13,cursor:exIdx===0?"default":"pointer",padding:0,lineHeight:1}}>▲</button><button onClick={()=>moveExercise(exIdx,1)} disabled={exIdx===allExercises.length-1} style={{background:"none",border:"none",color:exIdx===allExercises.length-1?T.border:T.sub,fontSize:13,cursor:exIdx===allExercises.length-1?"default":"pointer",padding:0,lineHeight:1}}>▼</button></div>}
-                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accentGradient,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}</span>{isSSFirst&&<span style={{fontSize:10,fontWeight:700,color:T.accent,background:"rgba(232,148,100,0.12)",border:"1px solid rgba(232,148,100,0.3)",borderRadius:4,padding:"1px 5px",marginLeft:6,letterSpacing:0.5}}>⚡ SS</span>}{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
+                        {renamingEx===ex.name?(<div data-no-row-click onClick={e=>e.stopPropagation()} style={{display:"flex",gap:4,flex:1}}><input ref={renameRef} type="text" value={renameValue} onChange={e=>setRenameValue(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameExercise(ex.name,renameValue);if(e.key==="Escape")setRenamingEx(null);}} style={{flex:1,background:T.surface2,border:"1.5px solid "+T.accent,color:T.text,padding:"4px 8px",borderRadius:6,fontSize:13,fontFamily:T.font,outline:"none"}}/><button onClick={()=>renameExercise(ex.name,renameValue)} style={{background:T.accentGradient,color:"#fff",border:"none",padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:T.font}}>✓</button></div>):(<><span style={{fontSize:15,fontWeight:600,color:isCustom?T.yellow:T.text,lineHeight:1.3,letterSpacing:-0.2}}>{getDisplayName(ex)}{isCustom&&<span style={{fontSize:10,color:T.dim,marginLeft:6,fontWeight:400}}>added</span>}{controlFocus[ex.name]&&<span title="Control focus — quality over load" style={{fontSize:10,color:T.accent,marginLeft:6,fontWeight:600}}>🎯</span>}</span>{isSSFirst&&<span style={{fontSize:10,fontWeight:700,color:T.accent,background:"rgba(232,148,100,0.12)",border:"1px solid rgba(232,148,100,0.3)",borderRadius:4,padding:"1px 5px",marginLeft:6,letterSpacing:0.5}}>⚡ SS</span>}{isActive&&!reordering&&<button data-no-row-click onClick={e=>{e.stopPropagation();setRenamingEx(ex.name);setRenameValue(getDisplayName(ex));setTimeout(()=>{if(renameRef.current)renameRef.current.focus();},80);}} style={{background:"none",border:"none",color:T.dim,fontSize:13,cursor:"pointer",padding:"0 0 0 6px",fontFamily:T.font}}>✏️</button>}</>)}
                       </div>
                       {!reordering&&<>
                         <div style={{paddingLeft:30,display:"flex",alignItems:"center",gap:8,marginBottom:exSets.length>0?10:0,flexWrap:"wrap"}}>
@@ -1519,7 +1536,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                           <div style={{paddingLeft:30,display:"flex",flexWrap:"wrap",gap:5}}>
                             {exSets.map((s,i)=>{const df=(!exCardio&&s.diff)?DIFF[s.diff]:null; return (
                               <span key={i} data-no-row-click onClick={e=>{e.stopPropagation();startEditSet(ex.name,i);}} style={{display:"inline-flex",alignItems:"center",gap:4,background:editIdx===i&&activeEx===ex.name?T.accentDim:df?df.bg:T.surface2,border:`1px solid ${editIdx===i&&activeEx===ex.name?T.accent:df?df.color+"22":T.border2}`,borderRadius:10,padding:"6px 12px",fontSize:13,cursor:"pointer",boxShadow:"0 1px 2px rgba(0,0,0,0.2)"}}>
-                                {exCardio?(<span style={{fontWeight:700,color:T.text,fontFamily:T.mono}}>{s.reps} <span style={{fontSize:11,fontWeight:400,color:T.dim}}>min</span></span>):(<><span style={{fontWeight:700,color:T.text,fontFamily:T.mono}}>{s.weight}</span><span style={{color:T.dim,fontSize:11}}>×</span><span style={{fontWeight:600,color:T.text,fontFamily:T.mono}}>{s.reps}</span>{df&&<span style={{fontSize:10,color:df.color,fontWeight:600,marginLeft:2}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}</>)}
+                                {exCardio?(<span style={{fontWeight:700,color:T.text,fontFamily:T.mono}}>{s.reps} <span style={{fontSize:11,fontWeight:400,color:T.dim}}>min</span></span>):(<><span style={{fontWeight:700,color:T.text,fontFamily:T.mono}}>{s.weight}</span><span style={{color:T.dim,fontSize:11}}>×</span><span style={{fontWeight:600,color:T.text,fontFamily:T.mono}}>{s.reps}</span>{df&&<span style={{fontSize:10,color:df.color,fontWeight:600,marginLeft:2}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}{s.tempo&&<span title="slow & controlled" style={{fontSize:10,marginLeft:2}}>🐢</span>}</>)}
                                 <button onClick={e=>{e.stopPropagation();removeSet(ex.name,i);}} style={{background:"none",border:"none",color:T.dim,fontSize:11,padding:"0 0 0 4px",cursor:"pointer",fontFamily:T.font}}>✕</button>
                               </span>);})}
                           </div>
@@ -1536,7 +1553,11 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                   {isActive&&!reordering&&(
                     <div data-no-row-click onClick={e=>e.stopPropagation()} style={{paddingLeft:30,marginTop:14}}>
                       {(()=>{const DIFF_EMOJI={just_right:"👌",easy:"🟢",hard:"🔴"};const recent=findRecentSessions(ex.name);if(!recent.length)return null;return(<div style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${T.border}`}}><div style={{fontSize:10,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:6}}>RECENT</div>{recent.map((r,i)=>{const label=r.dateLabel||r.date.slice(5);const row=exCardio?`${r.sets.reduce((a,s)=>a+(parseInt(s.reps)||0),0)} min`:r.sets.map(s=>{const em=s.diff?DIFF_EMOJI[s.diff]||"":"";return `${s.weight}×${s.reps}${em}`;}).join(" · ");return(<div key={i} style={{fontSize:11,color:T.sub,fontFamily:T.mono,lineHeight:1.6}}><span style={{color:T.dim}}>{label}</span>{" · "}{row}</div>);})}</div>);})()}
-                      {!exCardio&&suggestion&&editIdx===null&&<div style={{marginBottom:8,fontSize:12,color:T.accent,fontWeight:500,animation:"fadeIn .3s"}}>{"💡 "+suggestion.reason}</div>}
+                      {!exCardio&&suggestion&&editIdx===null&&<div onClick={()=>setWeight(String(suggestion.weight))} style={{marginBottom:8,fontSize:12,color:T.accent,fontWeight:500,animation:"fadeIn .3s",cursor:"pointer",lineHeight:1.4}}>{"💡 "+suggestion.reason}{suggestion.weight?<span style={{color:T.dim,fontWeight:400}}>{"  · tap to set "+suggestion.weight+"lb"}</span>:null}</div>}
+                      {!exCardio&&<div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+                        <button onClick={()=>toggleControlFocus(activeEx)} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font,background:controlFocus[activeEx]?T.accentDim:T.surface3,color:controlFocus[activeEx]?T.accent:T.dim,border:`1.5px solid ${controlFocus[activeEx]?T.accent:"transparent"}`}}>🎯 Control focus{controlFocus[activeEx]?" · on":""}</button>
+                        <button onClick={()=>setTempoSlow(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:T.font,background:tempoSlow?T.tealBg:T.surface3,color:tempoSlow?T.teal:T.dim,border:`1.5px solid ${tempoSlow?T.teal:"transparent"}`}}>🐢 Slow & controlled{tempoSlow?" · on":""}</button>
+                      </div>}
                       <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",animation:"slideIn .2s ease"}}>
                         {!exCardio&&<div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:4}}>Weight</div><input ref={weightRef} type="number" inputMode="decimal" step="any" value={weight} onChange={e=>setWeight(e.target.value)} onFocus={e=>e.target.select()} onKeyDown={e=>{if(e.key==="Enter")repsRef.current?.focus();}} placeholder="0" style={{background:T.bg,border:`1.5px solid ${T.border2}`,color:T.text,padding:"12px 8px",width:80,borderRadius:10,textAlign:"center",fontSize:22,fontWeight:700,fontFamily:T.mono,outline:"none"}} /></div>}
                         <div><div style={{fontSize:10,color:T.dim,fontWeight:500,marginBottom:4}}>{exCardio?"Minutes":"Reps"}</div><input ref={repsRef} type="number" inputMode="numeric" value={reps} onChange={e=>setReps(e.target.value)} onFocus={e=>e.target.select()} onKeyDown={e=>{if(e.key==="Enter")addOrUpdateSet();}} placeholder="0" style={{background:T.bg,border:`1.5px solid ${T.border2}`,color:T.text,padding:"12px 8px",width:exCardio?96:72,borderRadius:10,textAlign:"center",fontSize:22,fontWeight:700,fontFamily:T.mono,outline:"none"}} /></div>
@@ -1548,7 +1569,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
                         {!exCardio&&<div style={{display:"flex",gap:5,flex:1}}>
                           {Object.entries(DIFF).map(([k,v])=>{
                             const sel=selectedDiff===k;
-                            return <button key={k} onClick={()=>setSelectedDiff(k)} style={{flex:1,padding:"9px 6px",fontSize:11,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?v.btnBg:T.surface3,color:sel?v.color:"rgba(107,96,82,0.9)",border:sel?`1.5px solid ${v.color}55`:"1.5px solid rgba(74,64,53,0.8)",borderRadius:10,transition:"all .15s",boxShadow:sel?`0 0 10px ${v.color}30`:"none",letterSpacing:0.2}}>{k==="just_right"?"👌 Right":k==="easy"?"↑ Easy":"↓ Hard"}</button>;
+                            return <button key={k} onClick={()=>setSelectedDiff(k)} style={{flex:1,padding:"9px 6px",fontSize:11,fontWeight:sel?700:400,cursor:"pointer",fontFamily:T.font,background:sel?v.btnBg:T.surface3,color:sel?v.color:"rgba(138,124,105,0.95)",border:sel?`1.5px solid ${v.color}55`:"1.5px solid rgba(74,64,53,0.8)",borderRadius:10,transition:"all .15s",boxShadow:sel?`0 0 10px ${v.color}30`:"none",letterSpacing:0.2}}>{k==="just_right"?"👌 Solid":k==="easy"?"🟢 Easy":"🔴 Hard"}</button>;
                           })}
                         </div>}
                         <button onClick={addOrUpdateSet} disabled={!reps||((!exCardio)&&!weight)} className={(!reps||((!exCardio)&&!weight))?"":"cta-btn"} style={{background:(!reps||((!exCardio)&&!weight))?T.surface3:T.accentGradient,color:(!reps||((!exCardio)&&!weight))?T.dim:"#fff",border:"none",padding:"10px 24px",borderRadius:10,fontSize:14,fontWeight:700,cursor:(!reps||((!exCardio)&&!weight))?"default":"pointer",fontFamily:T.font,marginLeft:"auto",boxShadow:(!reps||((!exCardio)&&!weight))?"none":"0 2px 16px #e8946440"}}>{editIdx!==null?"Update":"Log"}</button>
