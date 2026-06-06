@@ -76,7 +76,9 @@ export function computeAnalytics(history) {
   const rows = [];
   entries.forEach(entry => {
     Object.entries(entry.sets || {}).forEach(([exName, sets]) => {
+      if (!Array.isArray(sets)) return;
       sets.forEach(s => {
+        if (!s || typeof s !== 'object') return;
         const w = parseFloat(s.weight) || 0;
         const r = parseInt(s.reps) || 0;
         rows.push({

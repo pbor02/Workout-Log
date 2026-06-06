@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Component } from 'react';
 import {
   LineChart, BarChart, ComposedChart, Area, Line, Bar, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -68,7 +68,7 @@ function LeaderRow({ rank, name, deltaPct, lastE1RM, isGrower }) {
   );
 }
 
-export default function LedgerView({ history }) {
+function LedgerViewInner({ history }) {
   const [inspectorEx, setInspectorEx] = useState(null);
 
   const data = useMemo(() => computeAnalytics(history), [history]);
@@ -88,10 +88,15 @@ export default function LedgerView({ history }) {
 
   if (!data) {
     return (
-      <div style={{ ...dotGrid, background: COLORS.paper, minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: F.display, fontSize: 32, color: COLORS.ink, letterSpacing: 2 }}>NO DATA</div>
-          <div style={{ fontFamily: F.mono, fontSize: 12, color: COLORS.shadow, marginTop: 8 }}>Log some sessions first.</div>
+      <div style={{ background: '#17120e', minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, gap: 12 }}>
+        <div style={{ fontFamily: F.display, fontSize: 40, color: '#f3ebdd', letterSpacing: 3, lineHeight: 1 }}>THE POWER</div>
+        <div style={{ fontFamily: F.display, fontSize: 40, color: '#c8341d', letterSpacing: 3, lineHeight: 1 }}>LEDGER</div>
+        <div style={{ width: 48, height: 2, background: '#c8341d', margin: '8px 0' }} />
+        <div style={{ fontFamily: F.mono, fontSize: 13, color: '#8a7c69', textAlign: 'center', lineHeight: 1.6 }}>
+          Your analytics report generates<br />after you log your first session.
+        </div>
+        <div style={{ fontFamily: F.mono, fontSize: 11, color: '#52473a', marginTop: 8 }}>
+          Go to LOG → log a workout → come back here.
         </div>
       </div>
     );
@@ -338,4 +343,27 @@ export default function LedgerView({ history }) {
       </div>
     </div>
   );
+}
+
+class LedgerBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e.message || 'Unknown error' }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ background: '#17120e', minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, gap: 12 }}>
+          <div style={{ fontFamily: "'Bebas Neue',Impact,sans-serif", fontSize: 32, color: '#dd6f5e', letterSpacing: 2 }}>LEDGER ERROR</div>
+          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: '#8a7c69', textAlign: 'center', lineHeight: 1.6, maxWidth: 280 }}>
+            Could not render your analytics. This is usually caused by an unusual entry in your history.
+          </div>
+          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: '#52473a', marginTop: 4 }}>{this.state.error}</div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function LedgerView(props) {
+  return <LedgerBoundary><LedgerViewInner {...props} /></LedgerBoundary>;
 }
