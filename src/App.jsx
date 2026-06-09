@@ -188,7 +188,11 @@ const EXERCISE_CATALOG_DEFAULT = [
 ];
 
 const autoDay = () => DAYS[new Date().getDay()];
-const todayKey = () => new Date().toISOString().slice(0, 10);
+// FIX: date keys are now LOCAL time. toISOString() is UTC — any workout finished after
+// 7/8pm Eastern was stamped with the NEXT day's date (confirmed in real history:
+// 2026-04-22-Tuesday, 2026-06-06-Friday).
+const localDateKey = (d) => { const x = d ? new Date(d) : new Date(); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`; };
+const todayKey = () => localDateKey();
 const dateLabel = () => new Date().toLocaleDateString("en-US", { month:"short", day:"numeric" });
 const SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5Zm1-YRLwAG2kYxQqiVVcjfWCHGRBQLwBrTUCMP311w__ZZWLotNYotFWEr7oldw3Qg/exec";
 
@@ -200,6 +204,41 @@ const store = {
 };
 function getShared(k) { try { var v = localStorage.getItem("wl_" + k); return v ? JSON.parse(v) : null; } catch(e) { return null; } }
 function setShared(k, v) { try { localStorage.setItem("wl_" + k, JSON.stringify(v)); } catch(e) {} }
+
+// FIX: one shared AudioContext, created/resumed inside a user gesture. iOS Safari
+// suspends contexts created outside a tap, which silently killed the rest-done beep.
+let _audioCtx = null;
+function ensureAudioCtx() {
+  try {
+    if(!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(_audioCtx.state === "suspended") _audioCtx.resume();
+    return _audioCtx;
+  } catch(e) { return null; }
+}
+
+// FIX: normalize history entries whose date is a locale string
+// ("Mon Mar 16 2026 00:00:00 GMT-0400 ...") instead of YYYY-MM-DD. Those entries were
+// silently dropped from Analytics weekly stats / streak.
+function normalizeHistory(hist) {
+  let changed = false;
+  const norm = {};
+  Object.entries(hist).forEach(([k, v]) => {
+    let nk = k, nv = v;
+    if(v && v.date && !/^\d{4}-\d{2}-\d{2}$/.test(v.date)) {
+      const d = new Date(v.date);
+      if(!isNaN(d)) {
+        const iso = localDateKey(d);
+        nv = {...v, date: iso, dateLabel: d.toLocaleDateString("en-US",{month:"short",day:"numeric"})};
+        nk = `${iso}-${v.day}`;
+        changed = true;
+      }
+    }
+    let safe = nk, n = 1;
+    while(norm[safe]) { safe = `${nk}-${n++}`; }
+    norm[safe] = nv;
+  });
+  return { hist: changed ? norm : hist, changed };
+}
 
 const T = {
   bg:"#17120e", surface:"#231d16", surface2:"#2d261d", surface3:"#392f25",
@@ -611,7 +650,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const [todaySupersets, setTodaySupersets] = useState([]);
   const [showSupersetCreator, setShowSupersetCreator] = useState(false);
   const [ssSelection, setSsSelection] = useState([]);
-  useEffect(() => { setNewExReps(isCardio(newExName.trim()) ? "30" : "10-12"); }, [newExName, exerciseCatalog]);
+  // FIX: only reset default reps when the name crosses the cardio/strength boundary.
+  // The old effect ran on every keystroke and clobbered a rep range you'd already typed.
+  const wasCardioRef = useRef(false);
+  useEffect(() => { const c = isCardio(newExName.trim()); if(c !== wasCardioRef.current) { wasCardioRef.current = c; setNewExReps(c ? "30" : "10-12"); } }, [newExName, exerciseCatalog]);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [confirmDeleteProfile, setConfirmDeleteProfile] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(0);
@@ -628,15 +670,22 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
   const aiImportRef = useRef(null);
 
   useEffect(() => { (async () => {
-    const [hist,s,d,cex,order,rn,cw,cat,wst,progs,enotes,nover,cfoc] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-draft`),store.get(`done-${day}-draft`),store.get(`custom-ex-${day}-draft`),store.get(`order-${day}`),store.get(`renames-${day}-draft`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-draft`),store.get('custom-programs'),store.get(`notes-${day}-draft`),store.get('note-overrides'),store.get('control-focus')]);
+    const [histRaw,s,d,cex,order,rn,cw,cat,wst,progs,enotes,nover,cfoc] = await Promise.all([store.get("iron-history"),store.get(`sets-${day}-draft`),store.get(`done-${day}-draft`),store.get(`custom-ex-${day}-draft`),store.get(`order-${day}`),store.get(`renames-${day}-draft`),store.get('custom-workouts'),store.get('exercise-catalog'),store.get(`workout-start-${day}-draft`),store.get('custom-programs'),store.get(`notes-${day}-draft`),store.get('note-overrides'),store.get('control-focus')]);
+    // FIX: normalize legacy locale-string dates in history before anything reads it
+    let hist = histRaw;
+    if(hist) {
+      const normRes = normalizeHistory(hist);
+      hist = normRes.hist;
+      if(normRes.changed) await store.set("iron-history", hist);
+    }
     let _s=s,_d=d,_cex=cex,_rn=rn,_wst=wst,_enotes=enotes;
     // Migrate old date-suffixed draft keys if no current draft exists
     if(!_s||!Object.keys(_s).length){
-      for(let i=1;i<=7;i++){const pd=new Date(Date.now()-i*86400000).toISOString().slice(0,10);if(hist&&hist[`${pd}-${day}`])continue;const [ps,pd2,pcex,prn,pwst,pen]=await Promise.all([store.get(`sets-${day}-${pd}`),store.get(`done-${day}-${pd}`),store.get(`custom-ex-${day}-${pd}`),store.get(`renames-${day}-${pd}`),store.get(`workout-start-${day}-${pd}`),store.get(`notes-${day}-${pd}`)]);if(ps&&Object.keys(ps).length){_s=ps;_d=pd2;_cex=pcex;_rn=prn;_wst=pwst||new Date(pd).setHours(10,0,0,0);_enotes=pen;await Promise.all([store.set(`sets-${day}-draft`,ps),store.set(`done-${day}-draft`,pd2||{}),store.set(`custom-ex-${day}-draft`,pcex||[]),store.set(`renames-${day}-draft`,prn||{}),store.set(`workout-start-${day}-draft`,_wst),store.set(`notes-${day}-draft`,pen||{})]);break;}}
+      for(let i=1;i<=7;i++){const pd=localDateKey(Date.now()-i*86400000);if(hist&&hist[`${pd}-${day}`])continue;const [ps,pd2,pcex,prn,pwst,pen]=await Promise.all([store.get(`sets-${day}-${pd}`),store.get(`done-${day}-${pd}`),store.get(`custom-ex-${day}-${pd}`),store.get(`renames-${day}-${pd}`),store.get(`workout-start-${day}-${pd}`),store.get(`notes-${day}-${pd}`)]);if(ps&&Object.keys(ps).length){_s=ps;_d=pd2;_cex=pcex;_rn=prn;_wst=pwst||new Date(pd+"T10:00:00").getTime();_enotes=pen;await Promise.all([store.set(`sets-${day}-draft`,ps),store.set(`done-${day}-draft`,pd2||{}),store.set(`custom-ex-${day}-draft`,pcex||[]),store.set(`renames-${day}-draft`,prn||{}),store.set(`workout-start-${day}-draft`,_wst),store.set(`notes-${day}-draft`,pen||{})]);break;}}
     }
     if(hist)setHistory(hist); if(_s)setSets(_s); if(_d)setDone(_d); if(_cex)setCustomExercises(_cex); if(order)setExerciseOrder(order); if(_rn)setRenames(_rn); if(cw)setCustomWorkouts(cw); if(_wst)setWorkoutStartTime(_wst); if(progs)setPrograms(progs); if(_enotes)setExerciseNotes(_enotes); if(nover)setNoteOverrides(nover); if(cfoc)setControlFocus(cfoc);
     // Show blocking modal if current day has a stale draft
-    if(_wst && _s && Object.keys(_s).length > 0 && new Date(_wst).toISOString().slice(0,10) !== todayKey()) {
+    if(_wst && _s && Object.keys(_s).length > 0 && localDateKey(_wst) !== todayKey()) {
       setShowStaleDraftModal(true);
     }
     if(cat){const stored=new Set(cat.map(e=>e.name.toLowerCase()));const merged=[...cat,...EXERCISE_CATALOG_DEFAULT.filter(e=>!stored.has(e.name.toLowerCase()))];setExerciseCatalog(merged);if(merged.length>cat.length)await store.set('exercise-catalog',merged);}else{setExerciseCatalog(EXERCISE_CATALOG_DEFAULT);await store.set('exercise-catalog',EXERCISE_CATALOG_DEFAULT);}
@@ -647,16 +696,36 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       let dwst=await store.get(`workout-start-${d}-draft`);
       // Fall back to old date-suffixed keys if draft slot is empty
       if(!ds||!Object.keys(ds).length){
-        for(let i=1;i<=7;i++){const pd=new Date(Date.now()-i*86400000).toISOString().slice(0,10);if(hist&&hist[`${pd}-${d}`])continue;const pds=await store.get(`sets-${d}-${pd}`);if(pds&&Object.keys(pds).length){ds=pds;dwst=await store.get(`workout-start-${d}-${pd}`)||new Date(pd).setHours(10,0,0,0);await Promise.all([store.set(`sets-${d}-draft`,pds),store.set(`workout-start-${d}-draft`,dwst)]);break;}}
+        for(let i=1;i<=7;i++){const pd=localDateKey(Date.now()-i*86400000);if(hist&&hist[`${pd}-${d}`])continue;const pds=await store.get(`sets-${d}-${pd}`);if(pds&&Object.keys(pds).length){ds=pds;dwst=await store.get(`workout-start-${d}-${pd}`)||new Date(pd+"T10:00:00").getTime();await Promise.all([store.set(`sets-${d}-draft`,pds),store.set(`workout-start-${d}-draft`,dwst)]);break;}}
       }
       if(!ds||!Object.keys(ds).length)return null;
-      const draftDate=dwst?new Date(dwst).toISOString().slice(0,10):null;
+      const draftDate=dwst?localDateKey(dwst):null;
       if(draftDate&&hist&&hist[`${draftDate}-${d}`])return null;
       const dl=dwst?new Date(dwst).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):d;
       return {day:d,dateLabel:dl};
     }));
     const found=draftChecks.filter(Boolean);
     if(found.length)setOtherDayDrafts(found);
+    // FIX: prune legacy date-suffixed draft keys older than 10 days. These piled up
+    // forever (400+ dead keys observed). Set-drafts holding data NOT in history are kept.
+    try {
+      const prefix = "wl_" + activeProfileId + "_";
+      const patt = /^(sets|done|custom-ex|renames|notes|workout-start)-(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)-(\d{4}-\d{2}-\d{2})$/;
+      const cutoff = localDateKey(Date.now() - 10*86400000);
+      const kill = [];
+      for(let i=0;i<localStorage.length;i++){
+        const key = localStorage.key(i);
+        if(!key || !key.startsWith(prefix)) continue;
+        const m = patt.exec(key.slice(prefix.length));
+        if(!m || m[3] >= cutoff) continue;
+        if(m[1] === "sets") {
+          let v = null; try { v = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+          if(v && Object.keys(v).length > 0 && !(hist && hist[`${m[3]}-${m[2]}`])) continue; // unsaved data — keep
+        }
+        kill.push(key);
+      }
+      kill.forEach(k => localStorage.removeItem(k));
+    } catch(e) {}
     setLoading(false);
   })(); }, []);
 
@@ -778,7 +847,8 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
   function playRestBeep() {
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = ensureAudioCtx();
+      if(!ctx) return;
       const beep = (freq, start, dur) => {
         const osc = ctx.createOscillator();
         const g = ctx.createGain();
@@ -842,6 +912,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     setSelectedDiff("just_right"); setTempoSlow(!!controlFocus[ex]); }
 
   async function addOrUpdateSet() {
+    ensureAudioCtx(); // unlock audio inside a user gesture so the rest-done beep works on iOS
     const cardio=isCardio(activeEx);
     if(!activeEx||!reps||(!cardio&&!weight)) return;
     let updated;
@@ -1051,7 +1122,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     const latestBW=(()=>{const sorted=Object.values(history).filter(e=>e.checkIn?.bodyweight).sort((a,b)=>new Date(b.date)-new Date(a.date));return sorted.length?sorted[0].checkIn.bodyweight:null;})();
 
     // Header — neutral, no personal context
-    const sessionDate=workoutStartTime?new Date(workoutStartTime).toISOString().slice(0,10):todayKey();
+    const sessionDate=workoutStartTime?localDateKey(workoutStartTime):todayKey();
     const sessionDateLabel=workoutStartTime?new Date(workoutStartTime).toLocaleDateString("en-US",{month:"short",day:"numeric"}):dateLabel();
     let header=`WORKOUT LOG — ${day.toUpperCase()} ${w.label} — ${sessionDateLabel}`;
     const metaParts=[];
@@ -1100,7 +1171,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       const xs=sets[ex.name]||[];if(!xs.length)return null;
       const noteStr=exerciseNotes[ex.name]?` [${exerciseNotes[ex.name]}]`:"";
       const prFlags=getPRFlags(ex.name,xs);
-      const prStr=prFlags.length?` ★${prFlags.join(", ")}`:""
+      const prStr=prFlags.length?` ★${prFlags.join(", ")}`:"";
       const cfStr=controlFocus[ex.name]?" [CONTROL FOCUS — progress via reps/tempo, not load]":"";
       return `${ex.name} (target ${ex.sets}x${ex.reps})${cfStr}: ${xs.map((s,i)=>`Set ${i+1}: ${s.weight}lb x ${s.reps}${s.diff?` [${DIFF[s.diff]?.label||s.diff}]`:""}${s.tempo?" [slow/controlled]":""}`).join(", ")}${noteStr}${prStr}`;
     }).filter(Boolean).join("\n");
@@ -1165,7 +1236,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "workout-backup-" + profile.name.toLowerCase().replace(/\s+/g,"-") + "-" + new Date().toISOString().slice(0,10) + ".json";
+    a.href = url; a.download = "workout-backup-" + profile.name.toLowerCase().replace(/\s+/g,"-") + "-" + todayKey() + ".json";
     a.click(); URL.revokeObjectURL(url);
   }
 
@@ -1175,8 +1246,10 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
       const data = JSON.parse(text);
       if (!data.store || !data.profile) { showToast("Invalid backup file"); return; }
       const prefix = "wl_" + activeProfileId + "_";
+      // FIX: always JSON.stringify. Backup stored parsed values; writing raw strings
+      // back un-stringified made store.get() fail to parse them after a restore.
       Object.entries(data.store).forEach(([k, v]) => {
-        localStorage.setItem(prefix + k, typeof v === "string" ? v : JSON.stringify(v));
+        localStorage.setItem(prefix + k, JSON.stringify(v));
       });
       showToast("Restored! Reloading…");
       setTimeout(() => window.location.reload(), 1200);
@@ -1189,10 +1262,15 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     const w=getWorkout();const duration=workoutStartTime?Math.floor((Date.now()-workoutStartTime)/1000):0;const text=buildLogText(ci||{});
     const displaySets={};Object.entries(sets).forEach(([k,v])=>{displaySets[renames[k]||k]=v;});
     // Use the actual workout date (from start time) so late submissions record correctly
-    const sessionDate=workoutStartTime?new Date(workoutStartTime).toISOString().slice(0,10):todayKey();
+    const sessionDate=workoutStartTime?localDateKey(workoutStartTime):todayKey();
     const sessionDateLabel=workoutStartTime?new Date(workoutStartTime).toLocaleDateString("en-US",{month:"short",day:"numeric"}):dateLabel();
     const entry={day,label:w.label,date:sessionDate,dateLabel:sessionDateLabel,sets:displaySets,customExercises:[...customExercises],checkIn:ci||{},logText:text,duration,notes:{...exerciseNotes},supersets:getSupersets()};
-    const uh={...history,[`${sessionDate}-${day}`]:entry};setHistory(uh);await store.set("iron-history",uh);
+    // FIX: don't silently overwrite an existing session on the same date+day
+    // (e.g. "Log Again" after finishing). Suffix the key instead.
+    const baseHKey=`${sessionDate}-${day}`;
+    let hKey=baseHKey,hn=1;
+    while(history[hKey])hKey=`${baseHKey}-${hn++}`;
+    const uh={...history,[hKey]:entry};setHistory(uh);await store.set("iron-history",uh);
     setShowFinishModal(false);
     sendToSheets(entry);
     setSets({});setDone({});setActiveEx(null);setCustomExercises([]);setRenames({});setExerciseNotes({});setTempoSlow(false);
@@ -1215,11 +1293,14 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
     const dRenames=raw(`renames-${d}-draft`)||{};
     const dNotes=raw(`notes-${d}-draft`)||{};
     const w=getWorkout(d);
-    const sessionDate=dWst?new Date(dWst).toISOString().slice(0,10):todayKey();
+    const sessionDate=dWst?localDateKey(dWst):todayKey();
     const sessionDateLabel=dWst?new Date(dWst).toLocaleDateString("en-US",{month:"short",day:"numeric"}):dateLabel();
     const displaySets={};Object.entries(dSets).forEach(([k,v])=>{displaySets[dRenames[k]||k]=v;});
     const entry={day:d,label:w.label,date:sessionDate,dateLabel:sessionDateLabel,sets:displaySets,customExercises:dCex,checkIn:{},logText:"",duration:0,notes:dNotes,supersets:[]};
-    const uh={...history,[`${sessionDate}-${d}`]:entry};
+    const baseHKey=`${sessionDate}-${d}`;
+    let hKey=baseHKey,hn=1;
+    while(history[hKey])hKey=`${baseHKey}-${hn++}`;
+    const uh={...history,[hKey]:entry};
     setHistory(uh);await store.set("iron-history",uh);
     await Promise.all([store.set(`sets-${d}-draft`,{}),store.set(`done-${d}-draft`,{}),store.set(`custom-ex-${d}-draft`,[]),store.set(`renames-${d}-draft`,{}),store.set(`notes-${d}-draft`,{}),store.set(`workout-start-${d}-draft`,null)]);
     sendToSheets(entry);
@@ -1395,7 +1476,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
           {w.sub&&<div style={{fontSize:11,color:T.dim,marginTop:3}}>{w.sub}</div>}
           {!w.sub&&isRest&&<div style={{fontSize:11,color:T.dim,marginTop:3}}>Rest Day</div>}
           {activeSessionProgram&&(()=>{const prog=programs.find(p=>p.id===activeSessionProgram.programId);return prog?<div style={{fontSize:10,color:T.accent,marginTop:3,fontWeight:600,letterSpacing:0.3}}>{prog.name} · {activeSessionProgram.workoutIdx+1}/{prog.workouts.length}</div>:null;})()}
-          {workoutStartTime&&new Date(workoutStartTime).toISOString().slice(0,10)!==todayKey()&&(
+          {workoutStartTime&&localDateKey(workoutStartTime)!==todayKey()&&(
             <div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:6,background:"rgba(217,176,97,0.10)",border:"1px solid rgba(217,176,97,0.30)",borderRadius:8,padding:"4px 10px",fontSize:11,color:T.yellow,fontWeight:600}}>
               ⚠ Unsubmitted session from {new Date(workoutStartTime).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} — tap Finish to save
             </div>
@@ -1429,7 +1510,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
 
       {/* ═══ CONTENT ═══ */}
       <div style={{flex:1,overflowY:"auto",paddingBottom:90}}>
-        {Object.keys(sets).length>0&&workoutStartTime&&new Date(workoutStartTime).toISOString().slice(0,10)!==todayKey()&&(
+        {Object.keys(sets).length>0&&workoutStartTime&&localDateKey(workoutStartTime)!==todayKey()&&(
           <div style={{position:"sticky",top:0,zIndex:50,background:T.red,color:"#fff",padding:"10px 16px",fontWeight:700,fontSize:13,textAlign:"center",lineHeight:1.5}}>
             ⚠ DRAFT FROM {new Date(workoutStartTime).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})} — NOT TODAY
             <div style={{fontWeight:400,fontSize:11,marginTop:1}}>Do not log today's workout here. Finish or discard this draft first (Profile → Drafts).</div>
@@ -1903,7 +1984,7 @@ function WorkoutLog({profile, onLogout, onProfileUpdated}) {
               {confirmDeleteProfile ? (
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>setConfirmDeleteProfile(false)} style={{flex:1,background:"none",border:"1.5px solid "+T.border,color:T.sub,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
-                  <button onClick={async()=>{const profiles=(getShared("profiles")||[]).filter(p=>p.id!==activeProfileId);setShared("profiles",profiles);setShared("active-profile",null);setConfirmDeleteProfile(false);onLogout();}} style={{flex:1,background:T.red,border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Delete</button>
+                  <button onClick={async()=>{const pid=activeProfileId;const kill=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(`wl_${pid}_`))kill.push(k);}kill.forEach(k=>localStorage.removeItem(k));const profiles=(getShared("profiles")||[]).filter(p=>p.id!==pid);setShared("profiles",profiles);setShared("active-profile",null);setConfirmDeleteProfile(false);onLogout();}} style={{flex:1,background:T.red,border:"none",color:"#fff",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:T.font}}>Delete</button>
                 </div>
               ) : (
                 <button onClick={()=>setConfirmDeleteProfile(true)} style={{width:"100%",background:"none",border:`1.5px solid ${T.red}`,color:T.red,padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Delete Profile…</button>
@@ -2329,7 +2410,7 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
     const blob = new Blob([data], {type:"application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `workout-history-${new Date().toISOString().slice(0,10)}.json`;
+    a.href = url; a.download = `workout-history-${todayKey()}.json`;
     a.click(); URL.revokeObjectURL(url);
   }
   function getWeekly(){const w={};histEntries.forEach(e=>{if(!e.date)return;const parts=e.date.split('-');const d=parts.length===3?new Date(Number(parts[0]),Number(parts[1])-1,Number(parts[2])):new Date(e.date);if(isNaN(d))return;const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());if(isNaN(sun))return;const k=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;if(!w[k])w[k]={sessions:0,volume:0,sets:0,days:{}};w[k].sessions++;w[k].sets+=Object.values(e.sets||{}).reduce((a,b)=>a+b.length,0);const dayVol=Object.values(e.sets||{}).flat().reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0);w[k].volume+=dayVol;const di=d.getDay();w[k].days[di]=(w[k].days[di]||0)+dayVol;});return Object.entries(w).sort(([a],[b])=>b.localeCompare(a)).map(([k,v])=>{const[sy,sm,sd]=k.split('-').map(Number);const s=new Date(sy,sm-1,sd);if(isNaN(s))return null;const en=new Date(s);en.setDate(s.getDate()+6);const f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});return{key:k,label:`${f(s)} – ${f(en)}`,...v};}).filter(Boolean);}
@@ -2489,432 +2570,10 @@ function HistoryView({history, onDelete, onClearAll, onEdit, exerciseCatalog, ad
   );
 }
 
-
-// ─── EXERCISE DETAIL OVERLAY ──────────────────────────────────────────────────
-function ExerciseDetailOverlay({exName, history, onClose}) {
-  const sessions = useMemo(()=>
-    Object.values(history)
-      .filter(e=>e.sets&&e.sets[exName]&&e.sets[exName].length>0)
-      .map(e=>({date:e.date,dateLabel:e.dateLabel,day:e.day,label:e.label,sets:e.sets[exName],note:e.notes?.[exName]}))
-      .sort((a,b)=>new Date(b.date)-new Date(a.date))
-  ,[history,exName]);
-
-  const allSets = sessions.flatMap(s=>s.sets);
-  const pr = allSets.reduce((best,s)=>{
-    const w=parseFloat(s.weight)||0;
-    if(!best||w>best.weight||(w===best.weight&&parseInt(s.reps)>parseInt(best.reps)))return{weight:w,reps:s.reps};
-    return best;
-  },null);
-
-  const chartData = useMemo(()=>
-    sessions.slice().reverse().map(s=>({
-      date:s.date,
-      dateLabel:s.dateLabel,
-      weight:Math.max(...s.sets.map(x=>parseFloat(x.weight)||0)),
-      reps:Math.max(...s.sets.map(x=>parseInt(x.reps)||0)),
-    })).filter(d=>d.weight>0)
-  ,[sessions]);
-
-  const firstMax=chartData.length?chartData[0].weight:0;
-  const latestMax=chartData.length?chartData[chartData.length-1].weight:0;
-  const diff=latestMax-firstMax;
-  const pct=firstMax>0?Math.round((diff/firstMax)*100):0;
-  const totalSetsLogged=allSets.length;
-  const avgSetsPerSession=sessions.length?Math.round(totalSetsLogged/sessions.length*10)/10:0;
-  const col=diff>0?T.green:diff<0?T.red:T.dim;
-
-  return (
-    <div style={{position:"fixed",inset:0,zIndex:300,background:T.bg,display:"flex",flexDirection:"column",maxWidth:540,margin:"0 auto"}}>
-      {/* Header */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px 12px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <button onClick={onClose} style={{background:"none",border:"none",color:T.accent,fontSize:22,cursor:"pointer",padding:0,lineHeight:1,fontFamily:T.font}}>←</button>
-          <div style={{fontSize:17,fontWeight:700,color:T.text,lineHeight:1.2}}>{exName}</div>
-        </div>
-        <button onClick={onClose} style={{background:"none",border:"none",color:T.dim,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕</button>
-      </div>
-
-      <div style={{flex:1,overflowY:"auto",padding:"12px 16px"}}>
-        {/* Stats row */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
-          <div style={{background:T.surface,borderRadius:10,padding:"12px",border:`1px solid ${T.border}`,textAlign:"center"}}>
-            <div style={{fontSize:9,color:T.dim,marginBottom:4,letterSpacing:0.5,fontWeight:600,textTransform:"uppercase"}}>PR</div>
-            <div style={{fontSize:17,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{pr?`${pr.weight}`:"—"}</div>
-            {pr&&<div style={{fontSize:10,color:T.dim,marginTop:2}}>× {pr.reps} reps</div>}
-          </div>
-          <div style={{background:T.surface,borderRadius:10,padding:"12px",border:`1px solid ${T.border}`,textAlign:"center"}}>
-            <div style={{fontSize:9,color:T.dim,marginBottom:4,letterSpacing:0.5,fontWeight:600,textTransform:"uppercase"}}>Sessions</div>
-            <div style={{fontSize:17,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{sessions.length}</div>
-            <div style={{fontSize:10,color:T.dim,marginTop:2}}>{avgSetsPerSession} sets avg</div>
-          </div>
-          <div style={{background:T.surface,borderRadius:10,padding:"12px",border:`1px solid ${T.border}`,textAlign:"center"}}>
-            <div style={{fontSize:9,color:T.dim,marginBottom:4,letterSpacing:0.5,fontWeight:600,textTransform:"uppercase"}}>Progress</div>
-            <div style={{fontSize:17,fontWeight:700,color:col,fontFamily:T.mono,lineHeight:1}}>{diff>0?"+":""}{pct}%</div>
-            <div style={{fontSize:10,color:col,marginTop:2}}>{diff>0?"+":""}{diff.toFixed(diff%1===0?0:1)}lb</div>
-          </div>
-        </div>
-
-        {/* Weight progression chart */}
-        {chartData.length>=2&&(
-          <div style={{background:T.surface,borderRadius:10,padding:"12px 12px 4px",border:`1px solid ${T.border}`,marginBottom:14}}>
-            <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:2}}>MAX WEIGHT PER SESSION</div>
-            <MiniWeightChart dataPoints={chartData}/>
-          </div>
-        )}
-
-        {/* Session list */}
-        <div style={{fontSize:11,color:T.dim,fontWeight:600,letterSpacing:0.5,marginBottom:8}}>ALL SESSIONS</div>
-        {sessions.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:T.dim,fontSize:13}}>No sessions logged yet</div>}
-        {sessions.map((s,i)=>{
-          const maxW=Math.max(...s.sets.map(x=>parseFloat(x.weight)||0));
-          const vol=s.sets.reduce((a,x)=>a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0);
-          const isPR=pr&&maxW===pr.weight;
-          return(
-            <div key={s.date+i} style={{background:T.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPR?"#e8946444":T.border}`,marginBottom:8}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,color:T.text}}>{s.dateLabel||s.date}</div>
-                  <div style={{fontSize:11,color:T.dim}}>{s.day} · {s.label}{isPR&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:T.accent}}>PR</span>}</div>
-                </div>
-                <div style={{textAlign:"right"}}>
-                  <div style={{fontSize:13,fontWeight:700,color:T.text,fontFamily:T.mono}}>{maxW}lb</div>
-                  <div style={{fontSize:10,color:T.dim,fontFamily:T.mono}}>{vol>=1000?`${(vol/1000).toFixed(1)}k`:`${vol}`} vol</div>
-                </div>
-              </div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                {s.sets.map((set,si)=>{const df=set.diff?DIFF[set.diff]:null;return(
-                  <span key={si} style={{background:df?df.bg:T.surface2,border:`1px solid ${df?df.color+"33":T.border2}`,borderRadius:8,padding:"4px 10px",fontSize:12,color:T.sub,fontWeight:500}}>
-                    {set.weight}×{set.reps}{df&&<span style={{marginLeft:4,fontSize:10,color:df.color}}>{df.label==="Just Right"?"👌":df.label==="Easy"?"🟢":"🔴"}</span>}
-                  </span>
-                );})}
-              </div>
-              {s.note&&<div style={{marginTop:6,fontSize:12,color:T.dim,fontStyle:"italic"}}>📝 {s.note}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-
-// ─── ANALYTICS VIEW ──────────────────────────────────────────────────────────
-function MiniWeightChart({dataPoints}) {
-  const maxW = Math.max(...dataPoints.map(d=>d.weight));
-  const minW = Math.min(...dataPoints.map(d=>d.weight));
-  const range = maxW - minW || 1;
-  return (
-    <div style={{display:"flex",alignItems:"flex-end",gap:3,paddingTop:8}}>
-      {dataPoints.map((d,i)=>(
-        <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-          <div style={{width:"100%",maxWidth:28,height:Math.max(4,Math.round(8+((d.weight-minW)/range)*56)),background:T.accentGradient,borderRadius:"3px 3px 0 0"}} />
-          <span style={{fontSize:9,color:T.dim,fontFamily:T.mono,whiteSpace:"nowrap"}}>{d.weight}</span>
-          <span style={{fontSize:8,color:T.dim,whiteSpace:"nowrap"}}>{(d.dateLabel||d.date||"").slice(-5)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function BodyweightChart({data}) {
-  if(data.length<2) return null;
-  const maxW=Math.max(...data.map(d=>d.weight));
-  const minW=Math.min(...data.map(d=>d.weight));
-  const range=maxW-minW||1;
-  const pad=20,w=300,h=120;
-  const pts=data.map((d,i)=>({
-    x:pad+(i/(data.length-1))*(w-pad*2),
-    y:pad+(1-(d.weight-minW)/range)*(h-pad*2),
-    weight:d.weight,date:d.date
-  }));
-  const linePath=pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.y}`).join(' ');
-  return (
-    <div style={{width:"100%",overflow:"hidden"}}>
-      <svg viewBox={`0 0 ${w} ${h}`} style={{width:"100%",height:h}}>
-        <defs><linearGradient id="bwGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor={T.accent}/><stop offset="100%" stopColor={T.accent}/></linearGradient></defs>
-        <path d={linePath} fill="none" stroke={T.accent} strokeWidth="2"/>
-        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill={T.accent} stroke={T.bg} strokeWidth="2"/>)}
-      </svg>
-      <div style={{display:"flex",justifyContent:"space-between",padding:"4px 8px",fontSize:10,color:T.dim}}>
-        <span>{data[0].date.slice(5)}</span><span>{data[data.length-1].date.slice(5)}</span>
-      </div>
-    </div>
-  );
-}
-
-function AnalyticsView({history, exerciseCatalog}) {
-  const [showAllEx, setShowAllEx] = useState(false);
-  const [expandedEx, setExpandedEx] = useState(null);
-  const [exFilter, setExFilter] = useState("All");
-  const [selectedExercise, setSelectedExercise] = useState(null);
-
-  const entries = useMemo(()=>Object.values(history).sort((a,b)=>new Date(a.date)-new Date(b.date)),[history]);
-
-  // ── Summary stats ──
-  const {totalSessions,totalVol,avgDur,streak,weekKeys,weekMap,curWeekKey} = useMemo(()=>{
-    const totalSessions=entries.length;
-    const totalVol=entries.reduce((a,e)=>a+Object.values(e.sets||{}).flat().reduce((s,x)=>s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0),0);
-    const durEntries=entries.filter(e=>e.duration>0);
-    const avgDur=durEntries.length?Math.round(durEntries.reduce((a,e)=>a+e.duration,0)/durEntries.length/60):null;
-    const weekMap={};
-    entries.forEach(e=>{
-      if(!e.date) return;
-      const p=e.date.split('-');const d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));if(isNaN(d))return;
-      const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());
-      const k=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;
-      weekMap[k]=(weekMap[k]||0)+1;
-    });
-    const weekKeys=Object.keys(weekMap).sort((a,b)=>b.localeCompare(a));
-    // Determine current week key — skip it for streak (it's incomplete)
-    const now=new Date();const curSun=new Date(now);curSun.setDate(now.getDate()-now.getDay());
-    const curWeekKey=`${curSun.getFullYear()}-${String(curSun.getMonth()+1).padStart(2,'0')}-${String(curSun.getDate()).padStart(2,'0')}`;
-    let streak=0;
-    for(const k of weekKeys){if(k===curWeekKey)continue;if(weekMap[k]>=4){streak++;}else break;}
-    return {totalSessions,totalVol,avgDur,streak,weekKeys,weekMap,curWeekKey};
-  },[entries]);
-
-  // ── Weekly volumes ──
-  const weekVols = useMemo(()=>{
-    return weekKeys.slice(0,8).map(k=>{
-      const vol=entries.filter(e=>{
-        if(!e.date)return false;
-        const p=e.date.split('-');const d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
-        const sun=new Date(d);sun.setDate(d.getDate()-d.getDay());
-        const wk=`${sun.getFullYear()}-${String(sun.getMonth()+1).padStart(2,'0')}-${String(sun.getDate()).padStart(2,'0')}`;
-        return wk===k;
-      }).reduce((a,e)=>a+Object.values(e.sets||{}).flat().reduce((s,x)=>s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0),0);
-      const [sy,sm,sd]=k.split('-').map(Number);const sun=new Date(sy,sm-1,sd);const en=new Date(sun);en.setDate(sun.getDate()+6);
-      const f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
-      return {key:k,label:`${f(sun)}–${f(en)}`,vol,sessions:weekMap[k]||0};
-    });
-  },[entries,weekKeys,weekMap]);
-  const maxWeekVol=Math.max(...weekVols.map(w=>w.vol),1);
-
-  // ── Exercise progression ──
-  const {exList,singleSessions,allCategories} = useMemo(()=>{
-    const exProg={};
-    entries.forEach(entry=>{
-      Object.entries(entry.sets||{}).forEach(([exName,sets])=>{
-        if(!sets.length)return;
-        const maxW=Math.max(...sets.map(s=>parseFloat(s.weight)||0));
-        const maxR=Math.max(...sets.map(s=>parseInt(s.reps)||0));
-        if(!exProg[exName])exProg[exName]=[];
-        exProg[exName].push({date:entry.date,dateLabel:entry.dateLabel,weight:maxW,reps:maxR});
-      });
-    });
-    const catMap={};(exerciseCatalog||[]).forEach(e=>{catMap[e.name.toLowerCase()]=e.category||"Other";});
-    const getCategory=name=>catMap[name.toLowerCase()]||"Other";
-    const exList=Object.entries(exProg)
-      .filter(([,pts])=>pts.length>=2&&pts[pts.length-1].weight>0&&pts[0].weight>0)
-      .map(([name,pts])=>{
-        const first=pts[0],last=pts[pts.length-1];
-        const diff=last.weight-first.weight;
-        const pct=first.weight>0?Math.round((diff/first.weight)*100):0;
-        return {name,first,last,diff,pct,pts,category:getCategory(name)};
-      })
-      .sort((a,b)=>Math.abs(b.pct)-Math.abs(a.pct)||b.pct-a.pct);
-    const singleSessions=Object.entries(exProg)
-      .filter(([,pts])=>pts.length===1&&pts[0].weight>0)
-      .map(([name,pts])=>({name,pts,category:getCategory(name)}));
-    const allCategories=["All",...Array.from(new Set([...exList,...singleSessions].map(e=>e.category))).sort()];
-    return {exList,singleSessions,allCategories};
-  },[entries,exerciseCatalog]);
-
-  const filteredEx=exFilter==="All"?exList:exList.filter(e=>e.category===exFilter);
-  const filteredSingle=exFilter==="All"?singleSessions:singleSessions.filter(e=>e.category===exFilter);
-  const displayEx=showAllEx?filteredEx:filteredEx.slice(0,10);
-
-  // ── Bodyweight ──
-  const bwData=useMemo(()=>Object.values(history).filter(e=>e.checkIn?.bodyweight).map(e=>({date:e.date,weight:parseFloat(e.checkIn.bodyweight)})).sort((a,b)=>new Date(a.date)-new Date(b.date)),[history]);
-
-  const card={background:T.surface,borderRadius:12,padding:16,margin:"8px 16px",border:`1px solid ${T.border}`};
-  const sectionHdr={fontSize:11,fontWeight:600,color:T.dim,letterSpacing:1,textTransform:"uppercase",marginTop:24,marginBottom:12};
-
-  const thisWeekSessions=weekMap[curWeekKey]||0;
-
-  if(selectedExercise) return <ExerciseDetailOverlay exName={selectedExercise} history={history} onClose={()=>setSelectedExercise(null)}/>;
-
-  return (
-    <div style={{paddingBottom:16}}>
-
-      {/* ── Exercise Progression (TOP) ── */}
-      <div style={{...card}}>
-        <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:4}}>Exercise Progression</div>
-        <div style={{fontSize:11,color:T.dim,marginBottom:12}}>Max weight per session · tap to expand</div>
-
-        {/* Category filter pills */}
-        {allCategories.length>1&&(
-          <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:8,marginBottom:8,scrollbarWidth:"none"}}>
-            {allCategories.map(cat=>(
-              <button key={cat} onClick={()=>setExFilter(cat)} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:exFilter===cat?600:400,background:exFilter===cat?T.accentGradient:T.surface2,color:exFilter===cat?"#fff":T.dim,border:"none",cursor:"pointer",fontFamily:T.font,whiteSpace:"nowrap"}}>{cat}</button>
-            ))}
-          </div>
-        )}
-
-        {displayEx.map(({name,first,last,diff,pct,pts})=>{
-          const isPos=diff>0,isNeg=diff<0;
-          const col=isPos?T.green:isNeg?T.red:T.dim;
-          const arrow=isPos?"↑":isNeg?"↓":"→";
-          return(
-            <div key={name} onClick={()=>setSelectedExercise(name)} style={{borderTop:`1px solid ${T.border}`,paddingTop:12,marginTop:12,cursor:"pointer"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
-                <span style={{fontSize:13,fontWeight:600,color:T.text,flex:1,marginRight:8}}>{name}</span>
-                <span style={{fontSize:13,fontWeight:700,color:col,fontFamily:T.mono,flexShrink:0,display:"flex",alignItems:"center",gap:4}}>{isPos?"+":""}{pct}% {arrow}</span>
-              </div>
-              <div style={{display:"flex",gap:16}}>
-                <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>First · {first.dateLabel||first.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{first.weight}lb × {first.reps}</div></div>
-                <div><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Latest · {last.dateLabel||last.date.slice(5)}</div><div style={{fontSize:12,color:T.sub,fontFamily:T.mono}}>{last.weight}lb × {last.reps}</div></div>
-                <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:10,color:T.dim,marginBottom:1}}>Δ weight</div><div style={{fontSize:12,fontWeight:600,color:col,fontFamily:T.mono}}>{isPos?"+":""}{diff.toFixed(diff%1===0?0:1)}lb</div></div>
-              </div>
-            </div>
-          );
-        })}
-
-        {filteredEx.length>10&&(
-          <button onClick={()=>setShowAllEx(v=>!v)} style={{width:"100%",marginTop:14,padding:"9px",background:"transparent",border:`1px solid ${T.border}`,color:T.sub,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:T.font}}>
-            {showAllEx?`Show Less ▲`:`Show All ${filteredEx.length} ▼`}
-          </button>
-        )}
-
-        {filteredSingle.map(({name,pts})=>(
-          <div key={name} onClick={()=>setSelectedExercise(name)} style={{borderTop:`1px solid ${T.border}`,paddingTop:10,marginTop:10,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
-            <div>
-              <span style={{fontSize:13,fontWeight:600,color:T.text}}>{name}</span>
-              <div style={{fontSize:11,color:T.dim,marginTop:2}}>{pts[0].weight}lb × {pts[0].reps} · {pts[0].dateLabel||pts[0].date.slice(5)}</div>
-            </div>
-            <span style={{fontSize:10,fontWeight:700,color:T.accent,background:T.accentDim,border:`1px solid ${T.accent}33`,borderRadius:4,padding:"2px 6px",flexShrink:0}}>New</span>
-          </div>
-        ))}
-
-        {filteredEx.length===0&&filteredSingle.length===0&&(
-          <div style={{textAlign:"center",padding:"24px 0",color:T.dim,fontSize:13}}>No exercises in this category yet</div>
-        )}
-      </div>
-
-      {/* ── Overview Stats ── */}
-      <div style={{...card}}>
-        <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:14}}>Overview</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)",border:streak>0?"1.5px solid #e8946444":`1px solid ${T.border}`}}>
-            <div style={{fontSize:streak>0?20:18,marginBottom:4}}>{streak>0?"🔥":"⬜"}</div>
-            <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{streak} wk{streak!==1?"s":""}</div>
-            <div style={{fontSize:11,color:T.dim,marginTop:4}}>Weekly Streak</div>
-            <div style={{fontSize:10,color:T.dim,opacity:0.7}}>{streak>0?`${thisWeekSessions} sess this week`:"No 4-session weeks lately"}</div>
-          </div>
-          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
-            <div style={{fontSize:18,marginBottom:4}}>📊</div>
-            <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{totalSessions}</div>
-            <div style={{fontSize:11,color:T.dim,marginTop:4}}>Total Sessions</div>
-            <div style={{fontSize:10,color:T.dim,opacity:0.7}}>all time</div>
-          </div>
-          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
-            <div style={{fontSize:18,marginBottom:4}}>💪</div>
-            <div style={{fontSize:28,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{totalVol>=1000?`${(totalVol/1000).toFixed(0)}k`:`${totalVol}`}<span style={{fontSize:14,fontWeight:500,color:T.dim,marginLeft:3}}>lb</span></div>
-            <div style={{fontSize:11,color:T.dim,marginTop:4}}>Total Volume</div>
-            <div style={{fontSize:10,color:T.dim,opacity:0.7}}>all time</div>
-          </div>
-          <div style={{background:T.surface2,borderRadius:10,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
-            <div style={{fontSize:18,marginBottom:4}}>⏱</div>
-            <div style={{fontSize:20,fontWeight:700,color:T.text,fontFamily:T.mono,lineHeight:1}}>{avgDur?`${avgDur}`:"—"}<span style={{fontSize:14,fontWeight:500,color:T.dim,marginLeft:3}}>{avgDur?"min":""}</span></div>
-            <div style={{fontSize:11,color:T.dim,marginTop:4}}>Avg Duration</div>
-            <div style={{fontSize:10,color:T.dim,opacity:0.7}}>{avgDur?"per session":"not enough data"}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Weekly Volume ── */}
-      {weekVols.length>0&&(
-        <div style={{...card}}>
-          <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:14}}>
-            {weekVols.length===1?"This Week":`Last ${weekVols.length} Weeks`} — Volume
-          </div>
-          {weekVols.map((wk,i)=>{
-            const prev=weekVols[i+1];
-            const pctChange=prev&&prev.vol>0?Math.round(((wk.vol-prev.vol)/prev.vol)*100):null;
-            const isUp=pctChange!==null&&pctChange>5;
-            const isDown=pctChange!==null&&pctChange<-5;
-            const barBg=isUp?`linear-gradient(90deg,${T.green}60,${T.green}30)`:isDown?`linear-gradient(90deg,${T.red}60,${T.red}30)`:T.accentGradient;
-            const barW=Math.max(4,Math.round((wk.vol/maxWeekVol)*100));
-            const isThisWeek=i===0;
-            return(
-              <div key={wk.key} style={{marginBottom:12}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                  <span style={{fontSize:12,color:isThisWeek?T.text:T.sub,fontWeight:isThisWeek?600:400,flexShrink:0,minWidth:110}}>{isThisWeek?"This Week":wk.label}</span>
-                  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                    <span style={{fontSize:13,fontWeight:600,color:T.text,fontFamily:T.mono}}>{wk.vol>=1000?`${(wk.vol/1000).toFixed(1)}k`:`${wk.vol}`}</span>
-                    {pctChange!==null&&<span style={{fontSize:11,fontWeight:600,color:isUp?T.green:isDown?T.red:T.dim,fontFamily:T.mono,minWidth:40,textAlign:"right"}}>{isUp?"+":""}{pctChange}%</span>}
-                  </div>
-                </div>
-                <div style={{height:18,background:T.surface3,borderRadius:4,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${barW}%`,background:barBg,borderRadius:4,transition:"width .4s ease"}} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── Bodyweight Trend ── */}
-      {bwData.length>0&&(
-        <div style={{...card}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-            <div style={{fontSize:14,fontWeight:700,color:T.text}}>Bodyweight Trend</div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:16,fontWeight:700,color:T.text,fontFamily:T.mono}}>{bwData[bwData.length-1].weight} <span style={{fontSize:12,fontWeight:400,color:T.dim}}>lb</span></div>
-              {bwData.length>=2&&(()=>{const delta=bwData[bwData.length-1].weight-bwData[0].weight;const col=delta<0?T.green:delta>0?T.red:T.dim;return <div style={{fontSize:12,fontWeight:600,color:col,fontFamily:T.mono}}>{delta>0?"+":""}{delta.toFixed(1)} lb</div>;})()}
-            </div>
-          </div>
-          {bwData.length>=2?<BodyweightChart data={bwData}/>:<div style={{fontSize:12,color:T.dim,textAlign:"center",padding:"12px 0"}}>Log your bodyweight in post-workout check-in to see trends here</div>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── FINISH MODAL ────────────────────────────────────────────────────────────
-function StaleDraftModal({wst,setCount,volume,onResume,onSaveAsIs,onDiscard}) {
-  const [discardConfirm,setDiscardConfirm] = useState(false);
-  const draftDateStr = new Date(wst).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
-  const btn = (label,onClick,style)=>(<button onClick={onClick} style={{width:"100%",padding:"13px 0",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:T.font,border:"none",...style}}>{label}</button>);
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.80)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:T.surface,border:`1px solid ${T.border2}`,borderRadius:18,padding:"24px 20px",width:"100%",maxWidth:360,boxShadow:"0 20px 60px rgba(0,0,0,0.6)"}}>
-        <div style={{fontSize:17,fontWeight:800,color:T.text,marginBottom:8}}>⚠ Unfinished workout from {draftDateStr}</div>
-        <div style={{fontSize:13,color:T.sub,marginBottom:8}}>You have an unsaved workout from a previous day. What do you want to do?</div>
-        <div style={{fontSize:12,color:T.warning,marginBottom:12,fontWeight:600}}>If you log today's workout into this draft, it will save under the OLD date.</div>
-        <div style={{fontSize:13,color:T.dim,marginBottom:20,fontFamily:T.mono,background:T.surface2,borderRadius:8,padding:"8px 12px"}}>{setCount} sets · {volume.toLocaleString()} lb</div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {btn("Resume this session",onResume,{background:T.surface2,color:T.text})}
-          {btn("Save as-is",onSaveAsIs,{background:"rgba(232,148,100,0.18)",color:T.accent,border:"1px solid rgba(232,148,100,0.35)"})}
-          {discardConfirm
-            ? btn(`Sure? This deletes ${setCount} sets`,onDiscard,{background:T.red,color:"#fff"})
-            : btn("Discard",()=>setDiscardConfirm(true),{background:"rgba(232,148,100,0.10)",color:T.accent,border:"1px solid rgba(232,148,100,0.30)"})
-          }
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FinishModal({energy,setEnergy,sleep,setSleep,bodyweight,setBodyweight,notes,setNotes,onConfirm,onSkip,onCancel}) {
-  const labels={1:"Dead",2:"Low",3:"OK",4:"Good",5:"Great"};
-  const rb=(val,cur,setter,col)=>(<button key={val} onClick={()=>setter(val)} style={{width:44,height:44,borderRadius:10,background:cur===val?col:T.surface,border:`1.5px solid ${cur===val?col:T.border}`,color:cur===val?"#fff":T.sub,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:T.font,display:"flex",alignItems:"center",justifyContent:"center"}}>{val}</button>);
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16,animation:"fadeIn .2s"}}>
-      <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:380,boxShadow:"0 16px 48px rgba(0,0,0,0.5)"}}>
-        <div style={{fontSize:22,fontWeight:800,color:T.accent,marginBottom:4}}>Post-Workout</div>
-        <div style={{fontSize:13,color:T.dim,marginBottom:24}}>Quick check-in before saving</div>
-        <div style={{marginBottom:22}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><span style={{fontSize:12,color:T.sub,fontWeight:500}}>Energy Level</span>{energy>0&&<span style={{fontSize:12,color:T.accent,fontWeight:600}}>{labels[energy]}</span>}</div><div style={{display:"flex",gap:8}}>{[1,2,3,4,5].map(v=>rb(v,energy,setEnergy,T.accent))}</div></div>
-        <div style={{marginBottom:22}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><span style={{fontSize:12,color:T.sub,fontWeight:500}}>Sleep Quality</span>{sleep>0&&<span style={{fontSize:12,color:T.green,fontWeight:600}}>{labels[sleep]}</span>}</div><div style={{display:"flex",gap:8}}>{[1,2,3,4,5].map(v=>rb(v,sleep,setSleep,T.green))}</div></div>
-        <div style={{marginBottom:16}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Bodyweight (lb) — optional</div><input type="number" inputMode="decimal" step="0.1" value={bodyweight} onChange={e=>setBodyweight(e.target.value)} placeholder="e.g. 210" style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:16,fontFamily:T.font,outline:"none",textAlign:"center"}} /></div>
-        <div style={{marginBottom:24}}><div style={{fontSize:12,color:T.sub,fontWeight:500,marginBottom:6}}>Notes — optional</div><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Felt strong, shoulder tight, etc." rows={2} style={{width:"100%",background:T.bg,border:`1.5px solid ${T.border}`,color:T.text,padding:"12px 14px",borderRadius:10,fontSize:14,fontFamily:T.font,outline:"none",resize:"vertical"}} /></div>
-        <button onClick={onConfirm} className="cta-btn" style={{width:"100%",padding:14,background:T.accentGradient,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:T.font,marginBottom:8}}>Save Workout</button>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={onSkip} style={{flex:1,padding:12,background:T.surface2,border:`1.5px solid ${T.border}`,color:T.sub,borderRadius:10,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:T.font}}>Skip check-in</button>
-          <button onClick={onCancel} style={{flex:1,padding:12,background:"transparent",border:`1.5px solid ${T.border}`,color:T.dim,borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:T.font}}>Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
+// ─────────────────────────────────────────────────────────────────────────────
+// APPEND FROM YOUR REPO, UNCHANGED: ExerciseDetailOverlay, MiniWeightChart,
+// BodyweightChart, AnalyticsView, StaleDraftModal, FinishModal.
+// No fixes were needed in those components — the Analytics locale-date exclusion
+// is fixed upstream by normalizeHistory(), and all date keys they consume are
+// now local-time ISO. Delete this comment block after pasting them in.
+// ─────────────────────────────────────────────────────────────────────────────
